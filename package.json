@@ -1,0 +1,44 @@
+{
+  "name": "jimili5",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/run-nuxt.mjs build",
+    "dev": "node scripts/run-nuxt.mjs dev",
+    "generate": "node scripts/run-nuxt.mjs generate",
+    "preview": "node scripts/run-nuxt.mjs preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@heroicons/vue": "2.2.0",
+    "@nuxtjs/tailwindcss": "6.14.0",
+    "@pinia/nuxt": "0.11.3",
+    "@popperjs/core": "2.11.8",
+    "@prisma/adapter-pg": "7.3.0",
+    "@prisma/extension-accelerate": "3.0.1",
+    "echarts": "6.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "jszip": "3.10.1",
+    "markdown-it": "^14.1.1",
+    "nuxt": "4.3.0",
+    "nuxt-echarts": "1.0.1",
+    "nuxt-openapi-docs-module": "5.3.2",
+    "openai": "^6.21.0",
+    "pinia": "^3.0.4",
+    "v-calendar": "3.1.2",
+    "vue": "3.5.27",
+    "vue-router": "4.6.4",
+    "vue-toastification": "2.0.0-rc.5",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "@prisma/client": "7.3.0",
+    "@types/jsonwebtoken": "9.0.10",
+    "@types/markdown-it": "^14.1.2",
+    "@types/swagger-jsdoc": "6.0.4",
+    "prisma": "7.3.0",
+    "swagger-jsdoc": "6.2.8",
+    "swagger-ui-express": "5.0.1"
+  },
+  "packageManager": "pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264"
+}

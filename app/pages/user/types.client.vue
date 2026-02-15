@@ -1,0 +1,510 @@
+<template>
+  <div class="p-2 md:p-4 bg-surface-muted min-h-full">
+    <!-- 筛选抽屉 (全设备通用) -->
+    <div
+      v-if="searchPanelVisible"
+      class="fixed inset-0 bg-black bg-opacity-50 z-50"
+      @click="searchPanelVisible = false"
+    >
+      <div
+        class="fixed right-0 top-0 h-full w-full max-w-md bg-surface shadow-xl transform transition-transform duration-300 p-2 md:p-4 overflow-y-auto"
+        @click.stop
+      >
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-semibold text-foreground">筛选条件</h3>
+          <button
+            @click="searchPanelVisible = false"
+            class="text-muted hover:text-foreground hover:bg-surface-muted p-2 rounded-lg transition-colors"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2"
+              >类型分类</label
+            >
+            <select
+              v-model="typeQueryRef.type"
+              class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            >
+              <option value="">全部</option>
+              <option
+                v-for="option in typerOptions"
+                :key="option"
+                :value="option"
+              >
+                {{ option }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2"
+              >类型名称</label
+            >
+            <input
+              v-model="typeQueryRef.value"
+              type="text"
+              placeholder="请输入类型名称..."
+              class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            />
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="flex gap-3 pt-4 border-t border-border">
+            <button
+              @click="clearFilters"
+              class="flex-1 px-4 py-2 bg-secondary-200 hover:bg-secondary-300 dark:bg-secondary-600 dark:hover:bg-secondary-500 text-foreground rounded-lg transition-colors duration-200 font-medium"
+            >
+              清空筛选
+            </button>
+            <button
+              @click="searchPanelVisible = false"
+              class="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors duration-200 font-medium"
+            >
+              确定
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作栏 -->
+    <div
+      class="bg-surface rounded-lg shadow-sm border border-border p-2 mb-2 md:mb-4"
+    >
+      <div class="flex flex-col sm:flex-row gap-2 justify-between">
+        <!-- 左侧操作按钮 -->
+        <div class="flex flex-wrap gap-2">
+          <button
+            @click="showConfig"
+            class="px-3 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
+          >
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"
+              ></path>
+            </svg>
+            CSV导入映射配置
+          </button>
+
+          <button
+            @click="hisFlowTypeConvert()"
+            class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
+          >
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+            历史数据映射
+          </button>
+        </div>
+
+        <!-- 右侧筛选按钮 -->
+        <div>
+          <button
+            @click="searchPanelVisible = !searchPanelVisible"
+            class="px-3 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
+          >
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"
+              ></path>
+            </svg>
+            筛选
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据分组展示 -->
+    <div
+      class="bg-surface shadow-sm border border-border overflow-hidden rounded-lg"
+    >
+      <!-- 加载状态 -->
+      <div v-if="loading" class="flex justify-center items-center py-12">
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"
+        ></div>
+        <span class="ml-2 text-muted">加载中...</span>
+      </div>
+
+      <!-- 两组 Tag 展示 -->
+      <div
+        v-if="!loading && types.length"
+        class="p-4 md:p-6 space-y-8 max-h-[80vh] overflow-y-auto"
+      >
+        <!-- 第一组：收入类型/支出类型 -->
+        <div>
+          <h3 class="text-sm font-medium text-muted mb-3">
+            收入类型 / 支出类型
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="item in typeGroupFlow"
+              :key="`${item.type}-${item.value}`"
+              type="button"
+              @click="openUpdateDialog(item)"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-800/50 transition-colors border border-primary-200 dark:border-primary-700/50"
+              title="点击编辑"
+            >
+              <span>{{ item.value }}</span>
+              <svg
+                class="w-3.5 h-3.5 opacity-70"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 第二组：支付方式/收款方式 -->
+        <div>
+          <h3 class="text-sm font-medium text-muted mb-3">
+            支付方式 / 收款方式
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="item in typeGroupPay"
+              :key="`${item.type}-${item.value}`"
+              type="button"
+              @click="openUpdateDialog(item)"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-secondary-100 text-secondary-700 dark:bg-secondary-900/40 dark:text-secondary-300 hover:bg-secondary-200 dark:hover:bg-secondary-800/50 transition-colors border border-secondary-200 dark:border-secondary-700/50"
+              title="点击编辑"
+            >
+              <span>{{ item.value }}</span>
+              <svg
+                class="w-3.5 h-3.5 opacity-70"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 空状态 -->
+      <div v-if="!loading && types.length === 0" class="text-center py-12">
+        <div class="text-muted mb-4">
+          <svg
+            class="mx-auto h-12 w-12"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-foreground mb-2">暂无类型数据</h3>
+        <p class="text-muted">请先添加一些流水记录，类型数据会自动生成</p>
+      </div>
+    </div>
+
+    <!-- 编辑对话框 -->
+    <div
+      v-if="typeDialog.visible"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      @click="cancelEdit"
+    >
+      <div
+        class="bg-surface rounded-lg shadow-xl w-full max-w-md transform transition-all"
+        @click.stop
+      >
+        <!-- 对话框标题 -->
+        <div class="px-6 py-4 border-b border-border">
+          <h3 class="text-lg font-semibold text-foreground">
+            {{ typeDialog.title }}
+          </h3>
+          <p class="text-sm text-pink-600 dark:text-pink-400 mt-1">
+            修改类型名称会自动修改关联的所有流水
+          </p>
+        </div>
+
+        <!-- 对话框内容 -->
+        <div class="px-6 py-4 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2"
+              >类型分类</label
+            >
+            <input
+              v-model="editType.type"
+              type="text"
+              disabled
+              class="w-full px-3 py-2 border border-border rounded-lg bg-surface-muted text-muted"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2"
+              >原类型名称</label
+            >
+            <input
+              v-model="editType.oldValue"
+              type="text"
+              disabled
+              class="w-full px-3 py-2 border border-border rounded-lg bg-surface-muted text-muted"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-foreground mb-2"
+              >新类型名称</label
+            >
+            <input
+              v-model="editType.value"
+              type="text"
+              autofocus
+              class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="请输入新的类型名称"
+            />
+          </div>
+        </div>
+
+        <!-- 对话框操作按钮 -->
+        <div
+          class="px-6 py-4 border-t border-gray-200 dark:border-gray-600 flex justify-center gap-4"
+        >
+          <button
+            @click="cancelEdit"
+            class="px-4 py-2 bg-secondary-300 hover:bg-secondary-400 text-foreground rounded-lg transition-colors duration-200 font-medium"
+          >
+            取消
+          </button>
+          <button
+            @click="confirmTypeChange()"
+            class="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors duration-200 font-medium"
+          >
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+definePageMeta({
+  layout: "public",
+  middleware: ["auth"],
+});
+
+import type { Typer } from "~/utils/model";
+import { typeConvert } from "~/utils/flowConvert";
+import { showSetConvertDialog } from "~/utils/flag";
+import { typeRelationStore } from "~/utils/store";
+
+// 加载蒙版显示控制器
+const searchPanelVisible = ref(false);
+const loading = ref(true);
+const typerOptions = ref<string[]>(["支出类型/收入类型", "支付方式/收款方式"]);
+
+// 列表数据绑定
+const types = ref<Typer[]>([]);
+const allTypes = ref<Typer[]>([]);
+
+// 分组：收入/支出类型 与 支付/收款方式
+const TYPE_FLOW = "支出类型/收入类型";
+const TYPE_PAY = "支付方式/收款方式";
+const typeGroupFlow = computed(() =>
+  types.value.filter((t) => t.type === TYPE_FLOW),
+);
+const typeGroupPay = computed(() =>
+  types.value.filter((t) => t.type === TYPE_PAY),
+);
+
+const typeQueryRef = ref<Typer>({
+  value: "",
+});
+
+const editType = ref<Typer>({
+  type: "",
+  value: "",
+});
+
+const typeDialog = ref({
+  visible: false,
+  title: "流水类型批量改名",
+});
+
+const openUpdateDialog = (row: Typer) => {
+  editType.value.flowType = row.flowType;
+  editType.value.type = row.type;
+  editType.value.oldValue = row.value;
+  editType.value.value = "";
+  typeDialog.value.visible = true;
+};
+
+const confirmTypeChange = () => {
+  if (!editType.value.value) return;
+  doApi
+    .post<any>("api/entry/flow/type/update", editType.value)
+    .then((res) => {
+      // console.log(res);
+      if (res && res.count > 0) {
+        Alert.success("修改成功，同步修改" + res.count + "条流水数据");
+      } else {
+        Alert.error("修改失败");
+      }
+      typeDialog.value.visible = false;
+      doQuery();
+    })
+    .catch((err) => {
+      Alert.error("修改失败");
+      console.log(err);
+    });
+};
+
+const cancelEdit = () => {
+  typeDialog.value.visible = false;
+};
+
+const doQuery = () => {
+  loading.value = true;
+  // console.log(typeQueryRef.value);
+  doApi
+    .post<Typer[]>("api/entry/flow/type/getAll", {
+      ...typeQueryRef.value,
+    })
+    .then((res) => {
+      // console.log(res);
+      if (res) {
+        // Alert.success("查询成功");
+        types.value = res;
+        allTypes.value = res;
+      }
+    })
+    .catch((err) => {
+      Alert.error("查询出错");
+      console.log(err);
+    })
+    .finally(() => {
+      loading.value = false;
+    });
+};
+
+onMounted(() => {
+  doQuery();
+});
+
+watch(typeQueryRef.value, () => {
+  types.value = allTypes.value.filter((type) => {
+    return (
+      type.type?.indexOf(typeQueryRef.value.type || "") !== -1 &&
+      type.value?.indexOf(typeQueryRef.value.value || "") !== -1
+    );
+  });
+});
+
+const hisFlowTypeConvert = async () => {
+  let doConvert: string = "";
+  let hasConversion = false; // Track if any conversion has occurred
+  console.log(types.value);
+  console.log(typeRelationStore.value);
+  for (let i = 0; i < types.value.length; i++) {
+    let t = types.value[i];
+    if (t && t.type === "支出类型/收入类型") {
+      t.oldValue = t.value;
+      console.log(t.value);
+      const newValue = typeConvert(t.value);
+      console.log(newValue);
+      if (t.value !== newValue) {
+        // Only proceed if the value has changed
+        t.value = newValue;
+        doConvert += `【${t.oldValue}】-->【${t.value}】`;
+        const res = await doApi.post<any>("api/entry/flow/type/update", {
+          ...t,
+        });
+
+        if (res && res.count > 0) {
+          doConvert += " success\n";
+        } else {
+          doConvert += " fail\n";
+        }
+        hasConversion = true; // Mark that a conversion has occurred
+      }
+    }
+  }
+  if (!hasConversion) {
+    Alert.info("没有类型需要转换");
+  } else {
+    Confirm.open({
+      title: "转换结果如下",
+      content: doConvert,
+      confirmText: "确定",
+      confirm: () => {},
+    });
+  }
+  doQuery();
+};
+
+const showConfig = () => {
+  showSetConvertDialog.value = true;
+};
+
+const clearFilters = () => {
+  typeQueryRef.value.type = "";
+  typeQueryRef.value.value = "";
+};
+</script>
+
+<style scoped></style>

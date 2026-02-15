@@ -1,0 +1,7 @@
+NODE_ENV="development" # development, production
+DATABASE_URL="postgresql://postgres:123456@localhost:5432/jimili?schema=public"
+
+NUXT_APP_VERSION="4.3.11"
+NUXT_DATA_PATH="E:/Code/jimili/data"
+
+NUXT_AUTH_SECRET="auth123"
