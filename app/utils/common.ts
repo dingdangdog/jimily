@@ -101,11 +101,11 @@ export const dateFormater = (format: string, date: string | Date) => {
 };
 
 export const toGithub = () => {
-  window.open(`https://github.com/dingdangdog/jimili`, "_blank");
+  window.open(`https://github.com/dingdangdog/jimily`, "_blank");
 };
 
 export const toDocumentation = () => {
-  window.open("https://doc.jimili.oldmoon.top", "_blank");
+  window.open("https://doc.jimily.oldmoon.top", "_blank");
 };
 
 /**

@@ -159,11 +159,11 @@ onMounted(async () => {
 });
 
 const toDocumentation = () => {
-  window.open("https://doc.jimili.oldmoon.top", "_blank");
+  window.open("https://doc.jimily.oldmoon.top", "_blank");
 };
 
 const toGithub = () => {
-  window.open("https://github.com/dingdangdog/jimili", "_blank");
+  window.open("https://github.com/dingdangdog/jimily", "_blank");
 };
 </script>
 
@@ -173,7 +173,7 @@ const toGithub = () => {
     <Meta name="description" :content="SystemConfig?.description" />
     <Meta
       name="keywords"
-      :content="`jimili,记账本,私人记账,开源账本,dingdangdog,月上老狗,${SystemConfig?.keywords}`"
+      :content="`jimily,记账本,私人记账,开源账本,dingdangdog,月上老狗,${SystemConfig?.keywords}`"
     />
   </Head>
 

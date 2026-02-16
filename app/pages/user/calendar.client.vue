@@ -742,7 +742,7 @@ const exportCsv = () => {
 const downloadCsvTemplate = () => {
   const link = document.createElement("a");
   link.href = "/csvtemplate.csv";
-  link.download = "jimili模板.csv";
+  link.download = "jimily模板.csv";
   link.click();
 };
 

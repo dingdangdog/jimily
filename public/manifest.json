@@ -1,7 +1,7 @@
 {
-  "name": "jimili",
-  "short_name": "jimili",
-  "description": "jimili, 快速记账!",
+  "name": "jimily",
+  "short_name": "jimily",
+  "description": "jimily, 快速记账!",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",

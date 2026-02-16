@@ -24,7 +24,7 @@ FROM node:22-alpine3.21 AS runner
 
 LABEL author.name="DingDangDog"
 LABEL author.email="dingdangdogx@outlook.com"
-LABEL project.name="jimili"
+LABEL project.name="jimily"
 LABEL project.version="5"
 
 WORKDIR /app
@@ -39,7 +39,7 @@ RUN chmod +x entrypoint.sh
 # 预装prisma，可以提升容器启动速度，但镜像体积会大很多
 RUN npm install -g prisma@7.3.0
 
-ENV DATABASE_URL="postgresql://postgres:123456@localhost:5432/jimili?schema=public"
+ENV DATABASE_URL="postgresql://postgres:123456@localhost:5432/jimily?schema=public"
 
 ENV NODE_ENV="production"
 ENV NUXT_APP_VERSION="4.3.11"

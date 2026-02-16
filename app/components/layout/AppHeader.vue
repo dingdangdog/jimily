@@ -46,9 +46,9 @@ const showUserMenu = ref(false);
 
           <!-- Logo and brand -->
           <div class="items-center ml-2 md:ml-0 hidden sm:flex">
-            <img src="/logo.webp" alt="jimili" class="h-8 w-8" />
+            <img src="/logo.webp" alt="jimily" class="h-10 w-10" />
             <span class="ml-2 text-xl font-bold text-primary-600">
-              jimili
+              记米粒
             </span>
           </div>
         </div>

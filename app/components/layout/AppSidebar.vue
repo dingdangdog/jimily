@@ -156,15 +156,15 @@ const isActive = (itemPath: string | undefined) =>
 
 const handleNavigate = (menu: Menu) => {
   if (menu.path === "github") {
-    window.open("https://github.com/dingdangdog/jimili", "_blank");
+    window.open("https://github.com/dingdangdog/jimily", "_blank");
     return;
   } else if (menu.path === "documentation") {
     // 打开文档站，可以根据需要修改为实际的文档URL
-    window.open("https://doc.jimili.oldmoon.top", "_blank");
+    window.open("https://doc.jimily.oldmoon.top", "_blank");
     return;
   } else if (menu.path === "api-docs") {
     // 打开文档站，可以根据需要修改为实际的文档URL
-    window.open("https://doc.jimili.oldmoon.top/api-docs", "_blank");
+    window.open("https://doc.jimily.oldmoon.top/api-docs", "_blank");
     return;
   }
   // emit("navigate", menu.path || "calendar");
@@ -203,8 +203,8 @@ const handleNavigate = (menu: Menu) => {
         class="flex items-center justify-between p-2 md:p-4 border-b border-border"
       >
         <div class="flex items-center">
-          <img src="/logo.webp" alt="jimili" class="h-8 w-8" />
-          <span class="ml-2 text-lg font-bold text-primary-600">jimili</span>
+          <img src="/logo.webp" alt="jimily" class="h-8 w-8" />
+          <span class="ml-2 text-lg font-bold text-primary-600">jimily</span>
         </div>
         <button
           @click="emit('close')"

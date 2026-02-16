@@ -4,7 +4,7 @@ import type { Options } from "swagger-jsdoc";
 const swaggerDefinition = {
   // openapi: "3.0.0",
   info: {
-    title: "jimili API",
+    title: "jimily API",
     version: "4.3.11",
     description:
       "接口文档需要手动维护，因此不能保证完全正确，请以接口实际效果为准！",

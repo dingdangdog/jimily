@@ -53,9 +53,6 @@ onMounted(() => {
   if (!useUserStore().user) {
     getUserInfo();
   }
-
-  // Check for version updates
-  checkVersion();
 });
 
 onUnmounted(() => {
@@ -100,45 +97,6 @@ const openJimi = () => {
     showJimiAssistant.value = true;
   }
 };
-
-// Version check (keeping original functionality)
-const checkVersion = () => {
-  fetch("https://api.github.com/repos/dingdangdog/jimili/releases/latest")
-    .then((res) => res.json())
-    .then((data) => {
-      const latestVersion = data.tag_name.replace("v", "");
-      const currentVersion = SystemConfig.value?.version;
-      const newVersionNotify = localStorage.getItem(latestVersion);
-      if (newVersionNotify) {
-        return;
-      }
-      if (currentVersion && latestVersion && currentVersion !== latestVersion) {
-        console.log(`New version available: ${latestVersion}`);
-        Confirm.open({
-          title: "提示",
-          content: `当前版本：${currentVersion}，最新版本：${latestVersion}，可前往Github查看更新内容！`,
-          confirmText: "前往Github",
-          cancelText: "不再提示",
-          closeText: "知道了",
-          confirm: () => {
-            window.open(
-              `https://github.com/dingdangdog/jimili/releases`,
-              "_blank",
-            );
-          },
-          cancel: () => {
-            localStorage.setItem(latestVersion, "true");
-          },
-          close: () => {},
-        });
-      } else {
-        console.log("You are using the latest version.");
-      }
-    })
-    .catch((error) => {
-      console.error("Error fetching version data:", error);
-    });
-};
 </script>
 
 <template>
@@ -147,7 +105,7 @@ const checkVersion = () => {
     <Meta name="description" :content="SystemConfig?.description ?? ''" />
     <Meta
       name="keywords"
-      :content="`jimili,记账本,私人记账,开源账本,dingdangdog,月上老狗,${SystemConfig?.keywords}`"
+      :content="`jimily,记账本,私人记账,开源账本,dingdangdog,月上老狗,${SystemConfig?.keywords}`"
     />
   </Head>
 

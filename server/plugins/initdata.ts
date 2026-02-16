@@ -10,9 +10,10 @@ export default defineNitroPlugin((nitroApp) => {
       await prisma.systemConfig.create({
         data: {
           id: 1,
-          title: "jimili",
-          description: "jimili",
-          keywords: "jimili",
+          title: "记米粒",
+          description: "记米粒是快速记账的工具，支持AI记账和丰富的分析功能",
+          keywords:
+            "记米粒,jimily,快速记账,记账,AI记账,财务管理,个人财务,财务规划,财务分析,财务报表,财务报告,财务分析报告,财务分析报告模板,财务分析报告范本,财务分析报告范文,财务分析报告范例,财务分析报告范例模板,财务分析报告范例范文,财务分析报告范例范例,dingdangdog,月上老狗,oldmoon,lodenhu",
         },
       });
       console.log("Init System Settings");

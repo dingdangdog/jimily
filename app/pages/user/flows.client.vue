@@ -866,7 +866,7 @@ const exportCsv = () => {
 };
 
 const downloadCsvTemplate = () => {
-  const fileName = "jimili模板.csv";
+  const fileName = "jimily模板.csv";
   const url = "/csvtemplate.csv";
   const link = document.createElement("a");
   link.href = url;
