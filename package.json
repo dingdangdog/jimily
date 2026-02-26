@@ -15,7 +15,7 @@
     "@nuxtjs/tailwindcss": "6.14.0",
     "@pinia/nuxt": "0.11.3",
     "@popperjs/core": "2.11.8",
-    "@prisma/adapter-pg": "7.3.0",
+    "@prisma/adapter-pg": "7.4.1",
     "@prisma/extension-accelerate": "3.0.1",
     "echarts": "6.0.0",
     "jsonwebtoken": "^9.0.2",
@@ -33,11 +33,11 @@
     "xlsx": "0.18.5"
   },
   "devDependencies": {
-    "@prisma/client": "7.3.0",
+    "@prisma/client": "7.4.1",
     "@types/jsonwebtoken": "9.0.10",
     "@types/markdown-it": "^14.1.2",
     "@types/swagger-jsdoc": "6.0.4",
-    "prisma": "7.3.0",
+    "prisma": "7.4.1",
     "swagger-jsdoc": "6.2.8",
     "swagger-ui-express": "5.0.1"
   },

@@ -19,8 +19,6 @@ CREATE TABLE "user_flows" (
     "flowNo" VARCHAR(50) NOT NULL,
     "userId" INTEGER NOT NULL,
     "accountId" INTEGER,
-    "accountDelta" DOUBLE PRECISION,
-    "accountBal" DOUBLE PRECISION,
     "day" TIMESTAMP(3) NOT NULL,
     "flowType" VARCHAR(20),
     "industryType" VARCHAR(50),
@@ -62,14 +60,14 @@ CREATE TABLE "user_fund_accounts" (
 );
 
 -- CreateTable
-CREATE TABLE "budgets" (
+CREATE TABLE "user_budgets" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "month" VARCHAR(7) NOT NULL,
     "budget" DOUBLE PRECISION,
     "used" DOUBLE PRECISION,
 
-    CONSTRAINT "budgets_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_budgets_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable

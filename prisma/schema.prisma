@@ -84,7 +84,7 @@ model Budget {
   budget Float? /// 预算金额
   used   Float? /// 已使用金额
 
-  @@map("budgets")
+  @@map("user_budgets")
 }
 
 /// 负债表（借款/欠款）
