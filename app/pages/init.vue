@@ -5,6 +5,7 @@ definePageMeta({
 
 import { SunIcon, MoonIcon } from "@heroicons/vue/24/outline";
 import { SystemConfig } from "~/utils/store";
+import { clearAuthStorage } from "~/utils/common";
 
 const themeStore = useThemeStore();
 const isDark = computed(() => themeStore.isDark);
@@ -18,9 +19,9 @@ const tabs = [
 ];
 
 const systemForm = ref({
-  title: "jimily",
+  title: "Cashbook",
   description: "",
-  keywords: "jimily,记账本",
+  keywords: "Cashbook,记账本",
   openRegister: false,
 });
 
@@ -61,7 +62,7 @@ const submit = async () => {
   try {
     await doApi.post("api/init", {
       systemConfig: {
-        title: systemForm.value.title || "jimily",
+        title: systemForm.value.title || "Cashbook",
         description: systemForm.value.description || "",
         keywords: systemForm.value.keywords || "",
         openRegister: systemForm.value.openRegister,
@@ -87,9 +88,13 @@ onMounted(async () => {
     const count = await doApi.get<number>("api/check");
     if (count !== 0) {
       navigateTo("/login");
+      return;
     }
+    // 未初始化时清除前端登录态，避免残留 cookie 导致与 init 冲突、来回跳转
+    clearAuthStorage();
   } catch {
     navigateTo("/login");
+    return;
   }
   if (SystemConfig.value?.title) {
     systemForm.value.title = SystemConfig.value.title;
@@ -102,7 +107,7 @@ onMounted(async () => {
 
 <template>
   <Head>
-    <Title>系统初始化 - {{ SystemConfig?.title || "jimily" }}</Title>
+    <Title>系统初始化 - {{ SystemConfig?.title || "Cashbook" }}</Title>
   </Head>
 
   <div
@@ -163,7 +168,7 @@ onMounted(async () => {
               <UiTextInput
                 v-model="systemForm.title"
                 label="站点标题"
-                placeholder="如：jimily"
+                placeholder="如：Cashbook"
               />
               <UiTextInput
                 v-model="systemForm.description"

@@ -1,4 +1,5 @@
 import prisma from "~~/server/lib/prisma";
+import { recalcFundAccountFromFlows } from "~~/server/utils/db";
 
 /**
  * @swagger
@@ -45,8 +46,13 @@ export default defineEventHandler(async (event) => {
   if (!row) {
     return error("Not Find ID");
   }
-  const deleted = await prisma.flow.delete({
-    where: { id: Number(id) },
+  const accountId = row.accountId ?? undefined;
+  const deleted = await prisma.$transaction(async (tx) => {
+    const result = await tx.flow.delete({
+      where: { id: Number(id) },
+    });
+    await recalcFundAccountFromFlows(accountId, tx);
+    return result;
   });
   return success(deleted);
 });

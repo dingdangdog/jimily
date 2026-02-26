@@ -32,10 +32,15 @@
             >
               支出/收入类型
             </th>
-            <th
+            <!-- <th
               class="px-2 py-1 text-left text-xs font-medium text-foreground/60 uppercase tracking-wider"
             >
               支付方式
+            </th> -->
+            <th
+              class="px-2 py-1 text-left text-xs font-medium text-foreground/60 uppercase tracking-wider"
+            >
+              交易账户
             </th>
             <th
               class="px-2 py-1 text-left text-xs font-medium text-foreground/60 uppercase tracking-wider"
@@ -71,7 +76,7 @@
         </thead>
         <tbody class="bg-surface divide-y divide-border">
           <tr v-if="loading" class="hover:bg-surface-muted">
-            <td colspan="10" class="px-4 py-8 text-center text-foreground/60">
+            <td colspan="13" class="px-4 py-8 text-center text-foreground/60">
               <div class="flex items-center justify-center gap-2">
                 <div
                   class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"
@@ -81,7 +86,7 @@
             </td>
           </tr>
           <tr v-else-if="flows.length === 0" class="hover:bg-surface-muted">
-            <td colspan="10" class="px-4 py-8 text-center text-foreground/60">
+            <td colspan="13" class="px-4 py-8 text-center text-foreground/60">
               暂无数据
             </td>
           </tr>
@@ -108,8 +113,11 @@
             <td class="px-2 py-1 whitespace-nowrap text-sm">
               {{ item.industryType }}
             </td>
-            <td class="px-2 py-1 whitespace-nowrap text-sm">
+            <!-- <td class="px-2 py-1 whitespace-nowrap text-sm">
               {{ item.payType }}
+            </td> -->
+            <td class="px-2 py-1 whitespace-nowrap text-sm">
+              {{ item.account?.name || "-" }}
             </td>
             <td class="px-2 py-1 whitespace-nowrap text-sm">
               <span
@@ -305,6 +313,12 @@
                   {{ item.payType }}
                 </span>
                 <span
+                  v-if="item.account?.name"
+                  class="bg-surface-muted text-foreground/80 px-1.5 py-0.5 rounded border border-border"
+                >
+                  {{ item.account.name }}
+                </span>
+                <span
                   v-if="item.attribution"
                   class="bg-surface-muted text-foreground/70 px-1.5 py-0.5 rounded border border-border"
                 >
@@ -458,6 +472,8 @@ interface FlowItem {
   flowType: string;
   industryType: string;
   payType: string;
+  account?: { id?: number; name?: string; accountType?: string } | null;
+  accountBal?: number | null;
   money: number;
   name: string;
   invoice: string;

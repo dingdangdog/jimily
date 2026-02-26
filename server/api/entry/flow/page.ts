@@ -70,6 +70,11 @@ export default defineEventHandler(async (event) => {
       equals: body.payType,
     };
   }
+  if (body.accountId !== undefined && body.accountId !== null && body.accountId !== "") {
+    where.accountId = {
+      equals: Number(body.accountId),
+    };
+  }
   if (body.startDay && body.endDay) {
     where.day = {
       gte: new Date(body.startDay),
@@ -144,7 +149,15 @@ export default defineEventHandler(async (event) => {
   let flows;
   if (pageSize == -1) {
     // 查询全部
-    flows = await prisma.flow.findMany({ where, orderBy });
+    flows = await prisma.flow.findMany({
+      where,
+      orderBy,
+      include: {
+        account: {
+          select: { id: true, name: true, accountType: true },
+        },
+      },
+    });
     // return success(books);
   } else {
     // 【条件、排序、分页】 组合查询
@@ -153,6 +166,11 @@ export default defineEventHandler(async (event) => {
       orderBy,
       skip,
       take: pageSize,
+      include: {
+        account: {
+          select: { id: true, name: true, accountType: true },
+        },
+      },
     });
   }
   // 计算总页数
@@ -171,12 +189,13 @@ export default defineEventHandler(async (event) => {
   let totalOut = 0;
   let notInOut = 0;
   sumMoney.forEach((t: any) => {
+    const raw = Number(t._sum.money);
     if (t.flowType == "收入") {
-      totalIn = Number(t._sum.money);
+      totalIn = Math.abs(raw);
     } else if (t.flowType == "支出") {
-      totalOut = Number(t._sum.money);
+      totalOut = Math.abs(raw);
     } else if (t.flowType == "不计收支") {
-      notInOut = Number(t._sum.money);
+      notInOut = raw;
     }
   });
 

@@ -10,10 +10,15 @@ export default defineNitroPlugin((nitroApp) => {
       await prisma.systemConfig.create({
         data: {
           id: 1,
-          title: "记米粒",
-          description: "记米粒是快速记账的工具，支持AI记账和丰富的分析功能",
+          title: "Cashbook - 开源免费个人财务管理工具",
+          description:
+            "Cashbook 是一款开源免费的个人财务管理工具，旨在帮助用户更好地管理自己的财务状况。",
           keywords:
-            "记米粒,jimily,快速记账,记账,AI记账,财务管理,个人财务,财务规划,财务分析,财务报表,财务报告,财务分析报告,财务分析报告模板,财务分析报告范本,财务分析报告范文,财务分析报告范例,财务分析报告范例模板,财务分析报告范例范文,财务分析报告范例范例,dingdangdog,月上老狗,oldmoon,lodenhu",
+            "Cashbook, 个人财务管理, 个人记账, docker部署, 开源免费, 财务管理工具, dingdangdog, 月上老狗, lodenhu",
+          version: String(useRuntimeConfig().appVersion),
+          openRegister: false,
+          createAt: new Date(),
+          updateAt: new Date(),
         },
       });
       console.log("Init System Settings");

@@ -1,5 +1,9 @@
 import crypto from "crypto";
 import prisma from "~~/server/lib/prisma";
+import {
+  recalcFundAccountFromFlows,
+  resolveFlowAccountDelta,
+} from "~~/server/utils/db";
 
 /** 根据时间+金额+方式+名称生成唯一流水编号（无第三方订单号时用于去重） */
 function genFlowNoByContent(
@@ -121,6 +125,12 @@ export default defineEventHandler(async (event) => {
     invoice: flow.invoice ? String(flow.invoice) : null,
     money: Number(flow.money),
     payType: flow.payType != null ? String(flow.payType) : null,
+    accountId: flow.accountId ? Number(flow.accountId) : null,
+    accountDelta:
+      flow.accountDelta !== undefined && flow.accountDelta !== null
+        ? Number(flow.accountDelta)
+        : null,
+    accountBal: null,
     industryType:
       flow.type != null
         ? String(flow.type)
@@ -128,12 +138,46 @@ export default defineEventHandler(async (event) => {
           ? String(flow.industryType)
           : "",
     attribution: flow.attribution != null ? String(flow.attribution) : null,
+    origin:
+      flow.origin != null && String(flow.origin).trim() !== ""
+        ? String(flow.origin).trim().slice(0, 200)
+        : null,
   }));
 
-  const created =
-    datas.length > 0
-      ? await prisma.flow.createMany({ data: datas })
-      : { count: 0 };
+  let created = { count: 0 };
+  const hasAccountData = datas.some((d) => !!d.accountId);
+  if (!hasAccountData) {
+    created =
+      datas.length > 0
+        ? await prisma.flow.createMany({ data: datas })
+        : { count: 0 };
+  } else {
+    const count = await prisma.$transaction(async (tx) => {
+      let inserted = 0;
+      const accountIds = new Set<number>();
+      for (const row of datas) {
+        const delta = resolveFlowAccountDelta({
+          flowType: row.flowType,
+          money: Number(row.money || 0),
+          accountDelta: row.accountDelta,
+        });
+        await tx.flow.create({
+          data: {
+            ...row,
+            accountDelta: row.accountId ? delta : null,
+            accountBal: null,
+          },
+        });
+        if (row.accountId) accountIds.add(row.accountId);
+        inserted++;
+      }
+      for (const accountId of accountIds) {
+        await recalcFundAccountFromFlows(accountId, tx);
+      }
+      return inserted;
+    });
+    created = { count };
+  }
 
   return success({
     count: created.count,

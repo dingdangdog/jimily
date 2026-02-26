@@ -2,11 +2,38 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import { getAIClient } from "./client";
 import { getAIProviderConfig } from "./client";
 import { CHAT_TOOLS, executeTool } from "./tools";
+import { getFundAccountsAll } from "~~/server/utils/db";
 
-const SYSTEM_PROMPT = `你是个人记账助手的 AI，帮助用户完成：
-1. 对话式记账：用户说"今天午饭花了50"、"记一笔工资收入5000"等，你调用 add_flow 添加流水
-2. 对话式查询：用户问"本月有哪些支出"、"查一下餐饮消费"等，你调用 query_flows 查询
-3. 对话式统计：用户问"本月花了多少"、"收入统计"等，你调用 get_statistics 获取数据
+const SYSTEM_PROMPT = `你是个人记账助手的AI，你的职责是分析用户意图，根据用户意图选择调用的工具，完成相关操作，目前支持的操作如下：
+
+1. 对话式记账（添加流水）：调用 add_flow
+2. 对话式查询：用户问"本月有哪些支出"、"查一下餐饮消费"等，调用 query_flows（支持按资金账户筛选，通过accountName或accountId参数）
+2.1 极值查询：用户问"本月最高支出是哪一笔"、"时间范围内最高收入"等，调用 query_flow_extremes（支持按资金账户筛选）
+3. 对话式统计：用户问"本月花了多少"、"收入统计"、"某账户的收支总额"等，调用 get_statistics（支持按资金账户筛选，可用于统计特定账户的收支总额）
+4. 资金账户管理：
+   - 新增单个资金账户：调用 add_fund_account
+   - 批量新增多个资金账户（如 微信、支付宝、若干银行卡/信用卡）：调用 batch_add_fund_accounts
+   - 查询资金账户与余额：调用 query_fund_accounts
+   - 手工校准资金账户余额：调用 update_fund_account_balance
+5. 预算管理：
+   - 设置预算：调用 set_budget
+   - 查询预算：调用 query_budgets
+6. 负债管理：
+   - 新增负债：调用 add_liability
+   - 查询负债：调用 query_liabilities
+   - 查询负债还款计划：调用 query_liability_repay_plans
+7. 应收管理：
+   - 新增应收：调用 add_receivable
+   - 查询应收：调用 query_receivables
+   - 查询应收回款计划：调用 query_receivable_collect_plans
+8. 投资管理：
+   - 新增投资产品：调用 add_investment_product
+   - 查询投资产品：调用 query_investment_products
+   - 新增投资明细：调用 add_investment_detail
+   - 查询投资明细：调用 query_investment_details
+9. 固定流水模板：
+   - 新增固定流水：调用 add_fixed_flow
+   - 查询固定流水：调用 query_fixed_flows
 
 请根据用户意图选择合适的工具，用自然语言总结结果回复用户。若无法理解或缺少关键信息，礼貌地询问用户。`;
 
@@ -23,6 +50,8 @@ export interface ChatAgentResult {
   toolCalls?: Array<{ name: string; args: Record<string, unknown> }>;
   strategy?: "tool_calls" | "json";
 }
+
+const TOOL_CALLS_UNSUPPORTED_PROVIDERS = new Set<string>();
 
 /**
  * AI 对话代理：解析用户意图并调用工具执行
@@ -41,52 +70,31 @@ export async function runChatAgent(
     };
   }
 
+  const providerCacheKey = getProviderCacheKey(providerId);
+  const skipToolCalls = TOOL_CALLS_UNSUPPORTED_PROVIDERS.has(providerCacheKey);
   const latestUserText = getLatestUserText(messages);
+  const requireTool = isLikelyToolIntent(latestUserText);
   logAIExecution({
     event: "start",
     userId,
-    strategy: "tool_calls",
+    strategy: "json",
     userText: latestUserText,
-    detail: { maxToolRounds, providerId: providerId ?? null },
+    detail: {
+      maxToolRounds,
+      providerId: providerId ?? null,
+      preferredStrategy: "json",
+      fallbackStrategy: skipToolCalls ? "none" : "tool_calls",
+    },
   });
 
-  let toolCallsError: unknown = null;
-  try {
-    const result = await runWithToolCalls({
-      userId,
-      messages,
-      maxToolRounds,
-      client,
-      config,
-    });
-    if (result.content.trim()) {
-      logAIExecution({
-        event: "final_success",
-        userId,
-        strategy: "tool_calls",
-        userText: latestUserText,
-        toolCalls: result.toolCalls,
-      });
-      return result;
-    }
-    toolCallsError = new Error("tool_calls 方案返回空内容");
-  } catch (e) {
-    toolCallsError = e;
-    logAIExecution({
-      event: "strategy_failed",
-      userId,
-      strategy: "tool_calls",
-      userText: latestUserText,
-      detail: { error: errorToMessage(e) },
-    });
-  }
-
+  let jsonError: unknown = null;
   try {
     const result = await runWithJsonPlan({
       userId,
       messages,
       client,
       config,
+      requireTool,
     });
     logAIExecution({
       event: "final_success",
@@ -94,20 +102,96 @@ export async function runChatAgent(
       strategy: "json",
       userText: latestUserText,
       toolCalls: result.toolCalls,
+      detail: {
+        executedCount: result.toolCalls?.length ?? 0,
+        toolSummary: result.toolCalls?.length
+          ? result.toolCalls.map((t) => ({ name: t.name, args: t.args }))
+          : "未调用工具",
+      },
     });
     return result;
-  } catch (jsonError) {
-    const msg1 = errorToMessage(toolCallsError);
-    const msg2 = errorToMessage(jsonError);
+  } catch (e) {
+    jsonError = e;
     logAIExecution({
-      event: "all_failed",
+      event: "strategy_failed",
       userId,
       strategy: "json",
       userText: latestUserText,
-      detail: { toolCallsError: msg1, jsonError: msg2 },
+      detail: { error: errorToMessage(e) },
     });
-    throw new Error(`方案1(tool_calls)失败：${msg1}；方案2(json)失败：${msg2}`);
   }
+
+  let toolCallsError: unknown = null;
+  if (!skipToolCalls) {
+    try {
+      const result = await runWithToolCalls({
+        userId,
+        messages,
+        maxToolRounds,
+        client,
+        config,
+      });
+      const executedCount = result.toolCalls?.length ?? 0;
+      if (executedCount > 0 && result.content.trim()) {
+        logAIExecution({
+          event: "final_success",
+          userId,
+          strategy: "tool_calls",
+          userText: latestUserText,
+          toolCalls: result.toolCalls,
+          detail: {
+            executedCount,
+            toolSummary: result.toolCalls?.map((t) => ({
+              name: t.name,
+              args: t.args,
+            })),
+          },
+        });
+        return result;
+      }
+      if (executedCount === 0) {
+        toolCallsError = new Error("tool_calls 方案未执行任何工具");
+        logAIExecution({
+          event: "strategy_failed",
+          userId,
+          strategy: "tool_calls",
+          userText: latestUserText,
+          detail: {
+            reason: "no_tool_calls",
+            assistantContentPreview: result.content.slice(0, 300),
+          },
+        });
+      } else {
+        toolCallsError = new Error("tool_calls 方案返回空内容");
+      }
+    } catch (e) {
+      toolCallsError = e;
+      if (isToolCallsUnsupportedError(e)) {
+        TOOL_CALLS_UNSUPPORTED_PROVIDERS.add(providerCacheKey);
+      } else {
+        logAIExecution({
+          event: "strategy_failed",
+          userId,
+          strategy: "tool_calls",
+          userText: latestUserText,
+          detail: { error: errorToMessage(e) },
+        });
+      }
+    }
+  }
+
+  const jsonMsg = errorToMessage(jsonError);
+  const toolCallsMsg = errorToMessage(toolCallsError);
+  logAIExecution({
+    event: "all_failed",
+    userId,
+    strategy: "json",
+    userText: latestUserText,
+    detail: { jsonError: jsonMsg, toolCallsError: toolCallsMsg },
+  });
+  throw new Error(
+    `方案1(json)失败：${jsonMsg}；方案2(tool_calls)失败：${toolCallsMsg}`,
+  );
 }
 
 async function runWithToolCalls(opts: {
@@ -120,10 +204,18 @@ async function runWithToolCalls(opts: {
   const { userId, messages, maxToolRounds, client, config } = opts;
   const now = new Date();
   const latestUserText = getLatestUserText(messages);
+  const accountPrompt = await buildFundAccountsPrompt(userId);
   const fullMessages: ChatCompletionMessageParam[] = [
-    { role: "system", content: buildTimeAwareSystemPrompt(now) },
+    {
+      role: "system",
+      content: buildTimeAwareSystemPrompt(now, accountPrompt),
+    },
     ...messages,
   ];
+  const executedToolCalls: Array<{
+    name: string;
+    args: Record<string, unknown>;
+  }> = [];
 
   let round = 0;
   let lastContent = "";
@@ -147,6 +239,17 @@ async function runWithToolCalls(opts: {
     const toolCalls = msg.tool_calls;
     if (!toolCalls?.length) {
       lastContent = msg.content || "操作已完成。";
+      logAIExecution({
+        event: "tool_execute",
+        userId,
+        strategy: "tool_calls",
+        userText: latestUserText,
+        detail: {
+          round: round + 1,
+          noToolCalls: true,
+          assistantContentPreview: (msg.content || "").slice(0, 300),
+        },
+      });
       break;
     }
 
@@ -167,15 +270,29 @@ async function runWithToolCalls(opts: {
         latestUserText,
         now,
       );
+      executedToolCalls.push({ name, args: normalizedArgs });
       logAIExecution({
         event: "tool_execute",
         userId,
         strategy: "tool_calls",
         userText: latestUserText,
-        toolCalls: [{ name, args: normalizedArgs }],
-        detail: { round },
+        detail: { round: round + 1, toolName: name, toolArgs: normalizedArgs },
       });
       const output = await executeTool(name, normalizedArgs, { userId });
+      logAIExecution({
+        event: "tool_execute",
+        userId,
+        strategy: "tool_calls",
+        userText: latestUserText,
+        detail: {
+          round: round + 1,
+          toolName: name,
+          toolResultPreview:
+            typeof output === "string"
+              ? output.slice(0, 500)
+              : String(output).slice(0, 500),
+        },
+      });
       fullMessages.push({
         role: "tool",
         tool_call_id: tc.id!,
@@ -198,7 +315,11 @@ async function runWithToolCalls(opts: {
     lastContent = finalMsg?.content || lastContent || "操作已完成。";
   }
 
-  return { content: lastContent, strategy: "tool_calls" };
+  return {
+    content: lastContent,
+    strategy: "tool_calls",
+    toolCalls: executedToolCalls,
+  };
 }
 
 const JSON_PLAN_SYSTEM_PROMPT = `你是个人记账助手，请把用户诉求解析为 JSON 指令。
@@ -207,20 +328,44 @@ const JSON_PLAN_SYSTEM_PROMPT = `你是个人记账助手，请把用户诉求�
 JSON 格式固定如下：
 {
   "action": {
-    "name": "add_flow" | "query_flows" | "get_statistics" | "none",
+    "name": "add_flow" | "query_flows" | "query_flow_extremes" | "get_statistics" | "add_fund_account" | "batch_add_fund_accounts" | "query_fund_accounts" | "update_fund_account_balance" | "set_budget" | "query_budgets" | "add_liability" | "query_liabilities" | "query_liability_repay_plans" | "add_receivable" | "query_receivables" | "query_receivable_collect_plans" | "add_investment_product" | "query_investment_products" | "add_investment_detail" | "query_investment_details" | "add_fixed_flow" | "query_fixed_flows" | "none",
     "args": { ... }
   },
   "reply": "给用户的自然语言回复（当 name=none 时必须有）"
 }
 
 参数约束：
-- add_flow.args: { flowType, industryType, payType, money, name, day?, description?, attribution? }
-- query_flows.args: { flowType?, industryType?, payType?, startDay?, endDay?, name?, pageNum?, pageSize? }
-- get_statistics.args: { month? 或 startDay+endDay }
+- add_flow.args: { flowType, industryType, payType, money, name, day?, description?, attribution?, accountId?, accountName? }
+- query_flows.args: { flowType?, industryType?, payType?, startDay?, endDay?, name?, accountName?, accountId?, pageNum?, pageSize? }
+- query_flow_extremes.args: { flowType?, industryType?, payType?, name?, month? 或 startDay+endDay, accountName?, accountId?, limit? }
+- get_statistics.args: { month? 或 startDay+endDay, accountName?, accountId? }
+- add_fund_account.args: { name, accountType?, institution?, accountNo?, initialBalance?, currentBalance?, status?, description? }
+- batch_add_fund_accounts.args: { accountNames: string[], defaultCurrency? }
+- query_fund_accounts.args: { keyword?, status?, accountType?, pageNum?, pageSize? }
+- update_fund_account_balance.args: { id? 或 name?, currentBalance, totalLiability?, totalProfit?, description? }
+- set_budget.args: { month, budget, used? }
+- query_budgets.args: { month?, pageNum?, pageSize? }
+- add_liability.args: { name, money, occurDay?, description?, planType?, interestRate?, termCount?, termAmount?, status? }
+- query_liabilities.args: { keyword?, status?, startDay?, endDay?, pageNum?, pageSize? }
+- query_liability_repay_plans.args: { keyword?, status?, startDay?, endDay?, pageNum?, pageSize? }
+- add_receivable.args: { name, money, occurDay?, description?, planType?, interestRate?, termCount?, termAmount?, status? }
+- query_receivables.args: { keyword?, status?, startDay?, endDay?, pageNum?, pageSize? }
+- query_receivable_collect_plans.args: { keyword?, status?, startDay?, endDay?, pageNum?, pageSize? }
+- add_investment_product.args: { productName, productType?, totalInvested?, totalReturn?, currentValue?, status? }
+- query_investment_products.args: { keyword?, productType?, status?, pageNum?, pageSize? }
+- add_investment_detail.args: { productId, tradeType, tradeDay?, amount, quantity?, price?, fee?, description? }
+- query_investment_details.args: { productId?, tradeType?, startDay?, endDay?, pageNum?, pageSize? }
+- add_fixed_flow.args: { month?, money?, name, description?, flowType?, industryType?, payType?, attribution? }
+- query_fixed_flows.args: { month?, flowType?, industryType?, payType?, keyword?, pageNum?, pageSize? }
 
 要求：
 - 能调用工具就优先给 action，不要 name=none
 - 数字字段必须是 number
+- 记账时若能从“当前用户资金账户列表”定位到账户，优先填写 add_flow.args.accountId
+- 记账类请求（如“记账/记一笔/花了/收入/支出/买了”）必须优先输出 add_flow，不要改成查询或闲聊
+- 查询类请求（如“查/统计/总支出/多少/最高/明细”）必须优先输出 query_flows、query_flow_extremes 或 get_statistics，不要输出泛化客套回复
+- add_flow.args.flowType / query_flows.args.flowType 仅允许：收入、支出、不计收支（不要输出 income/expense/inflow/outflow 等英文值）
+- add_flow.args.payType 尽量从用户原话抽取（如“支付宝支付/微信支付/现金/银行卡/信用卡”），无法判断时填“未知”
 - 日期格式 YYYY-MM-DD，月份 YYYY-MM`;
 
 type JsonPlan = {
@@ -231,24 +376,52 @@ type JsonPlan = {
   reply?: string;
 };
 
+const JSON_SUPPORTED_ACTIONS = new Set([
+  "add_flow",
+  "query_flows",
+  "query_flow_extremes",
+  "get_statistics",
+  "add_fund_account",
+  "batch_add_fund_accounts",
+  "query_fund_accounts",
+  "update_fund_account_balance",
+  "set_budget",
+  "query_budgets",
+  "add_liability",
+  "query_liabilities",
+  "query_liability_repay_plans",
+  "add_receivable",
+  "query_receivables",
+  "query_receivable_collect_plans",
+  "add_investment_product",
+  "query_investment_products",
+  "add_investment_detail",
+  "query_investment_details",
+  "add_fixed_flow",
+  "query_fixed_flows",
+]);
+
 async function runWithJsonPlan(opts: {
   userId: number;
   messages: ChatCompletionMessageParam[];
   client: NonNullable<Awaited<ReturnType<typeof getAIClient>>>;
   config: NonNullable<Awaited<ReturnType<typeof getAIProviderConfig>>>;
+  requireTool?: boolean;
 }): Promise<ChatAgentResult> {
-  const { userId, messages, client, config } = opts;
+  const { userId, messages, client, config, requireTool = false } = opts;
   const now = new Date();
   const latestUserText = getLatestUserText(messages);
+  const accountPrompt = await buildFundAccountsPrompt(userId);
   if (!latestUserText) {
     throw new Error("json 方案未找到用户输入");
   }
 
   // 兼容部分严格校验角色交替的后端：仅发送单条 user 消息做 JSON 抽取
+  const recentContext = buildRecentConversationContext(messages);
   const fullMessages: ChatCompletionMessageParam[] = [
     {
       role: "user",
-      content: `${JSON_PLAN_SYSTEM_PROMPT}\n\n当前服务器时间：${getNowContext(now)}\n请基于以下用户请求返回 JSON：\n${latestUserText}`,
+      content: `${JSON_PLAN_SYSTEM_PROMPT}\n\n当前服务器时间：${getNowContext(now)}\n${accountPrompt}\n最近对话上下文（仅供理解，不要原样复述）：\n${recentContext}\n请基于以下用户请求返回 JSON：\n${latestUserText}`,
     },
   ];
 
@@ -266,24 +439,13 @@ async function runWithJsonPlan(opts: {
   const parsed = parseJsonPlan(raw);
   const actionName = parsed.action?.name;
   const args = parsed.action?.args ?? {};
-  if (
-    actionName === "add_flow" ||
-    actionName === "query_flows" ||
-    actionName === "get_statistics"
-  ) {
+  if (actionName && JSON_SUPPORTED_ACTIONS.has(actionName)) {
     const normalizedArgs = applyTemporalHints(
       actionName,
       args,
       latestUserText,
       now,
     );
-    logAIExecution({
-      event: "tool_execute",
-      userId,
-      strategy: "json",
-      userText: latestUserText,
-      toolCalls: [{ name: actionName, args: normalizedArgs }],
-    });
     const toolOutput = await executeTool(actionName, normalizedArgs, {
       userId,
     });
@@ -303,6 +465,9 @@ async function runWithJsonPlan(opts: {
   }
 
   const reply = parsed.reply?.trim();
+  if (requireTool) {
+    throw new Error("json 方案在工具意图下未产出可执行 action");
+  }
   if (!reply) {
     throw new Error("json 方案缺少可用 reply");
   }
@@ -342,7 +507,7 @@ async function summarizeToolResult(opts: {
         {
           role: "system",
           content:
-            "你是记账助手，请基于工具执行结果，给用户生成简洁中文回复。不要编造，严格基于结果。",
+            "你是记账助手，请基于工具执行结果给用户生成简洁中文回复。不要编造，严格基于结果。禁止输出与本次工具结果无关的客套话；优先明确结果是否成功、关键数字、账户或条目名称。",
         },
         {
           role: "user",
@@ -363,6 +528,9 @@ async function summarizeToolResult(opts: {
       total?: number;
       summary?: Record<string, number>;
       flow?: { name?: string; money?: number };
+      account?: { name?: string; currentBalance?: number };
+      created?: Array<{ name?: string }>;
+      skipped?: string[];
     };
     if (toolName === "add_flow" && parsed.success) {
       return `已记账：${parsed.flow?.name || "未命名"} ${Math.abs(Number(parsed.flow?.money ?? 0))} 元。`;
@@ -370,8 +538,39 @@ async function summarizeToolResult(opts: {
     if (toolName === "query_flows") {
       return `查询完成，共 ${parsed.total ?? 0} 条。`;
     }
+    if (toolName === "query_flow_extremes") {
+      const expenseCount = Array.isArray(
+        (parsed as { topExpense?: unknown[] }).topExpense,
+      )
+        ? (parsed as { topExpense?: unknown[] }).topExpense!.length
+        : 0;
+      const incomeCount = Array.isArray(
+        (parsed as { topIncome?: unknown[] }).topIncome,
+      )
+        ? (parsed as { topIncome?: unknown[] }).topIncome!.length
+        : 0;
+      return `极值查询完成：最高支出 ${expenseCount} 条，最高收入 ${incomeCount} 条。`;
+    }
     if (toolName === "get_statistics") {
       return `统计完成：${JSON.stringify(parsed.summary ?? {})}`;
+    }
+    if (toolName === "query_fund_accounts") {
+      return `账户查询完成，共 ${parsed.total ?? 0} 个。`;
+    }
+    if (toolName === "query_liability_repay_plans") {
+      return `还款计划查询完成，共 ${parsed.total ?? 0} 条。`;
+    }
+    if (toolName === "query_receivable_collect_plans") {
+      return `回款计划查询完成，共 ${parsed.total ?? 0} 条。`;
+    }
+    if (toolName === "add_fund_account" && parsed.success) {
+      return `资金账户已处理：${parsed.account?.name || "未命名账户"}。`;
+    }
+    if (toolName === "batch_add_fund_accounts" && parsed.success) {
+      return `资金账户批量处理完成：新增 ${parsed.created?.length ?? 0} 个，跳过 ${parsed.skipped?.length ?? 0} 个。`;
+    }
+    if (toolName === "update_fund_account_balance" && parsed.success) {
+      return `账户余额更新成功：${parsed.account?.name || "账户"} 当前余额 ${Number(parsed.account?.currentBalance ?? 0)}。`;
     }
     return parsed.message || "操作已完成。";
   } catch {
@@ -393,18 +592,77 @@ function getLatestUserText(messages: ChatCompletionMessageParam[]): string {
   return "";
 }
 
+function buildRecentConversationContext(
+  messages: ChatCompletionMessageParam[],
+): string {
+  const rows: string[] = [];
+  for (let i = messages.length - 1; i >= 0 && rows.length < 6; i--) {
+    const m = messages[i];
+    if (!m) continue;
+    if (m.role !== "user" && m.role !== "assistant") continue;
+    const content =
+      typeof m.content === "string"
+        ? m.content.trim()
+        : Array.isArray(m.content)
+          ? m.content
+              .filter((x) => x.type === "text" && "text" in x)
+              .map((x) => (typeof x.text === "string" ? x.text : ""))
+              .join(" ")
+              .trim()
+          : "";
+    if (!content) continue;
+    rows.push(
+      `${m.role === "user" ? "用户" : "助手"}：${content.slice(0, 200)}`,
+    );
+  }
+  if (rows.length === 0) return "无";
+  return rows.reverse().join("\n");
+}
+
+function isLikelyToolIntent(text: string): boolean {
+  if (!text) return false;
+  return /(记账|记一笔|新增|添加|查|查询|统计|总支出|总收入|花了多少|最高|最低|明细|流水|预算|账户|余额|负债|应收|投资|固定流水)/.test(
+    text,
+  );
+}
+
 function errorToMessage(e: unknown): string {
   if (e instanceof Error) return e.message;
   if (typeof e === "string") return e;
   return String(e ?? "未知错误");
 }
 
-function buildTimeAwareSystemPrompt(now: Date): string {
+function getProviderCacheKey(providerId?: string | null): string {
+  return providerId ? `id:${providerId}` : "__default__";
+}
+
+function isToolCallsUnsupportedError(e: unknown): boolean {
+  const msg = errorToMessage(e);
+  return (
+    msg.includes('auto" tool choice requires') ||
+    msg.includes("--enable-auto-tool-choice") ||
+    msg.includes("--tool-call-parser")
+  );
+}
+
+function buildTimeAwareSystemPrompt(now: Date, accountPrompt: string): string {
   return `${SYSTEM_PROMPT}
 
 当前服务器时间：${getNowContext(now)}
 处理日期规则：
-- 用户说“今天/昨日/昨天/本月/上月/今年”时，请按当前服务器时间换算，不要猜测年份。`;
+- 用户说“今天/昨日/昨天/本月/上月/今年”时，请按当前服务器时间换算，不要猜测年份。
+
+${accountPrompt}`;
+}
+
+async function buildFundAccountsPrompt(userId: number): Promise<string> {
+  const all = await getFundAccountsAll({ userId });
+  const available = all.filter((x) => x.status !== -1);
+  if (available.length === 0) {
+    return "当前用户资金账户列表：暂无可用账户。";
+  }
+  const accountLines = available.map((x) => `- ${x.id}: ${x.name}`).join("\n");
+  return `当前用户资金账户列表（id: 名称）：\n${accountLines}`;
 }
 
 function getNowContext(now: Date): string {
@@ -432,7 +690,13 @@ function applyTemporalHints(
     if (/(昨天|昨日)/.test(text)) next.day = formatDate(addDays(now, -1));
   }
 
-  if (toolName === "query_flows" || toolName === "get_statistics") {
+  if (
+    toolName === "query_flows" ||
+    toolName === "get_statistics" ||
+    toolName === "query_flow_extremes" ||
+    toolName === "query_liability_repay_plans" ||
+    toolName === "query_receivable_collect_plans"
+  ) {
     if (/(今天|今日)/.test(text)) {
       const day = formatDate(now);
       next.startDay = day;
@@ -453,6 +717,27 @@ function applyTemporalHints(
       );
       delete next.startDay;
       delete next.endDay;
+    } else if (/本周/.test(text)) {
+      next.startDay = formatDate(getStartOfWeek(now));
+      next.endDay = formatDate(getEndOfWeek(now));
+      delete next.month;
+    } else if (/上周/.test(text)) {
+      const lastWeekBase = addDays(now, -7);
+      next.startDay = formatDate(getStartOfWeek(lastWeekBase));
+      next.endDay = formatDate(getEndOfWeek(lastWeekBase));
+      delete next.month;
+    } else if (/本年|今年/.test(text)) {
+      next.startDay = formatDate(new Date(now.getFullYear(), 0, 1));
+      next.endDay = formatDate(new Date(now.getFullYear(), 11, 31));
+      delete next.month;
+    } else if (/近7天|最近7天/.test(text)) {
+      next.startDay = formatDate(addDays(now, -6));
+      next.endDay = formatDate(now);
+      delete next.month;
+    } else if (/近30天|最近30天/.test(text)) {
+      next.startDay = formatDate(addDays(now, -29));
+      next.endDay = formatDate(now);
+      delete next.month;
     }
   }
   return next;
@@ -475,6 +760,18 @@ function addDays(base: Date, delta: number): Date {
   const d = new Date(base);
   d.setDate(d.getDate() + delta);
   return d;
+}
+
+function getStartOfWeek(d: Date): Date {
+  const day = d.getDay();
+  const delta = day === 0 ? -6 : 1 - day;
+  const result = new Date(d);
+  result.setDate(d.getDate() + delta);
+  return result;
+}
+
+function getEndOfWeek(d: Date): Date {
+  return addDays(getStartOfWeek(d), 6);
 }
 
 function logAIExecution(input: {

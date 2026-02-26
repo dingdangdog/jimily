@@ -1,29 +1,29 @@
 <div align="center" style="display:flex;align-items:center;justify-content:center;">
-<img src="/public/logo.webp" width="80px" alt="jimily" />
-<h1>jimily</h1>
+<img src="/public/logo.webp" width="80px" alt="cashbook" />
+<h1>Cashbook</h1>
 </div>
 
 <p align="center">
-  <img alt="release" src="https://img.shields.io/github/v/release/dingdangdog/jimily" />
-  <img alt="stars" src="https://img.shields.io/github/stars/dingdangdog/jimily" />
-  <img alt="dorks" src="https://img.shields.io/github/forks/dingdangdog/jimily" />
+  <img alt="release" src="https://img.shields.io/github/v/release/dingdangdog/cashbook" />
+  <img alt="stars" src="https://img.shields.io/github/stars/dingdangdog/cashbook" />
+  <img alt="dorks" src="https://img.shields.io/github/forks/dingdangdog/cashbook" />
 </p>
 <p align="center">
-  <img alt="issues-open" src="https://img.shields.io/github/issues/dingdangdog/jimily?color=important" />
-  <img alt="issues-close" src="https://img.shields.io/github/issues-closed/dingdangdog/jimily?color=green" />
+  <img alt="issues-open" src="https://img.shields.io/github/issues/dingdangdog/cashbook?color=important" />
+  <img alt="issues-close" src="https://img.shields.io/github/issues-closed/dingdangdog/cashbook?color=green" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-yellow.svg" />
-  <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/dingdangdog/jimily.svg" />
-<!--   <img alt="GitHub Releases Download" src="https://img.shields.io/github/downloads/dingdangdog/jimily/total.svg" /> -->
+  <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/dingdangdog/cashbook.svg" />
+<!--   <img alt="GitHub Releases Download" src="https://img.shields.io/github/downloads/dingdangdog/cashbook/total.svg" /> -->
 </p>
 
-- 官方文档站：[https://doc.jimily.oldmoon.top](https://doc.jimily.oldmoon.top)
-- 在线体验：[jimily.oldmoon.top](https://jimily.oldmoon.top/) (体验账号: `jimily`/`jimily`)
-- 在线体验后台：[jimily.oldmoon.top/admin](https://jimily.oldmoon.top/admin) (体验账号: `admin`/`admin123456`)
+- 官方文档站：[https://doc.cashbook.oldmoon.top](https://doc.cashbook.oldmoon.top)
+- 在线体验：[cashbook.oldmoon.top](https://cashbook.oldmoon.top/) (体验账号: `cashbook`/`cashbook`)
+- 在线体验后台：[cashbook.oldmoon.top/admin](https://cashbook.oldmoon.top/admin) (体验账号: `admin`/`admin123456`)
 - QQ交流群：`564081656`
 
 ## 简述（Description）
 
-jimily记账本。
+Cashbook记账本。
 
 - 在数据记录上追求简单、易用、自主可控；
 - 在统计分析上力求清晰、美观、简洁有效。
@@ -33,10 +33,10 @@ jimily记账本。
 
 ## 开始使用（Get Started）
 
-- [使用说明](https://doc.jimily.oldmoon.top/guide/)
-- [部署手册](https://doc.jimily.oldmoon.top/deploy/)
-- [开发指南](https://doc.jimily.oldmoon.top/development/)
-- [常见问题](https://doc.jimily.oldmoon.top/question/)
+- [使用说明](https://doc.cashbook.oldmoon.top/guide/)
+- [部署手册](https://doc.cashbook.oldmoon.top/deploy/)
+- [开发指南](https://doc.cashbook.oldmoon.top/development/)
+- [常见问题](https://doc.cashbook.oldmoon.top/question/)
 
 ## V5新设计
 
@@ -48,7 +48,7 @@ jimily记账本。
 
 ## Star
 
-[![Star History Chart](https://api.star-history.com/svg?repos=dingdangdog/jimily&type=Date)](https://star-history.com/#dingdangdog/jimily&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=dingdangdog/cashbook&type=Date)](https://star-history.com/#dingdangdog/cashbook&Date)
 
 
 <!-- ### 开发工具（Tools）

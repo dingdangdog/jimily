@@ -8,6 +8,22 @@ export const checkSignIn = () => {
   return useCookie("Authorization").value ? true : false;
 };
 
+/** 清除前端登录态（Cookie + UserStore），用于「未初始化」等场景，避免与已登录状态冲突 */
+export const clearAuthStorage = () => {
+  useUserStore().clearUser();
+  const authCookie = useCookie("Authorization");
+  const adminCookie = useCookie("Admin");
+  authCookie.value = null;
+  adminCookie.value = null;
+  try {
+    $fetch("/api/logout", { method: "POST", credentials: "include" }).catch(
+      () => {}
+    );
+  } catch {
+    // 忽略（如未初始化时接口可能不可用）
+  }
+};
+
 export const getUUID = (num: number) => {
   const codes =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
@@ -101,11 +117,11 @@ export const dateFormater = (format: string, date: string | Date) => {
 };
 
 export const toGithub = () => {
-  window.open(`https://github.com/dingdangdog/jimily`, "_blank");
+  window.open(`https://github.com/dingdangdog/cashbook`, "_blank");
 };
 
 export const toDocumentation = () => {
-  window.open("https://doc.jimily.oldmoon.top", "_blank");
+  window.open("https://doc.cashbook.oldmoon.top", "_blank");
 };
 
 /**

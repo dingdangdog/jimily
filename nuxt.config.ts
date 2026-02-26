@@ -6,29 +6,29 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   app: {
     head: {
-      title: "jimily",
+      title: "Cashbook",
       charset: "utf-8",
       viewport: "width=device-width, initial-scale=1",
       meta: [
         {
           name: "description",
-          content: "jimily是快速记账的工具，支持AI记账和丰富的分析功能",
+          content: "Cashbook是快速记账的工具，支持AI记账和丰富的分析功能",
         },
         {
           name: "keywords",
           content:
-            "jimily,快速记账,记账,AI记账,财务管理,个人财务,财务规划,财务分析,财务报表,财务报告,财务分析报告,财务分析报告模板,财务分析报告范本,财务分析报告范文,财务分析报告范例,财务分析报告范例模板,财务分析报告范例范文,财务分析报告范例范例",
+            "Cashbook,快速记账,记账,AI记账,财务管理,个人财务,财务规划,财务分析,财务报表,财务报告,财务分析报告,财务分析报告模板,财务分析报告范本,财务分析报告范文,财务分析报告范例,财务分析报告范例模板,财务分析报告范例范文,财务分析报告范例范例",
         },
         { name: "theme-color", content: "#16a34a" },
         { name: "apple-mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-        { name: "apple-mobile-web-app-title", content: "jimily" },
-        { name: "application-name", content: "jimily" },
+        { name: "apple-mobile-web-app-title", content: "Cashbook" },
+        { name: "application-name", content: "Cashbook" },
         { name: "msapplication-TileColor", content: "#16a34a" },
         { name: "msapplication-tap-highlight", content: "no" },
         { name: "mobile-web-app-capable", content: "yes" },
-        { property: "og:title", content: "jimily" },
-        { property: "og:description", content: "jimily, 快速记账!" },
+        { property: "og:title", content: "Cashbook" },
+        { property: "og:description", content: "Cashbook, 快速记账!" },
         { property: "og:type", content: "website" },
         { property: "og:image", content: "/logo.webp" },
       ],
@@ -129,6 +129,9 @@ export default defineNuxtConfig({
         ".prisma/client/index-browser":
           "./node_modules/.prisma/client/index-browser.js",
       },
+    },
+    ssr: {
+      noExternal: ["openai"],
     },
   },
 });

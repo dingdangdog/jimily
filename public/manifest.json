@@ -1,7 +1,7 @@
 {
-  "name": "jimily",
-  "short_name": "jimily",
-  "description": "jimily, 快速记账!",
+  "name": "Cashbook",
+  "short_name": "Cashbook",
+  "description": "Cashbook, 快速记账!",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",

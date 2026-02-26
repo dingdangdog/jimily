@@ -1,4 +1,9 @@
 import prisma from "~~/server/lib/prisma";
+import {
+  recalcFundAccountFromFlows,
+  resolveFlowAccountDelta,
+  normalizeFlowTypeLabel,
+} from "~~/server/utils/db";
 
 /**
  * @swagger
@@ -53,17 +58,65 @@ export default defineEventHandler(async (event) => {
     name: String(body.name || ""),
     description: String(body.description || ""),
     attribution: String(body.attribution || ""),
+    accountId:
+      body.accountId !== undefined
+        ? body.accountId
+          ? Number(body.accountId)
+          : null
+        : undefined,
+    accountDelta:
+      body.accountDelta !== undefined && body.accountDelta !== null
+        ? Number(body.accountDelta)
+        : undefined,
   };
   const userId = await getUserId(event);
-  const updated = await prisma.flow.updateMany({
-    where: { id: Number(body.id), userId },
-    data: flow,
+  const row = await prisma.$transaction(async (tx) => {
+    const oldRow = await tx.flow.findFirst({
+      where: { id: Number(body.id), userId },
+    });
+    if (!oldRow) {
+      return null;
+    }
+
+    const oldAccountId = oldRow.accountId ?? undefined;
+    const nextAccountId =
+      flow.accountId !== undefined ? flow.accountId : oldRow.accountId;
+    const nextFlowType = flow.flowType ?? oldRow.flowType ?? "";
+    const normalizedType = normalizeFlowTypeLabel(nextFlowType);
+    const rawNextMoney =
+      flow.money !== undefined && flow.money !== null
+        ? flow.money
+        : oldRow.money;
+    const nextMoney =
+      normalizedType === "收入" || normalizedType === "支出"
+        ? Math.abs(Number(rawNextMoney || 0))
+        : rawNextMoney;
+    const nextDay = flow.day ?? oldRow.day;
+    const nextDelta = resolveFlowAccountDelta({
+      flowType: nextFlowType,
+      money: Number(nextMoney || 0),
+      accountDelta: flow.accountDelta,
+    });
+
+    const updated = await tx.flow.update({
+      where: { id: Number(body.id) },
+      data: {
+        ...flow,
+        accountId: nextAccountId,
+        accountDelta: nextAccountId != null ? nextDelta : null,
+        accountBal: null,
+      },
+    });
+
+    await recalcFundAccountFromFlows(oldAccountId, tx);
+    const newAccountId = updated.accountId ?? undefined;
+    if (newAccountId !== oldAccountId) {
+      await recalcFundAccountFromFlows(newAccountId, tx);
+    }
+    return updated;
   });
-  if (updated.count === 0) {
+  if (!row) {
     return error("Not Find ID");
   }
-  const row = await prisma.flow.findUnique({
-    where: { id: Number(body.id) },
-  });
   return success(row);
 });

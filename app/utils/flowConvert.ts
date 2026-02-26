@@ -41,12 +41,42 @@ export function templateConvert(
   return flow;
 }
 
+/** 订单号按字符串读取并 trim，避免制表符/空格和科学计数法、精度丢失 */
+function safeOrderNo(v: unknown, maxLen = 50): string {
+  if (v == null || v === "") return "";
+  if (typeof v === "number") {
+    // 超过安全整数后已丢失精度，宁可放弃该 flowNo，也不要用错误值参与去重
+    if (!Number.isFinite(v) || !Number.isInteger(v) || !Number.isSafeInteger(v)) {
+      return "";
+    }
+    return String(v).trim().slice(0, maxLen);
+  }
+  return String(v).trim().slice(0, maxLen);
+}
+
+/** 三方渠道 flowNo 前缀，存库前去重时区分不同渠道（库 flowNo 唯一且 VARCHAR(50)） */
+const FLOWNO_CHANNEL_PREFIX: Record<string, string> = {
+  alipay: "A_",
+  wxpay: "W_",
+  jdFinance: "J_",
+};
+const FLOWNO_MAX_LEN = 50;
+const FLOWNO_PREFIX_LEN = 2;
+
+function flowNoWithChannel(flowNoStr: string, channel?: string): string {
+  if (!channel || !FLOWNO_CHANNEL_PREFIX[channel]) return flowNoStr;
+  const prefix = FLOWNO_CHANNEL_PREFIX[channel];
+  const maxRaw = FLOWNO_MAX_LEN - prefix.length;
+  return prefix + flowNoStr.slice(0, maxRaw);
+}
+
 /**
- * 支付宝（含流水编号：交易订单号，用于去重）
+ * 支付宝（含流水编号：交易订单号，用于去重；带渠道前缀避免与微信/京东订单号冲突）
  */
 export function alipayConvert(
   row: any[],
-  indexMap: Record<string, number>
+  indexMap: Record<string, number>,
+  channel?: string
 ): Flow {
   const flow: Flow | any = {};
   flow.day = row[indexMap["交易时间"]];
@@ -61,9 +91,12 @@ export function alipayConvert(
     row[indexMap["收/付款方式"]] +
     "-" +
     row[indexMap["备注"]];
-  const orderNo = row[indexMap["交易订单号"]];
-  if (orderNo != null && String(orderNo).trim() !== "")
-    flow.flowNo = String(orderNo).trim().slice(0, 50);
+  const raw = row[indexMap["交易订单号"]];
+  const flowNoStr = safeOrderNo(
+    raw,
+    channel ? FLOWNO_MAX_LEN - FLOWNO_PREFIX_LEN : FLOWNO_MAX_LEN
+  );
+  if (flowNoStr !== "") flow.flowNo = flowNoWithChannel(flowNoStr, channel);
   return flow;
 }
 
@@ -75,11 +108,12 @@ export function typeConvert(type: any): string {
 }
 
 /**
- * 微信支付（含流水编号：交易单号，用于去重）
+ * 微信支付（含流水编号：交易单号，用于去重；带渠道前缀避免与支付宝/京东订单号冲突）
  */
 export function wxpayConvert(
   row: any[],
-  indexMap: Record<string, number>
+  indexMap: Record<string, number>,
+  channel?: string
 ): Flow {
   const flow: Flow | any = {};
   flow.day = row[indexMap["交易时间"]];
@@ -95,18 +129,22 @@ export function wxpayConvert(
     row[indexMap["支付方式"]] +
     "-" +
     row[indexMap["备注"]];
-  const orderNo = row[indexMap["交易单号"]];
-  if (orderNo != null && String(orderNo).trim() !== "")
-    flow.flowNo = String(orderNo).trim().slice(0, 50);
+  const raw = row[indexMap["交易单号"]];
+  const flowNoStr = safeOrderNo(
+    raw,
+    channel ? FLOWNO_MAX_LEN - FLOWNO_PREFIX_LEN : FLOWNO_MAX_LEN
+  );
+  if (flowNoStr !== "") flow.flowNo = flowNoWithChannel(flowNoStr, channel);
   return flow;
 }
 
 /**
- * 京东金融（含流水编号：交易订单号，用于去重）
+ * 京东金融（含流水编号：交易订单号，用于去重；带渠道前缀避免与支付宝/微信订单号冲突）
  */
 export function jdFinanceConvert(
   row: any[],
-  indexMap: Record<string, number>
+  indexMap: Record<string, number>,
+  channel?: string
 ): Flow {
   const flow: Flow | any = {};
   flow.day = row[indexMap["交易时间"]];
@@ -126,8 +164,11 @@ export function jdFinanceConvert(
     row[indexMap["收/付款方式"]] +
     "-" +
     row[indexMap["备注"]];
-  const orderNo = row[indexMap["交易订单号"]];
-  if (orderNo != null && String(orderNo).trim() !== "")
-    flow.flowNo = String(orderNo).trim().slice(0, 50);
+  const raw = row[indexMap["交易订单号"]];
+  const flowNoStr = safeOrderNo(
+    raw,
+    channel ? FLOWNO_MAX_LEN - FLOWNO_PREFIX_LEN : FLOWNO_MAX_LEN
+  );
+  if (flowNoStr !== "") flow.flowNo = flowNoWithChannel(flowNoStr, channel);
   return flow;
 }

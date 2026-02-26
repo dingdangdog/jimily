@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
       where: { id: 1 },
       create: {
         id: 1,
-        title: systemConfig.title ?? "jimily",
+        title: systemConfig.title ?? "Cashbook",
         description: systemConfig.description ?? "",
         keywords: systemConfig.keywords ?? "",
         openRegister: Boolean(systemConfig.openRegister ?? false),

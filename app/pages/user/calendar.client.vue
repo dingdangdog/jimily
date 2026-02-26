@@ -25,7 +25,9 @@
                 class="w-4 h-4 md:w-5 md:h-5 text-primary-700 dark:text-primary-300"
               />
             </div>
-            <div class="flex flex-col md:flex-row items-center md:space-x-2 min-w-0 flex-1">
+            <div
+              class="flex flex-col md:flex-row items-center md:space-x-2 min-w-0 flex-1"
+            >
               <p class="text-xs md:text-sm font-medium text-foreground/70">
                 总收入
               </p>
@@ -50,7 +52,9 @@
                 class="w-4 h-4 md:w-5 md:h-5 text-red-700 dark:text-red-300"
               />
             </div>
-            <div class="flex flex-col md:flex-row items-center md:space-x-2 min-w-0 flex-1">
+            <div
+              class="flex flex-col md:flex-row items-center md:space-x-2 min-w-0 flex-1"
+            >
               <p class="text-xs md:text-sm font-medium text-foreground/70">
                 总支出
               </p>
@@ -84,7 +88,9 @@
                 "
               />
             </div>
-            <div class="flex flex-col md:flex-row items-center md:space-x-2 min-w-0 flex-1">
+            <div
+              class="flex flex-col md:flex-row items-center md:space-x-2 min-w-0 flex-1"
+            >
               <p class="text-xs md:text-sm font-medium text-foreground/70">
                 净收入
               </p>
@@ -144,9 +150,9 @@
     <FlowsImportDrawer
       :show="importDrawer"
       @close="importDrawer = false"
-      @import-alipay="openCsvImport('alipay')"
-      @import-wechat="openCsvImport('wxpay')"
-      @import-jd="openCsvImport('jdFinance')"
+      @import-alipay="openCsvImport('alipay', () => (importDrawer = false))"
+      @import-wechat="openCsvImport('wxpay', () => (importDrawer = false))"
+      @import-jd="openCsvImport('jdFinance', () => (importDrawer = false))"
       @custom-import="showFlowCustomImport"
       @import-json="openJsonImport"
       @export-json="exportJson"
@@ -254,6 +260,7 @@
             :table-head="csvHeaders"
             :table-body="csvDatas"
             :success-callback="importSuccess"
+            :import-source="fileType"
           />
         </div>
       </div>
@@ -335,7 +342,6 @@ import FlowAutoDeduplicationDialog from "~/components/dialog/FlowAutoDeduplicati
 import {
   showFlowEditDialog,
   showFlowEditInvoiceDialog,
-  showFlowExcelImportDialog,
   showFlowJsonImportDialog,
   showAutoMergeFlowsDialog,
   showAutoDeduplicationFlowsDialog,
@@ -352,13 +358,6 @@ import { dateFormater } from "~/utils/common";
 import { doApi } from "~/utils/api";
 import type { CommonChartQuery, MonthAnalysis } from "~/utils/model";
 import type { Flow } from "~/utils/table";
-import * as XLSX from "xlsx";
-import {
-  alipayConvert,
-  jdFinanceConvert,
-  wxpayConvert,
-  templateConvert,
-} from "@/utils/flowConvert";
 
 definePageMeta({
   layout: "public",
@@ -412,12 +411,23 @@ const dialogFormTitle = ref("新增流水");
 const formTitle = ["新增流水", "修改流水"];
 const flowTableRef = ref();
 
-const csvFileInput = ref<HTMLInputElement | null>(null);
-const csvFlows = ref<Flow[] | any[]>([]);
-const csvHeaders = ref<Record<string, number>>({});
-const csvDatas = ref<Record<number, any>[]>([]);
-const fileType = ref("none");
-const titleRowIndex = ref(0);
+const onImportSuccess = () => {
+  initQuery();
+  if (flowTableRef.value?.refresh) flowTableRef.value.refresh();
+};
+const {
+  csvFileInput,
+  csvFlows,
+  csvHeaders,
+  csvDatas,
+  fileType,
+  titleRowIndex,
+  showFlowExcelImportDialog,
+  openCsvImport,
+  readCsvInfo,
+  importSuccess,
+  closeCsvTableDialog,
+} = useCsvFlowImport({ onImportSuccess });
 
 const nameList = ref<string[]>([]);
 const attributionList = ref<string[]>([]);
@@ -550,11 +560,6 @@ const handleDesktopMonthChange = (date: Date) => {
   nowDate.value = date;
 };
 
-const onImportSuccess = () => {
-  initQuery();
-  if (flowTableRef.value?.refresh) flowTableRef.value.refresh();
-};
-
 const addFlowSuccess = (flow: Flow) => {
   if (flow.flowType === "不计收支") return;
   initQuery();
@@ -602,109 +607,6 @@ const getAttributions = async () => {
   }
 };
 
-const removeFile = () => {
-  csvFlows.value = [];
-  csvHeaders.value = {};
-  csvDatas.value = [];
-};
-
-const openCsvImport = (type: string) => {
-  fileType.value = type;
-  if (type === "alipay") titleRowIndex.value = 24;
-  else if (type === "wxpay") titleRowIndex.value = 16;
-  else if (type === "jdFinance") titleRowIndex.value = 21;
-  importDrawer.value = false;
-  csvFileInput.value?.click();
-};
-
-const readCsvInfo = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target?.files?.[0];
-  if (!file) {
-    csvFlows.value = [];
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const buffer = e.target?.result;
-      let workbook: XLSX.WorkBook;
-      if (fileType.value === "alipay") {
-        const context = new TextDecoder("gb2312").decode(buffer as ArrayBuffer);
-        workbook = XLSX.read(context, { type: "string", codepage: 936 });
-      } else {
-        workbook = XLSX.read(buffer as ArrayBuffer, { raw: true });
-      }
-      removeFile();
-      const sheets = workbook.SheetNames.map((sheetName) => {
-        const sheet = workbook.Sheets[sheetName];
-        const sheetData = XLSX.utils.sheet_to_json<any[]>(
-          sheet as XLSX.WorkSheet,
-          {
-            header: 1,
-            defval: "",
-            dateNF: "yyyy-mm-dd",
-          },
-        );
-        return { sheetName, sheetData };
-      });
-      const sheetData: any[] = sheets[0]?.sheetData || [];
-      const headerData = sheetData[titleRowIndex.value];
-      for (let i = 0; i < headerData.length; i++) {
-        if (headerData[i]?.trim()) csvHeaders.value[headerData[i]] = i;
-      }
-      sheetData.splice(0, titleRowIndex.value + 1);
-      const timeIndex = csvHeaders.value["交易时间"];
-      sheetData.forEach((row) => {
-        for (let i = 0; i < row.length; i++) {
-          let cellValue = row[i];
-          if (i === timeIndex && cellValue != null) {
-            if (typeof cellValue === "number" && cellValue > 0) {
-              const excelStart = new Date(1899, 11, 30);
-              const d = new Date(excelStart);
-              d.setDate(d.getDate() + cellValue);
-              d.setHours(d.getHours() + 8);
-              cellValue = d.toISOString().split("T")[0];
-            } else {
-              const d = new Date(cellValue);
-              d.setHours(d.getHours() + 8);
-              cellValue = d.toISOString().split("T")[0];
-            }
-            row[i] = cellValue;
-          }
-        }
-        csvDatas.value.push(row);
-        let flow;
-        if (fileType.value === "alipay")
-          flow = alipayConvert(row, csvHeaders.value);
-        else if (fileType.value === "wxpay")
-          flow = wxpayConvert(row, csvHeaders.value);
-        else if (fileType.value === "jdFinance")
-          flow = jdFinanceConvert(row, csvHeaders.value);
-        else flow = templateConvert(row, csvHeaders.value);
-        csvFlows.value.push(flow);
-      });
-      Alert.warning("数据解析完成，请预览并点击【确定导入】保存数据");
-      showFlowExcelImportDialog.value = true;
-    } catch (err) {
-      console.error(err);
-      Alert.error("数据解析出错，请确认文件是否正确");
-    }
-  };
-  reader.readAsArrayBuffer(file);
-};
-
-const importSuccess = () => {
-  showFlowExcelImportDialog.value = false;
-  removeFile();
-  onImportSuccess();
-};
-
-const closeCsvTableDialog = () => {
-  showFlowExcelImportDialog.value = false;
-  removeFile();
-};
-
 const closeCustomImport = () => {
   showFlowCustomImportDialog.value = false;
 };
@@ -742,7 +644,7 @@ const exportCsv = () => {
 const downloadCsvTemplate = () => {
   const link = document.createElement("a");
   link.href = "/csvtemplate.csv";
-  link.download = "jimily模板.csv";
+  link.download = "Cashbook模板.csv";
   link.click();
 };
 
@@ -750,7 +652,7 @@ const importCsvTemplate = () => {
   fileType.value = "template";
   titleRowIndex.value = 0;
   importDrawer.value = false;
-  csvFileInput.value?.click();
+  nextTick(() => csvFileInput.value?.click());
 };
 
 const updateResponsive = () => {

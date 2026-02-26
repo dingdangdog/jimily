@@ -1,12 +1,28 @@
 import type { ChatCompletionTool } from "openai/resources/chat/completions";
-import { createFlow, getFlowsPage } from "~~/server/utils/db";
-import type { FlowQueryWhere } from "~~/server/utils/db";
-import prisma from "~~/server/lib/prisma";
-import type { Prisma } from "~~/prisma/generated/client";
-
-function genFlowNo(): string {
-  return `F${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-}
+import {
+  addFundAccountByAI,
+  addInvestmentDetailByAI,
+  addInvestmentProductByAI,
+  addLiabilityByAI,
+  addReceivableByAI,
+  addFixedFlowByAI,
+  batchAddFundAccountsByAI,
+  createFlowByAI,
+  queryBudgetsByAI,
+  getFlowStatisticsByAI,
+  queryFlowExtremesByAI,
+  queryLiabilityRepayPlansByAI,
+  queryFixedFlowsByAI,
+  queryInvestmentDetailsByAI,
+  queryInvestmentProductsByAI,
+  queryLiabilitiesByAI,
+  queryFlowsByAI,
+  queryFundAccountsByAI,
+  queryReceivableCollectPlansByAI,
+  queryReceivablesByAI,
+  setBudgetByAI,
+  updateFundAccountBalanceByAI,
+} from "~~/server/utils/db";
 
 /** 对话工具定义（OpenAI Function Calling 格式） */
 export const CHAT_TOOLS: ChatCompletionTool[] = [
@@ -14,7 +30,8 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "add_flow",
-      description: "添加一条流水记录。当用户表达记账、记一笔、花了多少钱、收入多少等意图时使用。",
+      description:
+        "添加一条流水记录。当用户表达记账、记一笔、花了多少钱、收入多少等意图时使用。",
       parameters: {
         type: "object",
         properties: {
@@ -23,13 +40,34 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
             enum: ["收入", "支出", "不计收支"],
             description: "流水类型",
           },
-          industryType: { type: "string", description: "行业/分类，如餐饮、交通、工资" },
-          payType: { type: "string", description: "支付/收款方式，如微信、支付宝" },
-          money: { type: "number", description: "金额，支出为正数传入，内部会按类型处理" },
+          industryType: {
+            type: "string",
+            description: "行业/分类，如餐饮、交通、工资",
+          },
+          money: {
+            type: "number",
+            description: "金额，支出为正数传入，内部会按类型处理",
+          },
           name: { type: "string", description: "条目名称/摘要" },
           day: { type: "string", description: "日期 YYYY-MM-DD，不传则今天" },
-          description: { type: "string", description: "备注" },
-          attribution: { type: "string", description: "流水归属" },
+          description: {
+            type: "string",
+            description: "备注：如果没有明确说明，则无需处理",
+          },
+          attribution: {
+            type: "string",
+            description: "流水归属：如“张三购买xxx商品”，则归属为“张三”",
+          },
+          accountId: {
+            type: "number",
+            description:
+              "资金账户ID。规则：1) 用户明确说了账户（如招行卡、支付宝）时，从系统提供的「当前用户资金账户列表（id+名称）」中匹配对应 id 填入；2) 无法判断具体账户时，填入该用户「现金」账户的 id，不要阻塞记账。",
+          },
+          accountName: {
+            type: "string",
+            description:
+              "资金账户名称（如招商银行卡）。根据 accountId 填写对应的 name。",
+          },
         },
         required: ["flowType", "industryType", "payType", "money", "name"],
       },
@@ -39,16 +77,31 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "query_flows",
-      description: "查询流水记录。当用户要查账、查流水、查某笔支出/收入、按条件筛选时使用。",
+      description:
+        "查询流水记录。当用户要查账、查流水、查某笔支出/收入、按条件筛选时使用。支持按资金账户筛选（通过accountName或accountId）。",
       parameters: {
         type: "object",
         properties: {
-          flowType: { type: "string", enum: ["收入", "支出", "不计收支"], description: "流水类型" },
+          flowType: {
+            type: "string",
+            enum: ["收入", "支出", "不计收支"],
+            description: "流水类型",
+          },
           industryType: { type: "string", description: "行业分类筛选" },
           payType: { type: "string", description: "支付方式筛选" },
           startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
           endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
           name: { type: "string", description: "名称模糊搜索" },
+          accountName: {
+            type: "string",
+            description:
+              "资金账户名称筛选（如支付宝、微信、招商银行卡）。与accountId二选一，优先使用accountId。",
+          },
+          accountId: {
+            type: "number",
+            description:
+              "资金账户ID筛选。与accountName二选一，优先使用accountId。",
+          },
           pageNum: { type: "number", description: "页码，默认1" },
           pageSize: { type: "number", description: "每页条数，默认15" },
         },
@@ -58,14 +111,449 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "query_flow_extremes",
+      description:
+        "查询时间范围内的最高支出和最高收入明细。当用户问“本月最大一笔支出/收入”“最近花得最多的一笔”时使用。",
+      parameters: {
+        type: "object",
+        properties: {
+          flowType: {
+            type: "string",
+            enum: ["收入", "支出"],
+            description: "可选，只查某一种类型",
+          },
+          industryType: { type: "string", description: "行业分类筛选" },
+          payType: { type: "string", description: "支付方式筛选" },
+          name: { type: "string", description: "名称模糊搜索" },
+          startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
+          endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
+          month: {
+            type: "string",
+            description: "月份 YYYY-MM，与 startDay/endDay 二选一",
+          },
+          accountName: {
+            type: "string",
+            description:
+              "资金账户名称筛选（如支付宝、微信、招商银行卡）。与accountId二选一，优先使用accountId。",
+          },
+          accountId: {
+            type: "number",
+            description:
+              "资金账户ID筛选。与accountName二选一，优先使用accountId。",
+          },
+          limit: {
+            type: "number",
+            description: "返回前N条极值，默认1，最大10",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "get_statistics",
-      description: "获取统计数据。当用户问本月花了多少、收入多少、支出统计、分类汇总等时使用。",
+      description:
+        "获取统计数据。当用户问本月花了多少、收入多少、支出统计、分类汇总等时使用。支持按资金账户筛选（通过accountName或accountId），可用于统计特定账户的收支总额。",
       parameters: {
         type: "object",
         properties: {
           startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
           endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
-          month: { type: "string", description: "月份 YYYY-MM，与 startDay/endDay 二选一" },
+          month: {
+            type: "string",
+            description: "月份 YYYY-MM，与 startDay/endDay 二选一",
+          },
+          accountName: {
+            type: "string",
+            description:
+              "资金账户名称筛选（如支付宝、微信、招商银行卡）。与accountId二选一，优先使用accountId。",
+          },
+          accountId: {
+            type: "number",
+            description:
+              "资金账户ID筛选。与accountName二选一，优先使用accountId。",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_fund_account",
+      description:
+        "添加一个资金账户（银行卡、信用卡、微信、支付宝、投资账户等）。当用户说新增资金账户时使用。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "账户名称，如 招商银行卡" },
+          accountType: {
+            type: "string",
+            description:
+              "账户类型，如 银行卡/信用卡/支付宝/微信/投资账户/现金/其他",
+          },
+          institution: {
+            type: "string",
+            description: "开户机构或平台（可选）",
+          },
+          accountNo: {
+            type: "string",
+            description: "账号标识（可选，建议脱敏）",
+          },
+          initialBalance: {
+            type: "number",
+            description: "初始余额，可选，默认0",
+          },
+          currentBalance: {
+            type: "number",
+            description: "当前余额，可选，不传则同 initialBalance",
+          },
+          status: {
+            type: "number",
+            description: "状态，1启用/0停用/-1归档，默认1",
+          },
+          description: { type: "string", description: "备注，可选" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "batch_add_fund_accounts",
+      description:
+        "批量添加资金账户。用户一次给出多个账户名称（如微信、支付宝、银行卡等）时使用。",
+      parameters: {
+        type: "object",
+        properties: {
+          accountNames: {
+            type: "array",
+            items: { type: "string" },
+            description: "账户名称数组",
+          },
+          defaultCurrency: {
+            type: "string",
+            description: "默认币种，默认CNY",
+          },
+        },
+        required: ["accountNames"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_fund_accounts",
+      description: "查询资金账户列表。用户询问账户、余额、账户明细时使用。",
+      parameters: {
+        type: "object",
+        properties: {
+          keyword: {
+            type: "string",
+            description: "关键字，匹配名称/机构/账号",
+          },
+          status: { type: "number", description: "状态过滤" },
+          accountType: { type: "string", description: "账户类型过滤" },
+          pageNum: { type: "number", description: "页码，默认1" },
+          pageSize: { type: "number", description: "每页条数，默认20" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_fund_account_balance",
+      description:
+        "更新资金账户余额（手工校准）。用户说调整某账户余额、把某账户改成X元时使用。",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "账户ID（与 name 二选一）" },
+          name: { type: "string", description: "账户名称（与 id 二选一）" },
+          currentBalance: { type: "number", description: "更新后的当前余额" },
+          totalLiability: {
+            type: "number",
+            description: "可选，同步更新负债余额",
+          },
+          totalProfit: {
+            type: "number",
+            description: "可选，同步更新累计收益",
+          },
+          description: { type: "string", description: "可选，备注" },
+        },
+        required: ["currentBalance"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "set_budget",
+      description: "设置某个月预算（存在则更新，不存在则创建）。",
+      parameters: {
+        type: "object",
+        properties: {
+          month: { type: "string", description: "月份 YYYY-MM" },
+          budget: { type: "number", description: "预算金额" },
+          used: { type: "number", description: "已使用金额（可选）" },
+        },
+        required: ["month", "budget"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_budgets",
+      description: "查询预算列表，可按月份查询。",
+      parameters: {
+        type: "object",
+        properties: {
+          month: { type: "string", description: "月份 YYYY-MM（可选）" },
+          pageNum: { type: "number", description: "页码" },
+          pageSize: { type: "number", description: "每页条数" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_liability",
+      description: "新增一笔负债（借款/欠款）。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "负债名称/对象" },
+          money: { type: "number", description: "负债本金" },
+          occurDay: { type: "string", description: "发生日期 YYYY-MM-DD" },
+          description: { type: "string", description: "备注" },
+          planType: { type: "number", description: "计划类型" },
+          interestRate: { type: "number", description: "年化利率" },
+          termCount: { type: "number", description: "期数" },
+          termAmount: { type: "number", description: "每期金额" },
+          status: { type: "number", description: "状态" },
+        },
+        required: ["name", "money"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_liabilities",
+      description: "查询负债列表。",
+      parameters: {
+        type: "object",
+        properties: {
+          keyword: { type: "string", description: "关键字" },
+          status: { type: "number", description: "状态" },
+          startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
+          endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
+          pageNum: { type: "number", description: "页码" },
+          pageSize: { type: "number", description: "每页条数" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_liability_repay_plans",
+      description:
+        "查询负债还款计划。可用于问“最近有哪些待还款”“某笔借款本月还款安排”。",
+      parameters: {
+        type: "object",
+        properties: {
+          keyword: { type: "string", description: "按负债名称关键词过滤" },
+          status: {
+            type: "number",
+            description: "状态过滤：0待还，1已还",
+          },
+          startDay: { type: "string", description: "计划开始日期 YYYY-MM-DD" },
+          endDay: { type: "string", description: "计划结束日期 YYYY-MM-DD" },
+          pageNum: { type: "number", description: "页码" },
+          pageSize: { type: "number", description: "每页条数" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_receivable",
+      description: "新增一笔应收（借给他人）。",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "应收名称/对象" },
+          money: { type: "number", description: "应收本金" },
+          occurDay: { type: "string", description: "发生日期 YYYY-MM-DD" },
+          description: { type: "string", description: "备注" },
+          planType: { type: "number", description: "计划类型" },
+          interestRate: { type: "number", description: "年化利率" },
+          termCount: { type: "number", description: "期数" },
+          termAmount: { type: "number", description: "每期金额" },
+          status: { type: "number", description: "状态" },
+        },
+        required: ["name", "money"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_receivables",
+      description: "查询应收列表。",
+      parameters: {
+        type: "object",
+        properties: {
+          keyword: { type: "string", description: "关键字" },
+          status: { type: "number", description: "状态" },
+          startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
+          endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
+          pageNum: { type: "number", description: "页码" },
+          pageSize: { type: "number", description: "每页条数" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_receivable_collect_plans",
+      description:
+        "查询应收回款计划。可用于问“最近有哪些待收款”“某笔借出何时回款”。",
+      parameters: {
+        type: "object",
+        properties: {
+          keyword: { type: "string", description: "按应收名称关键词过滤" },
+          status: {
+            type: "number",
+            description: "状态过滤：0待收，1已收",
+          },
+          startDay: { type: "string", description: "计划开始日期 YYYY-MM-DD" },
+          endDay: { type: "string", description: "计划结束日期 YYYY-MM-DD" },
+          pageNum: { type: "number", description: "页码" },
+          pageSize: { type: "number", description: "每页条数" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_investment_product",
+      description: "新增投资产品。",
+      parameters: {
+        type: "object",
+        properties: {
+          productName: { type: "string", description: "产品名称" },
+          productType: { type: "string", description: "产品类型" },
+          totalInvested: { type: "number", description: "累计投入" },
+          totalReturn: { type: "number", description: "累计收益" },
+          currentValue: { type: "number", description: "当前估值" },
+          status: { type: "number", description: "状态" },
+        },
+        required: ["productName"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_investment_products",
+      description: "查询投资产品列表。",
+      parameters: {
+        type: "object",
+        properties: {
+          keyword: { type: "string", description: "关键字" },
+          productType: { type: "string", description: "产品类型" },
+          status: { type: "number", description: "状态" },
+          pageNum: { type: "number", description: "页码" },
+          pageSize: { type: "number", description: "每页条数" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_investment_detail",
+      description: "新增投资交易明细。",
+      parameters: {
+        type: "object",
+        properties: {
+          productId: { type: "number", description: "产品ID" },
+          tradeType: { type: "string", description: "交易类型" },
+          tradeDay: { type: "string", description: "交易日期 YYYY-MM-DD" },
+          amount: { type: "number", description: "金额" },
+          quantity: { type: "number", description: "数量/份额" },
+          price: { type: "number", description: "单价" },
+          fee: { type: "number", description: "手续费" },
+          description: { type: "string", description: "备注" },
+        },
+        required: ["productId", "tradeType", "amount"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_investment_details",
+      description: "查询投资交易明细。",
+      parameters: {
+        type: "object",
+        properties: {
+          productId: { type: "number", description: "产品ID" },
+          tradeType: { type: "string", description: "交易类型" },
+          startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
+          endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
+          pageNum: { type: "number", description: "页码" },
+          pageSize: { type: "number", description: "每页条数" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_fixed_flow",
+      description: "新增固定流水模板（周期记账）。",
+      parameters: {
+        type: "object",
+        properties: {
+          month: { type: "string", description: "月份 YYYY-MM（可选）" },
+          money: { type: "number", description: "金额" },
+          name: { type: "string", description: "名称" },
+          description: { type: "string", description: "备注" },
+          flowType: { type: "string", description: "流水类型" },
+          industryType: { type: "string", description: "行业分类" },
+          payType: { type: "string", description: "支付方式" },
+          attribution: { type: "string", description: "归属" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_fixed_flows",
+      description: "查询固定流水模板。",
+      parameters: {
+        type: "object",
+        properties: {
+          month: { type: "string", description: "月份 YYYY-MM" },
+          flowType: { type: "string", description: "流水类型" },
+          industryType: { type: "string", description: "行业分类" },
+          payType: { type: "string", description: "支付方式" },
+          keyword: { type: "string", description: "关键字" },
+          pageNum: { type: "number", description: "页码" },
+          pageSize: { type: "number", description: "每页条数" },
         },
       },
     },
@@ -76,150 +564,6 @@ export interface ToolExecutionContext {
   userId: number;
 }
 
-/** 执行 add_flow 工具 */
-export async function execAddFlow(
-  args: Record<string, unknown>,
-  ctx: ToolExecutionContext,
-): Promise<string> {
-  const flowType = String(args.flowType ?? "支出");
-  const industryType = String(args.industryType ?? "其他");
-  const payType = String(args.payType ?? "未知");
-  const money = Number(args.money ?? 0);
-  const name = String(args.name ?? "");
-  const day = args.day ? new Date(String(args.day)) : new Date();
-  const description = args.description ? String(args.description) : null;
-  const attribution = args.attribution ? String(args.attribution) : null;
-
-  if (!name || Number.isNaN(money)) {
-    return JSON.stringify({ success: false, message: "名称和金额不能为空" });
-  }
-
-  const data: Prisma.FlowCreateInput = {
-    flowNo: genFlowNo(),
-    userId: ctx.userId,
-    day,
-    flowType,
-    industryType,
-    payType,
-    money: flowType === "支出" ? -Math.abs(money) : Math.abs(money),
-    name,
-    description,
-    attribution,
-    origin: "AI对话记账",
-  };
-
-  const created = await createFlow(data);
-  return JSON.stringify({
-    success: true,
-    message: "记账成功",
-    flow: {
-      id: created.id,
-      flowNo: created.flowNo,
-      day: created.day,
-      flowType: created.flowType,
-      industryType: created.industryType,
-      payType: created.payType,
-      money: created.money,
-      name: created.name,
-    },
-  });
-}
-
-/** 执行 query_flows 工具 */
-export async function execQueryFlows(
-  args: Record<string, unknown>,
-  ctx: ToolExecutionContext,
-): Promise<string> {
-  const whereInput: FlowQueryWhere = { userId: ctx.userId };
-  if (args.flowType) whereInput.flowType = String(args.flowType);
-  if (args.industryType) whereInput.industryType = String(args.industryType);
-  if (args.payType) whereInput.payType = String(args.payType);
-  if (args.name) whereInput.name = String(args.name);
-  if (args.startDay) whereInput.startDay = String(args.startDay);
-  if (args.endDay) whereInput.endDay = String(args.endDay);
-
-  const pageNum = Math.max(1, Number(args.pageNum) || 1);
-  const pageSize = Math.min(50, Math.max(1, Number(args.pageSize) || 15));
-
-  const result = await getFlowsPage(whereInput, { pageNum, pageSize });
-
-  return JSON.stringify({
-    total: result.total,
-    pageNum: result.pageNum,
-    pageSize: result.pageSize,
-    data: result.data.map((f) => ({
-      id: f.id,
-      day: f.day,
-      flowType: f.flowType,
-      industryType: f.industryType,
-      payType: f.payType,
-      money: f.money,
-      name: f.name,
-      description: f.description,
-    })),
-  });
-}
-
-/** 执行 get_statistics 工具 */
-export async function execGetStatistics(
-  args: Record<string, unknown>,
-  ctx: ToolExecutionContext,
-): Promise<string> {
-  let start: Date;
-  let end: Date;
-  const month = args.month ? String(args.month) : null;
-  if (month && /^\d{4}-\d{2}$/.test(month)) {
-    start = new Date(`${month}-01`);
-    const next = new Date(start);
-    next.setMonth(next.getMonth() + 1);
-    end = new Date(next.getTime() - 1);
-  } else if (args.startDay && args.endDay) {
-    start = new Date(String(args.startDay));
-    end = new Date(String(args.endDay));
-  } else {
-    const now = new Date();
-    start = new Date(now.getFullYear(), now.getMonth(), 1);
-    end = new Date();
-  }
-
-  const where: Prisma.FlowWhereInput = {
-    userId: ctx.userId,
-    day: { gte: start, lte: end },
-  };
-
-  const [sumByType, byIndustry] = await Promise.all([
-    prisma.flow.groupBy({
-      by: ["flowType"],
-      where,
-      _sum: { money: true },
-      _count: true,
-    }),
-    prisma.flow.groupBy({
-      by: ["flowType", "industryType"],
-      where,
-      _sum: { money: true },
-    }),
-  ]);
-
-  const stats: Record<string, number> = {};
-  sumByType.forEach((r) => {
-    stats[r.flowType || "未知"] = r._sum.money ?? 0;
-  });
-
-  const byCategory: Record<string, Record<string, number>> = {};
-  byIndustry.forEach((r) => {
-    const ft = r.flowType || "未知";
-    if (!byCategory[ft]) byCategory[ft] = {};
-    byCategory[ft][r.industryType || "其他"] = r._sum.money ?? 0;
-  });
-
-  return JSON.stringify({
-    period: { start, end },
-    summary: stats,
-    byCategory,
-  });
-}
-
 /** 根据工具名和参数执行对应工具 */
 export async function executeTool(
   name: string,
@@ -228,11 +572,49 @@ export async function executeTool(
 ): Promise<string> {
   switch (name) {
     case "add_flow":
-      return execAddFlow(args, ctx);
+      return JSON.stringify(await createFlowByAI(args, ctx));
     case "query_flows":
-      return execQueryFlows(args, ctx);
+      return JSON.stringify(await queryFlowsByAI(args, ctx));
+    case "query_flow_extremes":
+      return JSON.stringify(await queryFlowExtremesByAI(args, ctx));
     case "get_statistics":
-      return execGetStatistics(args, ctx);
+      return JSON.stringify(await getFlowStatisticsByAI(args, ctx));
+    case "add_fund_account":
+      return JSON.stringify(await addFundAccountByAI(args, ctx));
+    case "batch_add_fund_accounts":
+      return JSON.stringify(await batchAddFundAccountsByAI(args, ctx));
+    case "query_fund_accounts":
+      return JSON.stringify(await queryFundAccountsByAI(args, ctx));
+    case "update_fund_account_balance":
+      return JSON.stringify(await updateFundAccountBalanceByAI(args, ctx));
+    case "set_budget":
+      return JSON.stringify(await setBudgetByAI(args, ctx));
+    case "query_budgets":
+      return JSON.stringify(await queryBudgetsByAI(args, ctx));
+    case "add_liability":
+      return JSON.stringify(await addLiabilityByAI(args, ctx));
+    case "query_liabilities":
+      return JSON.stringify(await queryLiabilitiesByAI(args, ctx));
+    case "query_liability_repay_plans":
+      return JSON.stringify(await queryLiabilityRepayPlansByAI(args, ctx));
+    case "add_receivable":
+      return JSON.stringify(await addReceivableByAI(args, ctx));
+    case "query_receivables":
+      return JSON.stringify(await queryReceivablesByAI(args, ctx));
+    case "query_receivable_collect_plans":
+      return JSON.stringify(await queryReceivableCollectPlansByAI(args, ctx));
+    case "add_investment_product":
+      return JSON.stringify(await addInvestmentProductByAI(args, ctx));
+    case "query_investment_products":
+      return JSON.stringify(await queryInvestmentProductsByAI(args, ctx));
+    case "add_investment_detail":
+      return JSON.stringify(await addInvestmentDetailByAI(args, ctx));
+    case "query_investment_details":
+      return JSON.stringify(await queryInvestmentDetailsByAI(args, ctx));
+    case "add_fixed_flow":
+      return JSON.stringify(await addFixedFlowByAI(args, ctx));
+    case "query_fixed_flows":
+      return JSON.stringify(await queryFixedFlowsByAI(args, ctx));
     default:
       return JSON.stringify({ success: false, message: `未知工具: ${name}` });
   }
