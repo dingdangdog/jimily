@@ -13,6 +13,7 @@ import {
   PencilSquareIcon,
   ArrowPathIcon,
   DocumentTextIcon,
+  EllipsisVerticalIcon,
 } from "@heroicons/vue/24/outline";
 import MarkdownIt from "markdown-it";
 import UiComboInput from "~/components/ui/ComboInput.vue";
@@ -55,6 +56,8 @@ const loading = ref(false);
 const sending = ref(false);
 const inputText = ref("");
 const sessionDrawerOpen = ref(false);
+/** 当前展开的会话行菜单 id（用于编辑/删除/导出合并菜单） */
+const openRowMenuId = ref<number | null>(null);
 const md = new MarkdownIt({
   html: false,
   linkify: true,
@@ -506,11 +509,36 @@ watch(
                   <p class="truncate text-xs text-foreground/50">对话</p>
                 </div>
               </button>
-              <button type="button"
-                class="flex-shrink-0 rounded-full p-2 text-foreground/40 hover:bg-surface-muted hover:text-foreground"
-                aria-label="删除" @click="(e: Event) => deleteSession(s.id, e)">
-                <TrashIcon class="h-5 w-5" />
-              </button>
+              <div class="relative flex-shrink-0">
+                <button type="button"
+                  class="rounded-full p-2 text-foreground/40 hover:bg-surface-muted hover:text-foreground"
+                  aria-label="更多" :aria-expanded="openRowMenuId === s.id"
+                  @click.stop="openRowMenuId = openRowMenuId === s.id ? null : s.id">
+                  <EllipsisVerticalIcon class="h-5 w-5" />
+                </button>
+                <Teleport to="body">
+                  <div v-if="openRowMenuId === s.id" class="fixed inset-0 z-40" @click="openRowMenuId = null" />
+                </Teleport>
+                <div v-if="openRowMenuId === s.id"
+                  class="absolute right-0 top-full z-50 mt-1 min-w-[9rem] rounded-lg border border-border bg-surface py-1 shadow-lg"
+                  @click.stop>
+                  <button type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
+                    @click="openRowMenuId = null; startEditTitle(s, $event)">
+                    <PencilSquareIcon class="h-4 w-4" /> 编辑标题
+                  </button>
+                  <button v-if="currentSessionId === s.id" type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
+                    @click="openRowMenuId = null; exportChatMarkdown()">
+                    <DocumentTextIcon class="h-4 w-4" /> 导出对话
+                  </button>
+                  <button type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
+                    @click="openRowMenuId = null; deleteSession(s.id, $event)">
+                    <TrashIcon class="h-4 w-4" /> 删除
+                  </button>
+                </div>
+              </div>
             </li>
           </ul>
         </div>
@@ -528,21 +556,11 @@ watch(
           <h2 class="min-w-0 flex-1 truncate text-center text-base font-semibold">
             {{ currentSessionTitle }}
           </h2>
-          <div class="flex items-center gap-1">
-            <button
-              type="button"
-              class="flex-shrink-0 rounded-full p-2 text-foreground/60 hover:bg-surface-muted hover:text-foreground"
-              aria-label="导出对话" title="导出为 Markdown"
-              @click="exportChatMarkdown"
-            >
-              <DocumentTextIcon class="h-5 w-5" />
-            </button>
-            <button type="button"
-              class="flex-shrink-0 rounded-full p-2 text-foreground/60 hover:bg-surface-muted hover:text-foreground"
-              aria-label="复位对话" title="复位到底部" @click="resetChatBubbles">
-              <ArrowDownIcon class="h-5 w-5" />
-            </button>
-          </div>
+          <button type="button"
+            class="flex-shrink-0 rounded-full p-2 text-foreground/60 hover:bg-surface-muted hover:text-foreground"
+            aria-label="复位对话" title="复位到底部" @click="resetChatBubbles">
+            <ArrowDownIcon class="h-5 w-5" />
+          </button>
         </header>
         <!-- 移动端对话页：当前 AI 服务商 -->
         <div v-if="aiProviders.length > 0"
@@ -666,18 +684,36 @@ watch(
                   ">
                   {{ s.title || "新对话" }}
                 </button>
-                <button type="button"
-                  class="flex-shrink-0 rounded p-0.5 text-foreground/50 hover:bg-surface-muted hover:text-foreground"
-                  title="编辑标题" @click.stop="startEditTitle(s, $event)">
-                  <PencilSquareIcon class="h-4 w-4" />
-                </button>
               </template>
-              <span v-if="editingSessionId !== s.id" role="button" tabindex="0"
-                class="flex-shrink-0 cursor-pointer rounded p-0.5 opacity-60 hover:opacity-100" title="删除"
-                @click.stop="(e: Event) => deleteSession(s.id, e)"
-                @keydown.enter.prevent="(e: Event) => deleteSession(s.id, e)">
-                <TrashIcon class="h-4 w-4" />
-              </span>
+              <div v-if="editingSessionId !== s.id" class="relative flex-shrink-0">
+                <button type="button" class="rounded p-0.5 text-foreground/50 hover:bg-surface-muted hover:text-foreground"
+                  aria-label="更多" :aria-expanded="openRowMenuId === s.id"
+                  @click.stop="openRowMenuId = openRowMenuId === s.id ? null : s.id">
+                  <EllipsisVerticalIcon class="h-4 w-4" />
+                </button>
+                <Teleport to="body">
+                  <div v-if="openRowMenuId === s.id" class="fixed inset-0 z-40" @click="openRowMenuId = null" />
+                </Teleport>
+                <div v-if="openRowMenuId === s.id"
+                  class="absolute right-0 top-full z-50 mt-1 min-w-[9rem] rounded-lg border border-border bg-surface py-1 shadow-lg"
+                  @click.stop>
+                  <button type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
+                    @click="openRowMenuId = null; startEditTitle(s, $event)">
+                    <PencilSquareIcon class="h-4 w-4" /> 编辑标题
+                  </button>
+                  <button v-if="currentSessionId === s.id" type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
+                    @click="openRowMenuId = null; exportChatMarkdown()">
+                    <DocumentTextIcon class="h-4 w-4" /> 导出对话
+                  </button>
+                  <button type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
+                    @click="openRowMenuId = null; deleteSession(s.id, $event)">
+                    <TrashIcon class="h-4 w-4" /> 删除
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
@@ -756,14 +792,6 @@ watch(
               <PaperAirplaneIcon class="h-5 w-5" />
             </button>
           </form>
-          <button
-            type="button"
-            class="flex-shrink-0 rounded-lg border border-border px-2 py-2 text-foreground/70 hover:bg-surface-muted hover:text-foreground"
-            aria-label="导出对话" title="导出为 Markdown"
-            @click="exportChatMarkdown"
-          >
-            <DocumentTextIcon class="h-5 w-5" />
-          </button>
           <button type="button"
             class="flex-shrink-0 rounded-lg border border-border px-2 py-2 text-foreground/70 hover:bg-surface-muted hover:text-foreground"
             aria-label="复位对话" title="复位到底部" @click="resetChatBubbles">
