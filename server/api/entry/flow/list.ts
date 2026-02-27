@@ -129,14 +129,46 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const flows = await prisma.flow.findMany({
+  let flows: any[] = await prisma.flow.findMany({
     where, // 使用条件查询
-    include: {
-      account: {
-        select: { id: true, name: true, accountType: true },
-      },
-    },
   });
+
+  // 约定式关联资金账户信息（根据 accountId 手动查询并组装 account 字段）
+  const accountIds = Array.from(
+    new Set(
+      flows
+        .map((f: any) => f.accountId)
+        .filter(
+          (id: any) =>
+            id !== null && id !== undefined && Number.isFinite(Number(id)),
+        )
+        .map((id: any) => Number(id)),
+    ),
+  );
+
+  if (accountIds.length > 0) {
+    const accounts = await prisma.fundAccount.findMany({
+      where: {
+        userId,
+        id: { in: accountIds },
+      },
+      select: { id: true, name: true, accountType: true },
+    });
+    const accountMap = new Map(
+      accounts.map((acc) => [Number(acc.id), acc]),
+    ) as Map<number, { id: number; name: string; accountType: string }>;
+
+    flows = flows.map((f: any) => {
+      const accId =
+        f.accountId != null && Number.isFinite(Number(f.accountId))
+          ? Number(f.accountId)
+          : null;
+      return {
+        ...f,
+        account: accId != null ? accountMap.get(accId) ?? null : null,
+      };
+    });
+  }
 
   return success(flows);
 });

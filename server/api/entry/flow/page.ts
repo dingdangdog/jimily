@@ -146,17 +146,12 @@ export default defineEventHandler(async (event) => {
     // 将金额排序设置到第一个
     orderBy.unshift({ money: String(body.moneySort) });
   }
-  let flows;
+  let flows: any[] = [];
   if (pageSize == -1) {
     // 查询全部
     flows = await prisma.flow.findMany({
       where,
       orderBy,
-      include: {
-        account: {
-          select: { id: true, name: true, accountType: true },
-        },
-      },
     });
     // return success(books);
   } else {
@@ -166,11 +161,43 @@ export default defineEventHandler(async (event) => {
       orderBy,
       skip,
       take: pageSize,
-      include: {
-        account: {
-          select: { id: true, name: true, accountType: true },
-        },
+    });
+  }
+
+  // 由于 Prisma 模型不再显式定义外键关联，这里根据 accountId 约定式关联资金账户信息
+  const accountIds = Array.from(
+    new Set(
+      flows
+        .map((f: any) => f.accountId)
+        .filter(
+          (id: any) =>
+            id !== null && id !== undefined && Number.isFinite(Number(id)),
+        )
+        .map((id: any) => Number(id)),
+    ),
+  );
+
+  if (accountIds.length > 0) {
+    const accounts = await prisma.fundAccount.findMany({
+      where: {
+        userId,
+        id: { in: accountIds },
       },
+      select: { id: true, name: true, accountType: true },
+    });
+    const accountMap = new Map(
+      accounts.map((acc) => [Number(acc.id), acc]),
+    ) as Map<number, { id: number; name: string; accountType: string }>;
+
+    flows = flows.map((f: any) => {
+      const accId =
+        f.accountId != null && Number.isFinite(Number(f.accountId))
+          ? Number(f.accountId)
+          : null;
+      return {
+        ...f,
+        account: accId != null ? accountMap.get(accId) ?? null : null,
+      };
     });
   }
   // 计算总页数
