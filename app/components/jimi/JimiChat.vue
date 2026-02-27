@@ -41,6 +41,8 @@ const props = withDefaults(
     showSessionList?: boolean;
     /** 移动端从「会话列表」点返回时调用的回调（返回应用） */
     mobileBackToApp?: () => void;
+    /** 对话完成后的回调（用于刷新统计信息等） */
+    onChatComplete?: () => void;
   }>(),
   { isMobile: false, showSessionList: true },
 );
@@ -277,6 +279,8 @@ const sendMessage = async () => {
       messages.value = [...messages.value, assistantMsg];
       scrollToBottom();
     }
+    // 对话成功完成后，触发回调刷新统计信息
+    props.onChatComplete?.();
   } catch {
     messages.value = messages.value.filter((m) => m !== userMsg);
     Alert.error("发送失败");
@@ -321,6 +325,8 @@ const retryWithMessage = async (content: string) => {
       messages.value = [...messages.value, assistantMsg];
       scrollToBottom();
     }
+    // 对话成功完成后，触发回调刷新统计信息
+    props.onChatComplete?.();
   } catch {
     messages.value = messages.value.filter((m) => m !== userMsg);
     Alert.error("发送失败");

@@ -298,7 +298,8 @@ const goBack = () => {
       </div>
     </div>
     <div class="flex-1 min-h-0 overflow-hidden">
-      <JimiChat :show-session-list="true" :is-mobile="isMobile" :mobile-back-to-app="goBack" />
+      <JimiChat :show-session-list="true" :is-mobile="isMobile" :mobile-back-to-app="goBack"
+        :on-chat-complete="fetchStats" />
     </div>
 
     <!-- CSV 流水导入对话框（与账本日历一致） -->
