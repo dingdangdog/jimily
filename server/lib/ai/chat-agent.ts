@@ -10,6 +10,7 @@ const SYSTEM_PROMPT = `你是个人记账助手的AI，你的职责是分析用�
 2. 对话式查询：用户问"本月有哪些支出"、"查一下餐饮消费"等，调用 query_flows（支持按资金账户筛选，通过accountName或accountId参数）
 2.1 极值查询：用户问"本月最高支出是哪一笔"、"时间范围内最高收入"等，调用 query_flow_extremes（支持按资金账户筛选）
 3. 对话式统计：用户问"本月花了多少"、"收入统计"、"某账户的收支总额"等，调用 get_statistics（支持按资金账户筛选，可用于统计特定账户的收支总额）
+3.1 消费偏好分析：用户问"分析消费偏好"、"按分类分析"、"年度消费结构"等，调用 analyze_consumption_preferences（聚合统计，避免逐条明细分页误导）
 4. 资金账户管理：
    - 新增单个资金账户：调用 add_fund_account
    - 批量新增多个资金账户（如 微信、支付宝、若干银行卡/信用卡）：调用 batch_add_fund_accounts
@@ -328,7 +329,7 @@ const JSON_PLAN_SYSTEM_PROMPT = `你是个人记账助手，请把用户诉求�
 JSON 格式固定如下：
 {
   "action": {
-    "name": "add_flow" | "query_flows" | "query_flow_extremes" | "get_statistics" | "add_fund_account" | "batch_add_fund_accounts" | "query_fund_accounts" | "update_fund_account_balance" | "set_budget" | "query_budgets" | "add_liability" | "query_liabilities" | "query_liability_repay_plans" | "add_receivable" | "query_receivables" | "query_receivable_collect_plans" | "add_investment_product" | "query_investment_products" | "add_investment_detail" | "query_investment_details" | "add_fixed_flow" | "query_fixed_flows" | "none",
+    "name": "add_flow" | "query_flows" | "query_flow_extremes" | "get_statistics" | "analyze_consumption_preferences" | "add_fund_account" | "batch_add_fund_accounts" | "query_fund_accounts" | "update_fund_account_balance" | "set_budget" | "query_budgets" | "add_liability" | "query_liabilities" | "query_liability_repay_plans" | "add_receivable" | "query_receivables" | "query_receivable_collect_plans" | "add_investment_product" | "query_investment_products" | "add_investment_detail" | "query_investment_details" | "add_fixed_flow" | "query_fixed_flows" | "none",
     "args": { ... }
   },
   "reply": "给用户的自然语言回复（当 name=none 时必须有）"
@@ -339,6 +340,7 @@ JSON 格式固定如下：
 - query_flows.args: { flowType?, industryType?, payType?, startDay?, endDay?, name?, accountName?, accountId?, pageNum?, pageSize? }
 - query_flow_extremes.args: { flowType?, industryType?, payType?, name?, month? 或 startDay+endDay, accountName?, accountId?, limit? }
 - get_statistics.args: { month? 或 startDay+endDay, accountName?, accountId? }
+- analyze_consumption_preferences.args: { month? 或 startDay+endDay, accountName?, accountId? }
 - add_fund_account.args: { name, accountType?, institution?, accountNo?, initialBalance?, currentBalance?, status?, description? }
 - batch_add_fund_accounts.args: { accountNames: string[], defaultCurrency? }
 - query_fund_accounts.args: { keyword?, status?, accountType?, pageNum?, pageSize? }
@@ -364,6 +366,7 @@ JSON 格式固定如下：
 - 记账时若能从“当前用户资金账户列表”定位到账户，优先填写 add_flow.args.accountId
 - 记账类请求（如“记账/记一笔/花了/收入/支出/买了”）必须优先输出 add_flow，不要改成查询或闲聊
 - 查询类请求（如“查/统计/总支出/多少/最高/明细”）必须优先输出 query_flows、query_flow_extremes 或 get_statistics，不要输出泛化客套回复
+- 分析偏好类请求（如“消费偏好/按分类分析/年度消费结构/画像”）优先输出 analyze_consumption_preferences；若用户要某分类明细，再补充 query_flows
 - add_flow.args.flowType / query_flows.args.flowType 仅允许：收入、支出、不计收支（不要输出 income/expense/inflow/outflow 等英文值）
 - add_flow.args.payType 尽量从用户原话抽取（如“支付宝支付/微信支付/现金/银行卡/信用卡”），无法判断时填“未知”
 - 日期格式 YYYY-MM-DD，月份 YYYY-MM`;
@@ -381,6 +384,7 @@ const JSON_SUPPORTED_ACTIONS = new Set([
   "query_flows",
   "query_flow_extremes",
   "get_statistics",
+  "analyze_consumption_preferences",
   "add_fund_account",
   "batch_add_fund_accounts",
   "query_fund_accounts",
@@ -552,7 +556,44 @@ async function summarizeToolResult(opts: {
       return `极值查询完成：最高支出 ${expenseCount} 条，最高收入 ${incomeCount} 条。`;
     }
     if (toolName === "get_statistics") {
-      return `统计完成：${JSON.stringify(parsed.summary ?? {})}`;
+      const summary = parsed.summary ?? {};
+      const expense = Number(summary["支出"] ?? 0);
+      const income = Number(summary["收入"] ?? 0);
+      const byCategory = (parsed as { byCategory?: Record<string, Record<string, number>> })
+        .byCategory;
+      const expenseCategories = Object.entries(byCategory?.["支出"] ?? {})
+        .map(([k, v]) => [k, Number(v)] as const)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([k, v]) => `${k} ${v.toFixed(2)}元`);
+      return expenseCategories.length > 0
+        ? `统计完成：总支出 ${expense.toFixed(2)} 元，总收入 ${income.toFixed(2)} 元；支出前三分类：${expenseCategories.join("、")}。`
+        : `统计完成：总支出 ${expense.toFixed(2)} 元，总收入 ${income.toFixed(2)} 元。`;
+    }
+    if (toolName === "analyze_consumption_preferences") {
+      const data = parsed as {
+        totalExpense?: number;
+        totalIncome?: number;
+        totalCount?: number;
+        expenseCount?: number;
+        topExpenseCategories?: Array<{ category?: string; amount?: number; ratio?: number }>;
+        topExpensePayTypes?: Array<{ payType?: string; amount?: number; ratio?: number }>;
+      };
+      const categoryTop = (data.topExpenseCategories ?? [])
+        .slice(0, 3)
+        .map(
+          (x) =>
+            `${x.category || "其他"} ${Number(x.amount ?? 0).toFixed(2)}元（${(Number(x.ratio ?? 0) * 100).toFixed(1)}%）`,
+        );
+      const payTypeTop = (data.topExpensePayTypes ?? [])
+        .slice(0, 2)
+        .map(
+          (x) =>
+            `${x.payType || "未知"} ${Number(x.amount ?? 0).toFixed(2)}元（${(Number(x.ratio ?? 0) * 100).toFixed(1)}%）`,
+        );
+      return `消费偏好分析完成：共 ${Number(data.totalCount ?? 0)} 笔，支出 ${Number(data.totalExpense ?? 0).toFixed(2)} 元、收入 ${Number(data.totalIncome ?? 0).toFixed(2)} 元。` +
+        (categoryTop.length ? `支出主要集中在：${categoryTop.join("、")}。` : "") +
+        (payTypeTop.length ? `主要支付方式：${payTypeTop.join("、")}。` : "");
     }
     if (toolName === "query_fund_accounts") {
       return `账户查询完成，共 ${parsed.total ?? 0} 个。`;
@@ -621,7 +662,7 @@ function buildRecentConversationContext(
 
 function isLikelyToolIntent(text: string): boolean {
   if (!text) return false;
-  return /(记账|记一笔|新增|添加|查|查询|统计|总支出|总收入|花了多少|最高|最低|明细|流水|预算|账户|余额|负债|应收|投资|固定流水)/.test(
+  return /(记账|记一笔|新增|添加|查|查询|统计|分析|偏好|总支出|总收入|花了多少|最高|最低|明细|流水|预算|账户|余额|负债|应收|投资|固定流水)/.test(
     text,
   );
 }
@@ -693,10 +734,27 @@ function applyTemporalHints(
   if (
     toolName === "query_flows" ||
     toolName === "get_statistics" ||
+    toolName === "analyze_consumption_preferences" ||
     toolName === "query_flow_extremes" ||
     toolName === "query_liability_repay_plans" ||
     toolName === "query_receivable_collect_plans"
   ) {
+    const hasExplicitRange = Boolean(next.startDay || next.endDay || next.month);
+    if (!hasExplicitRange) {
+      const monthMatch = text.match(/\b(20\d{2})[-\/年](0?[1-9]|1[0-2])月?\b/);
+      if (monthMatch) {
+        const y = monthMatch[1];
+        const m = String(Number(monthMatch[2])).padStart(2, "0");
+        next.month = `${y}-${m}`;
+      } else {
+        const yearMatch = text.match(/\b(20\d{2})年?\b/);
+        if (yearMatch) {
+          const y = Number(yearMatch[1]);
+          next.startDay = `${y}-01-01`;
+          next.endDay = `${y}-12-31`;
+        }
+      }
+    }
     if (/(今天|今日)/.test(text)) {
       const day = formatDate(now);
       next.startDay = day;

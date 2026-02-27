@@ -692,3 +692,131 @@ export async function getFlowStatisticsByAI(
     byCategory,
   };
 }
+
+export async function analyzeConsumptionPreferencesByAI(
+  args: Record<string, unknown>,
+  ctx: AIToolContext,
+): Promise<{
+  period: { start: Date; end: Date };
+  totalCount: number;
+  expenseCount: number;
+  incomeCount: number;
+  totalExpense: number;
+  totalIncome: number;
+  topExpenseCategories: Array<{
+    category: string;
+    amount: number;
+    count: number;
+    ratio: number;
+  }>;
+  topExpensePayTypes: Array<{
+    payType: string;
+    amount: number;
+    count: number;
+    ratio: number;
+  }>;
+}> {
+  let start: Date;
+  let end: Date;
+  const month = args.month ? String(args.month) : null;
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    start = new Date(`${month}-01`);
+    const next = new Date(start);
+    next.setMonth(next.getMonth() + 1);
+    end = new Date(next.getTime() - 1);
+  } else if (args.startDay || args.endDay) {
+    start = args.startDay ? parseDateBoundary(String(args.startDay), "start") : new Date(0);
+    end = args.endDay ? parseDateBoundary(String(args.endDay), "end") : new Date();
+  } else {
+    const now = new Date();
+    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  }
+
+  let accountId: number | undefined;
+  if (args.accountId) {
+    accountId = Number(args.accountId);
+  } else if (args.accountName) {
+    const account = await getFundAccountByName(
+      ctx.userId,
+      String(args.accountName),
+    );
+    if (account) accountId = account.id;
+  }
+
+  const where: Prisma.FlowWhereInput = {
+    userId: ctx.userId,
+    day: { gte: start, lte: end },
+    ...(accountId !== undefined ? { accountId } : {}),
+  };
+
+  const [sumByType, expenseByCategory, expenseByPayType] = (await Promise.all([
+    prisma.flow.groupBy({
+      by: ["flowType"],
+      where,
+      _sum: { money: true },
+      _count: true,
+    }),
+    prisma.flow.groupBy({
+      by: ["industryType"],
+      where: { ...where, flowType: "支出" },
+      _sum: { money: true },
+      _count: true,
+    }),
+    prisma.flow.groupBy({
+      by: ["payType"],
+      where: { ...where, flowType: "支出" },
+      _sum: { money: true },
+      _count: true,
+    }),
+  ])) as [
+    Array<{ flowType: string | null; _sum: { money: number | null }; _count: number }>,
+    Array<{ industryType: string | null; _sum: { money: number | null }; _count: number }>,
+    Array<{ payType: string | null; _sum: { money: number | null }; _count: number }>,
+  ];
+
+  const expenseRow = sumByType.find((x) => x.flowType === "支出");
+  const incomeRow = sumByType.find((x) => x.flowType === "收入");
+  const totalExpense = Math.abs(Number(expenseRow?._sum.money ?? 0));
+  const totalIncome = Math.abs(Number(incomeRow?._sum.money ?? 0));
+  const expenseCount = Number(expenseRow?._count ?? 0);
+  const incomeCount = Number(incomeRow?._count ?? 0);
+  const totalCount = sumByType.reduce((acc, x) => acc + Number(x._count ?? 0), 0);
+
+  const topExpenseCategories = expenseByCategory
+    .map((x) => {
+      const amount = Math.abs(Number(x._sum.money ?? 0));
+      return {
+        category: x.industryType || "其他",
+        amount,
+        count: Number(x._count ?? 0),
+        ratio: totalExpense > 0 ? Number((amount / totalExpense).toFixed(4)) : 0,
+      };
+    })
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 8);
+
+  const topExpensePayTypes = expenseByPayType
+    .map((x) => {
+      const amount = Math.abs(Number(x._sum.money ?? 0));
+      return {
+        payType: x.payType || "未知",
+        amount,
+        count: Number(x._count ?? 0),
+        ratio: totalExpense > 0 ? Number((amount / totalExpense).toFixed(4)) : 0,
+      };
+    })
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 8);
+
+  return {
+    period: { start, end },
+    totalCount,
+    expenseCount,
+    incomeCount,
+    totalExpense,
+    totalIncome,
+    topExpenseCategories,
+    topExpensePayTypes,
+  };
+}

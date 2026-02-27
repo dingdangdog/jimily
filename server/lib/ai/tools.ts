@@ -10,6 +10,7 @@ import {
   createFlowByAI,
   queryBudgetsByAI,
   getFlowStatisticsByAI,
+  analyzeConsumptionPreferencesByAI,
   queryFlowExtremesByAI,
   queryLiabilityRepayPlansByAI,
   queryFixedFlowsByAI,
@@ -43,6 +44,10 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
           industryType: {
             type: "string",
             description: "行业/分类，如餐饮、交通、工资",
+          },
+          payType: {
+            type: "string",
+            description: "支付方式，如支付宝、微信、银行卡、现金",
           },
           money: {
             type: "number",
@@ -155,6 +160,35 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
       name: "get_statistics",
       description:
         "获取统计数据。当用户问本月花了多少、收入多少、支出统计、分类汇总等时使用。支持按资金账户筛选（通过accountName或accountId），可用于统计特定账户的收支总额。",
+      parameters: {
+        type: "object",
+        properties: {
+          startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
+          endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
+          month: {
+            type: "string",
+            description: "月份 YYYY-MM，与 startDay/endDay 二选一",
+          },
+          accountName: {
+            type: "string",
+            description:
+              "资金账户名称筛选（如支付宝、微信、招商银行卡）。与accountId二选一，优先使用accountId。",
+          },
+          accountId: {
+            type: "number",
+            description:
+              "资金账户ID筛选。与accountName二选一，优先使用accountId。",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "analyze_consumption_preferences",
+      description:
+        "分析消费偏好（聚合统计，不按单笔逐条解读）。适用于“分析消费偏好/按分类分析/年度消费结构”等请求。",
       parameters: {
         type: "object",
         properties: {
@@ -579,6 +613,8 @@ export async function executeTool(
       return JSON.stringify(await queryFlowExtremesByAI(args, ctx));
     case "get_statistics":
       return JSON.stringify(await getFlowStatisticsByAI(args, ctx));
+    case "analyze_consumption_preferences":
+      return JSON.stringify(await analyzeConsumptionPreferencesByAI(args, ctx));
     case "add_fund_account":
       return JSON.stringify(await addFundAccountByAI(args, ctx));
     case "batch_add_fund_accounts":
