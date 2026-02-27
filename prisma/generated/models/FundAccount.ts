@@ -364,7 +364,6 @@ export type FundAccountWhereInput = {
   lastFlowAt?: Prisma.DateTimeNullableFilter<"FundAccount"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"FundAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FundAccount"> | Date | string
-  flows?: Prisma.FlowListRelationFilter
 }
 
 export type FundAccountOrderByWithRelationInput = {
@@ -387,7 +386,6 @@ export type FundAccountOrderByWithRelationInput = {
   lastFlowAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  flows?: Prisma.FlowOrderByRelationAggregateInput
 }
 
 export type FundAccountWhereUniqueInput = Prisma.AtLeast<{
@@ -413,7 +411,6 @@ export type FundAccountWhereUniqueInput = Prisma.AtLeast<{
   lastFlowAt?: Prisma.DateTimeNullableFilter<"FundAccount"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"FundAccount"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FundAccount"> | Date | string
-  flows?: Prisma.FlowListRelationFilter
 }, "id">
 
 export type FundAccountOrderByWithAggregationInput = {
@@ -487,7 +484,6 @@ export type FundAccountCreateInput = {
   lastFlowAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  flows?: Prisma.FlowCreateNestedManyWithoutAccountInput
 }
 
 export type FundAccountUncheckedCreateInput = {
@@ -510,7 +506,6 @@ export type FundAccountUncheckedCreateInput = {
   lastFlowAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  flows?: Prisma.FlowUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FundAccountUpdateInput = {
@@ -532,7 +527,6 @@ export type FundAccountUpdateInput = {
   lastFlowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  flows?: Prisma.FlowUpdateManyWithoutAccountNestedInput
 }
 
 export type FundAccountUncheckedUpdateInput = {
@@ -555,7 +549,6 @@ export type FundAccountUncheckedUpdateInput = {
   lastFlowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  flows?: Prisma.FlowUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FundAccountCreateManyInput = {
@@ -621,11 +614,6 @@ export type FundAccountUncheckedUpdateManyInput = {
   lastFlowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type FundAccountNullableScalarRelationFilter = {
-  is?: Prisma.FundAccountWhereInput | null
-  isNot?: Prisma.FundAccountWhereInput | null
 }
 
 export type FundAccountCountOrderByAggregateInput = {
@@ -720,22 +708,6 @@ export type FundAccountSumOrderByAggregateInput = {
   sortBy?: Prisma.SortOrder
 }
 
-export type FundAccountCreateNestedOneWithoutFlowsInput = {
-  create?: Prisma.XOR<Prisma.FundAccountCreateWithoutFlowsInput, Prisma.FundAccountUncheckedCreateWithoutFlowsInput>
-  connectOrCreate?: Prisma.FundAccountCreateOrConnectWithoutFlowsInput
-  connect?: Prisma.FundAccountWhereUniqueInput
-}
-
-export type FundAccountUpdateOneWithoutFlowsNestedInput = {
-  create?: Prisma.XOR<Prisma.FundAccountCreateWithoutFlowsInput, Prisma.FundAccountUncheckedCreateWithoutFlowsInput>
-  connectOrCreate?: Prisma.FundAccountCreateOrConnectWithoutFlowsInput
-  upsert?: Prisma.FundAccountUpsertWithoutFlowsInput
-  disconnect?: Prisma.FundAccountWhereInput | boolean
-  delete?: Prisma.FundAccountWhereInput | boolean
-  connect?: Prisma.FundAccountWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.FundAccountUpdateToOneWithWhereWithoutFlowsInput, Prisma.FundAccountUpdateWithoutFlowsInput>, Prisma.FundAccountUncheckedUpdateWithoutFlowsInput>
-}
-
 export type FloatFieldUpdateOperationsInput = {
   set?: number
   increment?: number
@@ -748,137 +720,6 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
 }
 
-export type FundAccountCreateWithoutFlowsInput = {
-  userId: number
-  name: string
-  accountType: string
-  institution?: string | null
-  accountNo?: string | null
-  currency?: string
-  initialBalance?: number
-  currentBalance?: number
-  totalIncome?: number
-  totalExpense?: number
-  totalLiability?: number
-  totalProfit?: number
-  status?: number
-  sortBy?: number
-  description?: string | null
-  lastFlowAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type FundAccountUncheckedCreateWithoutFlowsInput = {
-  id?: number
-  userId: number
-  name: string
-  accountType: string
-  institution?: string | null
-  accountNo?: string | null
-  currency?: string
-  initialBalance?: number
-  currentBalance?: number
-  totalIncome?: number
-  totalExpense?: number
-  totalLiability?: number
-  totalProfit?: number
-  status?: number
-  sortBy?: number
-  description?: string | null
-  lastFlowAt?: Date | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type FundAccountCreateOrConnectWithoutFlowsInput = {
-  where: Prisma.FundAccountWhereUniqueInput
-  create: Prisma.XOR<Prisma.FundAccountCreateWithoutFlowsInput, Prisma.FundAccountUncheckedCreateWithoutFlowsInput>
-}
-
-export type FundAccountUpsertWithoutFlowsInput = {
-  update: Prisma.XOR<Prisma.FundAccountUpdateWithoutFlowsInput, Prisma.FundAccountUncheckedUpdateWithoutFlowsInput>
-  create: Prisma.XOR<Prisma.FundAccountCreateWithoutFlowsInput, Prisma.FundAccountUncheckedCreateWithoutFlowsInput>
-  where?: Prisma.FundAccountWhereInput
-}
-
-export type FundAccountUpdateToOneWithWhereWithoutFlowsInput = {
-  where?: Prisma.FundAccountWhereInput
-  data: Prisma.XOR<Prisma.FundAccountUpdateWithoutFlowsInput, Prisma.FundAccountUncheckedUpdateWithoutFlowsInput>
-}
-
-export type FundAccountUpdateWithoutFlowsInput = {
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  accountType?: Prisma.StringFieldUpdateOperationsInput | string
-  institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accountNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  currency?: Prisma.StringFieldUpdateOperationsInput | string
-  initialBalance?: Prisma.FloatFieldUpdateOperationsInput | number
-  currentBalance?: Prisma.FloatFieldUpdateOperationsInput | number
-  totalIncome?: Prisma.FloatFieldUpdateOperationsInput | number
-  totalExpense?: Prisma.FloatFieldUpdateOperationsInput | number
-  totalLiability?: Prisma.FloatFieldUpdateOperationsInput | number
-  totalProfit?: Prisma.FloatFieldUpdateOperationsInput | number
-  status?: Prisma.IntFieldUpdateOperationsInput | number
-  sortBy?: Prisma.IntFieldUpdateOperationsInput | number
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastFlowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type FundAccountUncheckedUpdateWithoutFlowsInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  userId?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  accountType?: Prisma.StringFieldUpdateOperationsInput | string
-  institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accountNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  currency?: Prisma.StringFieldUpdateOperationsInput | string
-  initialBalance?: Prisma.FloatFieldUpdateOperationsInput | number
-  currentBalance?: Prisma.FloatFieldUpdateOperationsInput | number
-  totalIncome?: Prisma.FloatFieldUpdateOperationsInput | number
-  totalExpense?: Prisma.FloatFieldUpdateOperationsInput | number
-  totalLiability?: Prisma.FloatFieldUpdateOperationsInput | number
-  totalProfit?: Prisma.FloatFieldUpdateOperationsInput | number
-  status?: Prisma.IntFieldUpdateOperationsInput | number
-  sortBy?: Prisma.IntFieldUpdateOperationsInput | number
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  lastFlowAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-
-/**
- * Count Type FundAccountCountOutputType
- */
-
-export type FundAccountCountOutputType = {
-  flows: number
-}
-
-export type FundAccountCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  flows?: boolean | FundAccountCountOutputTypeCountFlowsArgs
-}
-
-/**
- * FundAccountCountOutputType without action
- */
-export type FundAccountCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the FundAccountCountOutputType
-   */
-  select?: Prisma.FundAccountCountOutputTypeSelect<ExtArgs> | null
-}
-
-/**
- * FundAccountCountOutputType without action
- */
-export type FundAccountCountOutputTypeCountFlowsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.FlowWhereInput
-}
 
 
 export type FundAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -901,8 +742,6 @@ export type FundAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   lastFlowAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  flows?: boolean | Prisma.FundAccount$flowsArgs<ExtArgs>
-  _count?: boolean | Prisma.FundAccountCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["fundAccount"]>
 
 export type FundAccountSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -972,18 +811,10 @@ export type FundAccountSelectScalar = {
 }
 
 export type FundAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "accountType" | "institution" | "accountNo" | "currency" | "initialBalance" | "currentBalance" | "totalIncome" | "totalExpense" | "totalLiability" | "totalProfit" | "status" | "sortBy" | "description" | "lastFlowAt" | "createdAt" | "updatedAt", ExtArgs["result"]["fundAccount"]>
-export type FundAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  flows?: boolean | Prisma.FundAccount$flowsArgs<ExtArgs>
-  _count?: boolean | Prisma.FundAccountCountOutputTypeDefaultArgs<ExtArgs>
-}
-export type FundAccountIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type FundAccountIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $FundAccountPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "FundAccount"
-  objects: {
-    flows: Prisma.$FlowPayload<ExtArgs>[]
-  }
+  objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
      * 主键
@@ -1018,7 +849,7 @@ export type $FundAccountPayload<ExtArgs extends runtime.Types.Extensions.Interna
      */
     initialBalance: number
     /**
-     * 当前余额（自动维护）
+     * 当前余额
      */
     currentBalance: number
     /**
@@ -1455,7 +1286,6 @@ readonly fields: FundAccountFieldRefs;
  */
 export interface Prisma__FundAccountClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  flows<T extends Prisma.FundAccount$flowsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FundAccount$flowsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FlowPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1521,10 +1351,6 @@ export type FundAccountFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.I
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
-  /**
    * Filter, which FundAccount to fetch.
    */
   where: Prisma.FundAccountWhereUniqueInput
@@ -1543,10 +1369,6 @@ export type FundAccountFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Exten
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
-  /**
    * Filter, which FundAccount to fetch.
    */
   where: Prisma.FundAccountWhereUniqueInput
@@ -1564,10 +1386,6 @@ export type FundAccountFindFirstArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the FundAccount
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
   /**
    * Filter, which FundAccount to fetch.
    */
@@ -1617,10 +1435,6 @@ export type FundAccountFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extens
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
-  /**
    * Filter, which FundAccount to fetch.
    */
   where?: Prisma.FundAccountWhereInput
@@ -1669,10 +1483,6 @@ export type FundAccountFindManyArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
-  /**
    * Filter, which FundAccounts to fetch.
    */
   where?: Prisma.FundAccountWhereInput
@@ -1715,10 +1525,6 @@ export type FundAccountCreateArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the FundAccount
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
   /**
    * The data needed to create a FundAccount.
    */
@@ -1767,10 +1573,6 @@ export type FundAccountUpdateArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the FundAccount
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
   /**
    * The data needed to update a FundAccount.
    */
@@ -1838,10 +1640,6 @@ export type FundAccountUpsertArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
-  /**
    * The filter to search for the FundAccount to update in case it exists.
    */
   where: Prisma.FundAccountWhereUniqueInput
@@ -1868,10 +1666,6 @@ export type FundAccountDeleteArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
-  /**
    * Filter which FundAccount to delete.
    */
   where: Prisma.FundAccountWhereUniqueInput
@@ -1892,30 +1686,6 @@ export type FundAccountDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
 }
 
 /**
- * FundAccount.flows
- */
-export type FundAccount$flowsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Flow
-   */
-  select?: Prisma.FlowSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Flow
-   */
-  omit?: Prisma.FlowOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FlowInclude<ExtArgs> | null
-  where?: Prisma.FlowWhereInput
-  orderBy?: Prisma.FlowOrderByWithRelationInput | Prisma.FlowOrderByWithRelationInput[]
-  cursor?: Prisma.FlowWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.FlowScalarFieldEnum | Prisma.FlowScalarFieldEnum[]
-}
-
-/**
  * FundAccount without action
  */
 export type FundAccountDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1927,8 +1697,4 @@ export type FundAccountDefaultArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the FundAccount
    */
   omit?: Prisma.FundAccountOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FundAccountInclude<ExtArgs> | null
 }

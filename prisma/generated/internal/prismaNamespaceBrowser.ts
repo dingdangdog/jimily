@@ -108,8 +108,6 @@ export const FlowScalarFieldEnum = {
   flowNo: 'flowNo',
   userId: 'userId',
   accountId: 'accountId',
-  accountDelta: 'accountDelta',
-  accountBal: 'accountBal',
   day: 'day',
   flowType: 'flowType',
   industryType: 'industryType',
