@@ -8,7 +8,8 @@ import JimiChat from "~/components/jimi/JimiChat.vue";
 import CsvFlowTable from "@/components/datas/CsvFlowTable.vue";
 import DatasFlowTable from "@/components/datas/FlowTable.vue";
 import FlowEditDialog from "~/components/dialog/FlowEditDialog.vue";
-import { showFlowEditDialog } from "~/utils/flag";
+import FlowJsonImportDialog from "~/components/dialog/FlowJsonImportDialog.vue";
+import { showFlowEditDialog, showFlowJsonImportDialog } from "~/utils/flag";
 import type { Flow } from "~/utils/table";
 import {
   DocumentTextIcon,
@@ -46,6 +47,11 @@ const {
 const goImport = (type: "alipay" | "wxpay" | "jdFinance") => {
   toolsOpen.value = false;
   openCsvImport(type);
+};
+
+const goJsonImport = () => {
+  toolsOpen.value = false;
+  showFlowJsonImportDialog.value = true;
 };
 
 /** 账本统计 */
@@ -206,6 +212,10 @@ const goBack = () => {
       <button type="button" class="text-primary-600 hover:underline" @click="goImport('jdFinance')">
         京东金融
       </button>
+      <span class="text-foreground/40">|</span>
+      <button type="button" class="text-primary-600 hover:underline" @click="goJsonImport">
+        JSON
+      </button>
     </div>
     <!-- 账本统计：Tab 本周 / 本月 / 本年 / 全部 -->
     <div class="flex-shrink-0 border-b border-border bg-surface-muted/50 p-2 md:px-4">
@@ -254,6 +264,14 @@ const goBack = () => {
               @click="goImport('jdFinance')">
               <DocumentTextIcon class="h-4 w-4 text-primary-600" />
               京东金融
+            </button>
+            <button
+              type="button"
+              class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-muted"
+              @click="goJsonImport"
+            >
+              <DocumentTextIcon class="h-4 w-4 text-primary-600" />
+              JSON 导入
             </button>
           </div>
         </div>
@@ -369,5 +387,6 @@ const goBack = () => {
     />
 
     <input ref="csvFileInput" type="file" accept=".csv,.xlsx" style="display: none" @change="readCsvInfo" />
+    <FlowJsonImportDialog :success-callback="onFlowEditSuccess" />
   </div>
 </template>

@@ -12,6 +12,7 @@ import {
   ArrowDownIcon,
   PencilSquareIcon,
   ArrowPathIcon,
+  DocumentTextIcon,
 } from "@heroicons/vue/24/outline";
 import MarkdownIt from "markdown-it";
 import UiComboInput from "~/components/ui/ComboInput.vue";
@@ -347,6 +348,85 @@ const renderAssistantMarkdown = (content: string) => {
   return md.render(content || "");
 };
 
+const buildChatMarkdown = () => {
+  const lines: string[] = [];
+  const title = currentSessionTitle.value || "Jimi 对话";
+  const sessionId = currentSessionId.value;
+  const provider = selectedProviderName.value || "默认模型";
+
+  lines.push(`# ${title}`);
+  lines.push("");
+  if (sessionId) {
+    lines.push(`- 会话 ID：${sessionId}`);
+  }
+  lines.push(`- 使用模型：${provider}`);
+  lines.push(
+    `- 导出时间：${new Date().toLocaleString(undefined, {
+      hour12: false,
+    })}`,
+  );
+  lines.push("");
+  lines.push("---");
+  lines.push("");
+
+  for (const msg of messages.value) {
+    const roleLabel =
+      msg.role === "user"
+        ? "用户"
+        : msg.role === "assistant"
+          ? "Jimi"
+          : msg.role || "其他";
+    let timeText = "";
+    if (msg.createdAt) {
+      const d = new Date(msg.createdAt);
+      if (!Number.isNaN(d.getTime())) {
+        timeText = d.toLocaleString(undefined, { hour12: false });
+      }
+    }
+    lines.push(
+      `### ${roleLabel}${timeText ? `（${timeText}）` : ""}`,
+    );
+    lines.push("");
+    const content = msg.content?.trim() || "（无内容）";
+    lines.push(content);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+};
+
+const exportChatMarkdown = () => {
+  if (!messages.value.length) {
+    Alert.warning("当前没有可导出的对话内容");
+    return;
+  }
+  const mdText = buildChatMarkdown();
+  try {
+    const blob = new Blob([mdText], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const rawTitle = currentSessionTitle.value || "Jimi 对话";
+    const safeTitle = rawTitle
+      .replace(/[\\/:*?"<>|]/g, "_")
+      .slice(0, 40);
+    const ts = new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[-T:]/g, "");
+    a.href = url;
+    a.download = `${safeTitle || "Jimi对话"}-${ts}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    Alert.success("已导出对话为 Markdown 文件");
+  } catch {
+    Alert.error("导出失败，请稍后重试");
+  }
+};
+
 onMounted(() => {
   loadProviders();
   loadSessions();
@@ -448,11 +528,21 @@ watch(
           <h2 class="min-w-0 flex-1 truncate text-center text-base font-semibold">
             {{ currentSessionTitle }}
           </h2>
-          <button type="button"
-            class="flex-shrink-0 rounded-full p-2 text-foreground/60 hover:bg-surface-muted hover:text-foreground"
-            aria-label="复位对话" title="复位到底部" @click="resetChatBubbles">
-            <ArrowDownIcon class="h-5 w-5" />
-          </button>
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              class="flex-shrink-0 rounded-full p-2 text-foreground/60 hover:bg-surface-muted hover:text-foreground"
+              aria-label="导出对话" title="导出为 Markdown"
+              @click="exportChatMarkdown"
+            >
+              <DocumentTextIcon class="h-5 w-5" />
+            </button>
+            <button type="button"
+              class="flex-shrink-0 rounded-full p-2 text-foreground/60 hover:bg-surface-muted hover:text-foreground"
+              aria-label="复位对话" title="复位到底部" @click="resetChatBubbles">
+              <ArrowDownIcon class="h-5 w-5" />
+            </button>
+          </div>
         </header>
         <!-- 移动端对话页：当前 AI 服务商 -->
         <div v-if="aiProviders.length > 0"
@@ -666,6 +756,14 @@ watch(
               <PaperAirplaneIcon class="h-5 w-5" />
             </button>
           </form>
+          <button
+            type="button"
+            class="flex-shrink-0 rounded-lg border border-border px-2 py-2 text-foreground/70 hover:bg-surface-muted hover:text-foreground"
+            aria-label="导出对话" title="导出为 Markdown"
+            @click="exportChatMarkdown"
+          >
+            <DocumentTextIcon class="h-5 w-5" />
+          </button>
           <button type="button"
             class="flex-shrink-0 rounded-lg border border-border px-2 py-2 text-foreground/70 hover:bg-surface-muted hover:text-foreground"
             aria-label="复位对话" title="复位到底部" @click="resetChatBubbles">
