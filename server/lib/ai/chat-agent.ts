@@ -4,39 +4,11 @@ import { getAIProviderConfig } from "./client";
 import { CHAT_TOOLS, executeTool } from "./tools";
 import { getFundAccountsAll } from "~~/server/utils/db";
 
-const SYSTEM_PROMPT = `你是个人记账助手的AI，你的职责是分析用户意图，根据用户意图选择调用的工具，完成相关操作，目前支持的操作如下：
-
-1. 对话式记账（添加流水）：调用 add_flow
-2. 对话式查询：用户问"本月有哪些支出"、"查一下餐饮消费"等，调用 query_flows（支持按资金账户筛选，通过accountName或accountId参数）
-2.1 极值查询：用户问"本月最高支出是哪一笔"、"时间范围内最高收入"等，调用 query_flow_extremes（支持按资金账户筛选）
-3. 对话式统计：用户问"本月花了多少"、"收入统计"、"某账户的收支总额"等，调用 get_statistics（支持按资金账户筛选，可用于统计特定账户的收支总额）
-3.1 消费偏好分析：用户问"分析消费偏好"、"按分类分析"、"年度消费结构"等，调用 analyze_consumption_preferences（聚合统计，避免逐条明细分页误导）
-4. 资金账户管理：
-   - 新增单个资金账户：调用 add_fund_account
-   - 批量新增多个资金账户（如 微信、支付宝、若干银行卡/信用卡）：调用 batch_add_fund_accounts
-   - 查询资金账户与余额：调用 query_fund_accounts
-   - 手工校准资金账户余额：调用 update_fund_account_balance
-5. 预算管理：
-   - 设置预算：调用 set_budget
-   - 查询预算：调用 query_budgets
-6. 负债管理：
-   - 新增负债：调用 add_liability
-   - 查询负债：调用 query_liabilities
-   - 查询负债还款计划：调用 query_liability_repay_plans
-7. 应收管理：
-   - 新增应收：调用 add_receivable
-   - 查询应收：调用 query_receivables
-   - 查询应收回款计划：调用 query_receivable_collect_plans
-8. 投资管理：
-   - 新增投资产品：调用 add_investment_product
-   - 查询投资产品：调用 query_investment_products
-   - 新增投资明细：调用 add_investment_detail
-   - 查询投资明细：调用 query_investment_details
-9. 固定流水模板：
-   - 新增固定流水：调用 add_fixed_flow
-   - 查询固定流水：调用 query_fixed_flows
-
-请根据用户意图选择合适的工具，用自然语言总结结果回复用户。若无法理解或缺少关键信息，礼貌地询问用户。`;
+const SYSTEM_PROMPT = `你是个人记账助手，负责通过工具完成个人记账场景中的数据库数据管理（增删改查与分析）。
+原则：
+1) 能用工具就用工具，避免空泛聊天；
+2) 回复必须基于工具结果，不编造；
+3) 信息不足时，先询问关键参数。`;
 
 export interface ChatAgentOptions {
   userId: number;
@@ -323,53 +295,25 @@ async function runWithToolCalls(opts: {
   };
 }
 
-const JSON_PLAN_SYSTEM_PROMPT = `你是个人记账助手，请把用户诉求解析为 JSON 指令。
+const ROUTER_SYSTEM_PROMPT = `你是记账助手的“意图路由器”。只做一件事：把用户请求路由成可执行工具指令。
 只输出 JSON，不要输出 markdown，不要输出额外解释。
 
-JSON 格式固定如下：
+输出格式：
 {
   "action": {
-    "name": "add_flow" | "query_flows" | "query_flow_extremes" | "get_statistics" | "analyze_consumption_preferences" | "add_fund_account" | "batch_add_fund_accounts" | "query_fund_accounts" | "update_fund_account_balance" | "set_budget" | "query_budgets" | "add_liability" | "query_liabilities" | "query_liability_repay_plans" | "add_receivable" | "query_receivables" | "query_receivable_collect_plans" | "add_investment_product" | "query_investment_products" | "add_investment_detail" | "query_investment_details" | "add_fixed_flow" | "query_fixed_flows" | "none",
+    "name": "<工具名或none>",
     "args": { ... }
   },
-  "reply": "给用户的自然语言回复（当 name=none 时必须有）"
+  "reply": "当无法调用工具时给用户的简短澄清问题",
+  "confidence": 0.0
 }
 
-参数约束：
-- add_flow.args: { flowType, industryType, payType, money, name, day?, description?, attribution?, accountId?, accountName? }
-- query_flows.args: { flowType?, industryType?, payType?, startDay?, endDay?, name?, accountName?, accountId?, pageNum?, pageSize? }
-- query_flow_extremes.args: { flowType?, industryType?, payType?, name?, month? 或 startDay+endDay, accountName?, accountId?, limit? }
-- get_statistics.args: { month? 或 startDay+endDay, accountName?, accountId? }
-- analyze_consumption_preferences.args: { month? 或 startDay+endDay, accountName?, accountId? }
-- add_fund_account.args: { name, accountType?, institution?, accountNo?, initialBalance?, currentBalance?, status?, description? }
-- batch_add_fund_accounts.args: { accountNames: string[], defaultCurrency? }
-- query_fund_accounts.args: { keyword?, status?, accountType?, pageNum?, pageSize? }
-- update_fund_account_balance.args: { id? 或 name?, currentBalance, totalLiability?, totalProfit?, description? }
-- set_budget.args: { month, budget, used? }
-- query_budgets.args: { month?, pageNum?, pageSize? }
-- add_liability.args: { name, money, occurDay?, description?, planType?, interestRate?, termCount?, termAmount?, status? }
-- query_liabilities.args: { keyword?, status?, startDay?, endDay?, pageNum?, pageSize? }
-- query_liability_repay_plans.args: { keyword?, status?, startDay?, endDay?, pageNum?, pageSize? }
-- add_receivable.args: { name, money, occurDay?, description?, planType?, interestRate?, termCount?, termAmount?, status? }
-- query_receivables.args: { keyword?, status?, startDay?, endDay?, pageNum?, pageSize? }
-- query_receivable_collect_plans.args: { keyword?, status?, startDay?, endDay?, pageNum?, pageSize? }
-- add_investment_product.args: { productName, productType?, totalInvested?, totalReturn?, currentValue?, status? }
-- query_investment_products.args: { keyword?, productType?, status?, pageNum?, pageSize? }
-- add_investment_detail.args: { productId, tradeType, tradeDay?, amount, quantity?, price?, fee?, description? }
-- query_investment_details.args: { productId?, tradeType?, startDay?, endDay?, pageNum?, pageSize? }
-- add_fixed_flow.args: { month?, money?, name, description?, flowType?, industryType?, payType?, attribution? }
-- query_fixed_flows.args: { month?, flowType?, industryType?, payType?, keyword?, pageNum?, pageSize? }
-
-要求：
-- 能调用工具就优先给 action，不要 name=none
-- 数字字段必须是 number
-- 记账时若能从“当前用户资金账户列表”定位到账户，优先填写 add_flow.args.accountId
-- 记账类请求（如“记账/记一笔/花了/收入/支出/买了”）必须优先输出 add_flow，不要改成查询或闲聊
-- 查询类请求（如“查/统计/总支出/多少/最高/明细”）必须优先输出 query_flows、query_flow_extremes 或 get_statistics，不要输出泛化客套回复
-- 分析偏好类请求（如“消费偏好/按分类分析/年度消费结构/画像”）优先输出 analyze_consumption_preferences；若用户要某分类明细，再补充 query_flows
-- add_flow.args.flowType / query_flows.args.flowType 仅允许：收入、支出、不计收支（不要输出 income/expense/inflow/outflow 等英文值）
-- add_flow.args.payType 尽量从用户原话抽取（如“支付宝支付/微信支付/现金/银行卡/信用卡”），无法判断时填“未知”
-- 日期格式 YYYY-MM-DD，月份 YYYY-MM`;
+路由原则（通用）：
+1) 数据变更类（新增/修改）优先路由到写工具；
+2) 查询类优先路由到 query_flows/query_flow_extremes/get_statistics；
+3) 分析类（偏好、结构、画像、分类占比）优先路由到 analyze_consumption_preferences；
+4) 能调用工具就不要返回 none；
+5) 参数尽量结构化，数字字段必须是 number。`;
 
 type JsonPlan = {
   action?: {
@@ -377,6 +321,7 @@ type JsonPlan = {
     args?: Record<string, unknown>;
   };
   reply?: string;
+  confidence?: number;
 };
 
 const JSON_SUPPORTED_ACTIONS = new Set([
@@ -420,50 +365,52 @@ async function runWithJsonPlan(opts: {
     throw new Error("json 方案未找到用户输入");
   }
 
-  // 兼容部分严格校验角色交替的后端：仅发送单条 user 消息做 JSON 抽取
-  const recentContext = buildRecentConversationContext(messages);
-  const fullMessages: ChatCompletionMessageParam[] = [
-    {
-      role: "user",
-      content: `${JSON_PLAN_SYSTEM_PROMPT}\n\n当前服务器时间：${getNowContext(now)}\n${accountPrompt}\n最近对话上下文（仅供理解，不要原样复述）：\n${recentContext}\n请基于以下用户请求返回 JSON：\n${latestUserText}`,
-    },
-  ];
-
-  const planResponse = await client.chat.completions.create({
-    model: config.model,
-    temperature: 0.1,
-    max_tokens: config.maxTokens ?? 3000,
-    messages: fullMessages,
+  const parsed = await routeUserIntent({
+    client,
+    config,
+    now,
+    accountPrompt,
+    messages,
+    latestUserText,
   });
-  const raw = planResponse.choices[0]?.message?.content?.trim();
-  if (!raw) {
-    throw new Error("json 方案未返回内容");
-  }
-
-  const parsed = parseJsonPlan(raw);
   const actionName = parsed.action?.name;
   const args = parsed.action?.args ?? {};
   if (actionName && JSON_SUPPORTED_ACTIONS.has(actionName)) {
-    const normalizedArgs = applyTemporalHints(
+    const firstArgs = applyTemporalHints(
       actionName,
       args,
       latestUserText,
       now,
     );
-    const toolOutput = await executeTool(actionName, normalizedArgs, {
+    const firstRun = await executeTool(actionName, firstArgs, {
       userId,
     });
+    const verified = verifyToolOutput(actionName, firstRun);
+    let finalToolName = actionName;
+    let finalArgs = firstArgs;
+    let toolOutput = firstRun;
+    // 针对路由错误做一次轻量自愈：分析请求误路由到明细查询时，切到聚合分析工具
+    if (!verified.ok && shouldFallbackToAnalysisTool(latestUserText, actionName)) {
+      finalToolName = "analyze_consumption_preferences";
+      finalArgs = applyTemporalHints(
+        finalToolName,
+        firstArgs,
+        latestUserText,
+        now,
+      );
+      toolOutput = await executeTool(finalToolName, finalArgs, { userId });
+    }
     const finalText = await summarizeToolResult({
       client,
       config,
       userMessages: messages,
-      toolName: actionName,
+      toolName: finalToolName,
       toolOutput,
       hintReply: parsed.reply,
     });
     return {
       content: finalText,
-      toolCalls: [{ name: actionName, args: normalizedArgs }],
+      toolCalls: [{ name: finalToolName, args: finalArgs }],
       strategy: "json",
     };
   }
@@ -476,6 +423,110 @@ async function runWithJsonPlan(opts: {
     throw new Error("json 方案缺少可用 reply");
   }
   return { content: reply, strategy: "json" };
+}
+
+async function routeUserIntent(opts: {
+  client: NonNullable<Awaited<ReturnType<typeof getAIClient>>>;
+  config: NonNullable<Awaited<ReturnType<typeof getAIProviderConfig>>>;
+  now: Date;
+  accountPrompt: string;
+  messages: ChatCompletionMessageParam[];
+  latestUserText: string;
+}): Promise<JsonPlan> {
+  const { client, config, now, accountPrompt, messages, latestUserText } = opts;
+  const recentContext = buildRecentConversationContext(messages);
+  const fullMessages: ChatCompletionMessageParam[] = [
+    {
+      role: "user",
+      content: `${ROUTER_SYSTEM_PROMPT}\n\n可用工具：${[
+        ...JSON_SUPPORTED_ACTIONS,
+      ].join(", ")}\n当前服务器时间：${getNowContext(now)}\n${accountPrompt}\n最近对话上下文（仅供理解）：\n${recentContext}\n请基于以下用户请求返回 JSON：\n${latestUserText}`,
+    },
+  ];
+
+  try {
+    const planResponse = await client.chat.completions.create({
+      model: config.model,
+      temperature: 0.1,
+      max_tokens: Math.min(config.maxTokens ?? 3000, 1200),
+      messages: fullMessages,
+    });
+    const raw = planResponse.choices[0]?.message?.content?.trim();
+    if (!raw) {
+      throw new Error("router 未返回内容");
+    }
+    const parsed = parseJsonPlan(raw);
+    if (parsed.action?.name && JSON_SUPPORTED_ACTIONS.has(parsed.action.name)) {
+      return parsed;
+    }
+  } catch {
+    // 路由失败时走规则兜底
+  }
+
+  const fallback = routeByRules(latestUserText);
+  if (fallback) return fallback;
+  return {
+    action: { name: "none", args: {} },
+    reply: "我理解到你在管理记账数据，但还缺少关键条件。请补充时间范围或对象。",
+    confidence: 0.2,
+  };
+}
+
+function routeByRules(text: string): JsonPlan | null {
+  const t = text.trim();
+  if (!t) return null;
+  if (/(消费偏好|消费结构|支出结构|画像|按分类分析|偏好分析)/.test(t)) {
+    return { action: { name: "analyze_consumption_preferences", args: {} }, confidence: 0.7 };
+  }
+  if (/(最高|最大|最贵|峰值|极值)/.test(t)) {
+    return { action: { name: "query_flow_extremes", args: {} }, confidence: 0.65 };
+  }
+  if (/(统计|汇总|花了多少|总支出|总收入|收支)/.test(t)) {
+    return { action: { name: "get_statistics", args: {} }, confidence: 0.65 };
+  }
+  if (/(查|查询|明细|流水|账单)/.test(t)) {
+    return { action: { name: "query_flows", args: {} }, confidence: 0.6 };
+  }
+  if (/(记账|记一笔|新增支出|新增收入|花了|收入了|买了)/.test(t)) {
+    return { action: { name: "add_flow", args: {} }, confidence: 0.6 };
+  }
+  return null;
+}
+
+function verifyToolOutput(
+  toolName: string,
+  toolOutput: string,
+): { ok: boolean; reason?: string } {
+  try {
+    const parsed = JSON.parse(toolOutput) as {
+      success?: boolean;
+      message?: string;
+      total?: number;
+      pageSize?: number;
+    };
+    if (parsed.success === false) {
+      return { ok: false, reason: parsed.message || "tool_success_false" };
+    }
+    if (toolName === "query_flows" && typeof parsed.total === "number" && parsed.total > 0) {
+      const pageSize = Number(parsed.pageSize ?? 15);
+      if (parsed.total > pageSize) {
+        return { ok: false, reason: "query_flows_pagination_risk" };
+      }
+    }
+    return { ok: true };
+  } catch {
+    return { ok: true };
+  }
+}
+
+function shouldFallbackToAnalysisTool(
+  userText: string,
+  toolName: string,
+): boolean {
+  if (toolName !== "query_flows" && toolName !== "get_statistics") return false;
+  return /(消费偏好|消费结构|支出结构|画像|按分类分析|偏好分析|趋势)/.test(
+    userText,
+  );
 }
 
 function parseJsonPlan(raw: string): JsonPlan {
@@ -646,10 +697,10 @@ function buildRecentConversationContext(
         ? m.content.trim()
         : Array.isArray(m.content)
           ? m.content
-              .filter((x) => x.type === "text" && "text" in x)
-              .map((x) => (typeof x.text === "string" ? x.text : ""))
-              .join(" ")
-              .trim()
+            .filter((x) => x.type === "text" && "text" in x)
+            .map((x) => (typeof x.text === "string" ? x.text : ""))
+            .join(" ")
+            .trim()
           : "";
     if (!content) continue;
     rows.push(
@@ -834,11 +885,11 @@ function getEndOfWeek(d: Date): Date {
 
 function logAIExecution(input: {
   event:
-    | "start"
-    | "tool_execute"
-    | "strategy_failed"
-    | "final_success"
-    | "all_failed";
+  | "start"
+  | "tool_execute"
+  | "strategy_failed"
+  | "final_success"
+  | "all_failed";
   userId: number;
   strategy: "tool_calls" | "json";
   userText?: string;

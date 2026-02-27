@@ -10,7 +10,6 @@ import {
 import {
   normalizeFlowTypeLabel,
   recalcFundAccountFromFlows,
-  resolveFlowAccountDelta,
 } from "./flow-account-balance";
 import {
   getFundAccountById,
@@ -154,20 +153,6 @@ export async function createFlow(data: Prisma.FlowCreateInput): Promise<Flow> {
       ...(normalizedMoney !== undefined && { money: normalizedMoney }),
     },
   });
-  if (created.accountId != null) {
-    const nextDelta = resolveFlowAccountDelta({
-      flowType: created.flowType,
-      money: created.money,
-      accountDelta: created.accountDelta,
-    });
-    created = await prisma.flow.update({
-      where: { id: created.id },
-      data: {
-        accountDelta: nextDelta,
-        accountBal: null,
-      },
-    });
-  }
   await recalcFundAccountFromFlows(created.accountId ?? undefined);
   return created;
 }
@@ -192,30 +177,7 @@ export async function updateFlow(
       ...data,
       ...(normalizedMoney !== undefined && { money: normalizedMoney }),
     };
-    let updated = await tx.flow.update({ where: { id }, data: updateData });
-
-    if (updated.accountId != null) {
-      const nextDelta = resolveFlowAccountDelta({
-        flowType: updated.flowType,
-        money: updated.money,
-        accountDelta: updated.accountDelta,
-      });
-      updated = await tx.flow.update({
-        where: { id },
-        data: {
-          accountDelta: nextDelta,
-          accountBal: null,
-        },
-      });
-    } else if (updated.accountDelta != null || updated.accountBal != null) {
-      updated = await tx.flow.update({
-        where: { id },
-        data: {
-          accountDelta: null,
-          accountBal: null,
-        },
-      });
-    }
+    const updated = await tx.flow.update({ where: { id }, data: updateData });
 
     const oldAccountId = oldRow?.accountId ?? undefined;
     const newAccountId = updated.accountId ?? undefined;
@@ -313,11 +275,6 @@ export async function createFlowByAI(
   const accountId = matchedAccount.id;
 
   const created = await prisma.$transaction(async (tx) => {
-    const delta = resolveFlowAccountDelta({
-      flowType,
-      money: normalizedMoney,
-      accountDelta: null,
-    });
     const row = await tx.flow.create({
       data: {
         flowNo: genFlowNo(),
@@ -332,8 +289,6 @@ export async function createFlowByAI(
         attribution,
         origin: "AI对话记账",
         accountId,
-        accountDelta: delta,
-        accountBal: null,
       },
     });
     // 与 update 一致：流水写入后在同一事务内重算资金账户
