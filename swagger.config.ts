@@ -5,7 +5,7 @@ const swaggerDefinition = {
   // openapi: "3.0.0",
   info: {
     title: "Cashbook API",
-    version: "5.0.0",
+    version: "5.0.1",
     description:
       "接口文档需要手动维护，因此不能保证完全正确，请以接口实际效果为准！",
   },

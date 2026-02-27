@@ -21,6 +21,12 @@
 - 在线体验后台：[cashbook.oldmoon.top/admin](https://cashbook.oldmoon.top/admin) (体验账号: `admin`/`admin123456`)
 - QQ交流群：`564081656`
 
+```dockerfile
+docker build -t jimily:5.0.1 .
+docker save -o jimily.5.0.1.tar jimily:5.0.1
+docker load -i jimily.5.0.1.tar
+```
+
 ## 简述（Description）
 
 Cashbook记账本。
