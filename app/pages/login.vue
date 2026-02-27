@@ -6,7 +6,7 @@ definePageMeta({
 import { BookOpenIcon, SunIcon, MoonIcon } from "@heroicons/vue/24/outline";
 
 import { SystemConfig } from "~/utils/store";
-import { checkSignIn, clearAuthStorage } from "~/utils/common";
+import { clearAuthStorage } from "~/utils/common";
 
 const themeStore = useThemeStore();
 const isDark = computed(() => themeStore.isDark);
@@ -152,8 +152,9 @@ onMounted(async () => {
     return;
   }
 
-  // 已初始化：若已有登录态则直接跳转
-  if (checkSignIn()) {
+  // 已初始化：若已有登录态则直接跳转（通过请求校验，因 Authorization 为 httpOnly 客户端读不到）
+  const user = await useUserStore().fetchUser();
+  if (user) {
     Alert.success("登录成功");
     setTimeout(() => {
       if (fromUrl.value) {
