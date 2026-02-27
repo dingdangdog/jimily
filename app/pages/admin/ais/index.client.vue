@@ -37,7 +37,7 @@ const addItem = () => {
     apiEndpoint: null,
     apiModel: null,
     apiVersion: null,
-    temperature: 0.5,
+    temperature: 0.3,
     maxTokens: 3000,
     timeout: 30000,
     extraConfig: null,
