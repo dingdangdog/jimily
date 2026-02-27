@@ -142,6 +142,7 @@
 <script setup lang="ts">
 import { showFlowJsonImportDialog } from "~/utils/flag";
 import { ref } from "vue";
+import type { Flow } from "~/utils/table";
 import {
   XMarkIcon,
   DocumentArrowUpIcon,
@@ -165,6 +166,121 @@ const importFlag = ref("add");
 const jsonFile = ref<File | null>(null);
 const jsonFlows = ref<Flow[]>([]);
 const fileInput = ref<HTMLInputElement>();
+
+const isPlainObject = (value: unknown): value is Record<string, any> => {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+};
+
+const pickArrayFromObject = (obj: Record<string, any>): any[] => {
+  if (Array.isArray(obj.flows)) return obj.flows;
+  if (Array.isArray(obj.data)) return obj.data;
+  if (Array.isArray(obj.d)) return obj.d;
+  const firstArrayKey = Object.keys(obj).find((key) =>
+    Array.isArray(obj[key]),
+  );
+  if (firstArrayKey) {
+    return obj[firstArrayKey] as any[];
+  }
+  return [];
+};
+
+const mapJsonToFlow = (raw: Record<string, any>): Flow | null => {
+  const flow: Flow = {};
+
+  const daySource =
+    raw.day ??
+    raw.date ??
+    raw.tradeDay ??
+    raw.occurDay ??
+    raw.occurDate ??
+    null;
+  if (daySource) {
+    const d = new Date(daySource);
+    if (!Number.isNaN(d.getTime())) {
+      flow.day = d.toISOString().slice(0, 10);
+  }
+  }
+
+  if (raw.flowType != null) {
+    flow.flowType = String(raw.flowType).trim();
+  }
+
+  if (raw.industryType != null) {
+    flow.industryType = String(raw.industryType).trim();
+  } else if (raw.type != null) {
+    flow.industryType = String(raw.type).trim();
+  }
+
+  if (raw.payType != null) {
+    flow.payType = String(raw.payType).trim();
+  }
+
+  const moneySource = raw.money ?? raw.amount;
+  if (moneySource != null && moneySource !== "") {
+    const n = Number(moneySource);
+    if (Number.isFinite(n)) {
+      flow.money = n;
+    }
+  }
+
+  if (raw.name != null) {
+    flow.name = String(raw.name).trim();
+  }
+  if (raw.description != null) {
+    flow.description = String(raw.description).trim();
+  }
+  if (raw.origin != null) {
+    flow.origin = String(raw.origin).trim();
+  }
+  if (raw.attribution != null) {
+    flow.attribution = String(raw.attribution).trim();
+  }
+  if (raw.invoice != null) {
+    flow.invoice = String(raw.invoice).trim();
+  }
+
+  const rawFlowNo = raw.flowNo ?? raw.orderNo ?? raw.tradeNo ?? raw.id;
+  if (rawFlowNo != null && String(rawFlowNo).trim() !== "") {
+    flow.flowNo = String(rawFlowNo).trim().slice(0, 50);
+  }
+
+  if (raw.accountId != null && raw.accountId !== "") {
+    const id = Number(raw.accountId);
+    if (Number.isFinite(id)) {
+      flow.accountId = id;
+    }
+  }
+
+  if (raw.eliminate != null && raw.eliminate !== "") {
+    const e = Number(raw.eliminate);
+    if (Number.isFinite(e)) {
+      flow.eliminate = e;
+    }
+  }
+
+  if (!flow.day && flow.money == null && !flow.name) {
+    return null;
+  }
+
+  return flow;
+};
+
+const normalizeJsonFlows = (input: unknown): Flow[] => {
+  let rows: any[] = [];
+  if (Array.isArray(input)) {
+    rows = input;
+  } else if (isPlainObject(input)) {
+    rows = pickArrayFromObject(input);
+  }
+
+  const result: Flow[] = [];
+  for (const row of rows) {
+    if (!isPlainObject(row)) continue;
+    const flow = mapJsonToFlow(row);
+    if (flow) result.push(flow);
+  }
+  return result;
+};
 
 // 格式化文件大小
 const formatFileSize = (bytes: number): string => {
@@ -201,14 +317,20 @@ const readJsonInfo = () => {
   // 设置文件读取完成后的回调函数
   reader.onload = (event) => {
     try {
-      // 将读取的文本解析为JSON对象
-      jsonFlows.value = JSON.parse(String(event.target?.result));
+      const text = String(event.target?.result || "");
+      if (!text.trim()) {
+        jsonFlows.value = [];
+        Alert.warning("文件内容为空，请确认导出的JSON是否正确");
+        return;
+      }
+      const parsed = JSON.parse(text);
+      jsonFlows.value = normalizeJsonFlows(parsed);
       if (jsonFlows.value.length > 0) {
         Alert.success(
-          "共解析到" + jsonFlows.value.length + "条流水数据，可以点击确认导入"
+          "共解析到" + jsonFlows.value.length + "条流水数据，可以点击确认导入",
         );
       } else {
-        Alert.warning("未发现流水数据，请检查文件哦");
+        Alert.warning("未发现有效流水数据，请检查文件内容");
       }
     } catch (error) {
       Alert.error("文件内容好像不太对哦");

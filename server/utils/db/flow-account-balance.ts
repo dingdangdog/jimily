@@ -179,7 +179,7 @@ export async function recalcFundAccountFromFlows(
   const [flows, lastFlow] = await Promise.all([
     client.flow.findMany({
       where: { accountId: id },
-      select: { accountDelta: true, flowType: true, money: true },
+      select: { flowType: true, money: true },
     }),
     client.flow.findFirst({
       where: { accountId: id },
@@ -195,7 +195,7 @@ export async function recalcFundAccountFromFlows(
     const delta = resolveFlowAccountDeltaForRecalc({
       flowType: row.flowType,
       money: row.money,
-      accountDelta: row.accountDelta,
+      accountDelta: null,
     });
     sumDelta += delta;
     if (delta > 0) totalIncome += delta;
