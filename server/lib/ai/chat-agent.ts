@@ -742,7 +742,7 @@ function buildTimeAwareSystemPrompt(now: Date, accountPrompt: string): string {
 
 当前服务器时间：${getNowContext(now)}
 处理日期规则：
-- 用户说“今天/昨日/昨天/本月/上月/今年”时，请按当前服务器时间换算，不要猜测年份。
+- 用户说“今天/昨日/昨天/本月/上月/今年”等类似词汇时，请按当前服务器时间换算，不要猜测年份。
 
 ${accountPrompt}`;
 }
