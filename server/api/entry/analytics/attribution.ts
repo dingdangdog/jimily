@@ -1,4 +1,5 @@
 import prisma from "~~/server/lib/prisma";
+import { parseDateBoundary } from "~~/server/utils/db/flow";
 
 /**
  * @swagger
@@ -44,16 +45,16 @@ export default defineEventHandler(async (event) => {
   }
   if (body.startDay && body.endDay) {
     where.day = {
-      gte: new Date(body.startDay),
-      lte: new Date(body.endDay),
+      gte: parseDateBoundary(String(body.startDay), "start"),
+      lte: parseDateBoundary(String(body.endDay), "end"),
     };
   } else if (body.startDay) {
     where.day = {
-      gte: new Date(body.startDay),
+      gte: parseDateBoundary(String(body.startDay), "start"),
     };
   } else if (body.endDay) {
     where.day = {
-      lte: new Date(body.endDay),
+      lte: parseDateBoundary(String(body.endDay), "end"),
     };
   }
   // flowType = 收入 / 支出 / 不计收支

@@ -73,7 +73,8 @@ function buildFlowWhere(input: FlowQueryWhere = {}): Prisma.FlowWhereInput {
   return where;
 }
 
-function parseDateBoundary(value: string, boundary: "start" | "end"): Date {
+/** 将 YYYY-MM-DD 转为当天起止时刻（本地时区），供 API 与查询共用，避免 new Date('YYYY-MM-DD') 仅落在 UTC 午夜导致 lte 筛掉当日流水 */
+export function parseDateBoundary(value: string, boundary: "start" | "end"): Date {
   // 仅日期字符串（YYYY-MM-DD）按本地时区扩展为整天边界，避免遗漏当天数据
   const pureDate = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (pureDate) {
