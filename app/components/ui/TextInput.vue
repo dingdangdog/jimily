@@ -32,7 +32,7 @@ const inputType = computed(() =>
       v-if="label"
       class="block text-sm font-medium text-foreground/80 mb-1"
     >
-      {{ label }}{{ required ? " *" : "" }}
+      {{ label }}<span v-if="required" class="text-red-600 dark:text-red-400"> *</span>
     </label>
     <div v-if="password" class="relative">
       <input
@@ -68,7 +68,7 @@ const inputType = computed(() =>
         error ? 'border-red-500 bg-red-900/10' : 'border-border',
       ]"
     />
-    <p v-if="error" class="mt-1 text-sm text-red-500">
+    <p v-if="error" class="mt-1 text-sm text-red-600 dark:text-red-400">
       {{ error }}
     </p>
   </div>
