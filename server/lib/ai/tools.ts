@@ -263,11 +263,14 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
     function: {
       name: "add_fund_account",
       description:
-        "添加一个资金账户（银行卡、信用卡、微信、支付宝、投资账户等）。当用户说新增资金账户时使用。",
+        "添加一个资金账户。仅用户明确只建一个账户时使用；多账户请用 batch_add_fund_accounts。",
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "账户名称，如 招商银行卡、微信零钱" },
+          name: {
+            type: "string",
+            description: "账户名称；简短称呼也合法，如 微信、支付宝、现金、招商银行卡",
+          },
           institution: {
             type: "string",
             description: "开户机构或平台（可选）",
@@ -299,14 +302,15 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
     function: {
       name: "batch_add_fund_accounts",
       description:
-        "批量添加资金账户。用户一次给出多个账户名称（如微信、支付宝、银行卡等）时使用。",
+        "批量添加资金账户。用户一次列举多个账户（顿号/逗号分隔，如「微信、支付宝、银行卡、现金」）时必须用本工具；短名称即为合法账户名，无需追问更长名称。",
       parameters: {
         type: "object",
         properties: {
           accountNames: {
             type: "array",
             items: { type: "string" },
-            description: "账户名称数组",
+            description:
+              "账户名称数组，与用户说法一致即可（如 微信、支付宝、银行卡、现金）",
           },
           defaultCurrency: {
             type: "string",

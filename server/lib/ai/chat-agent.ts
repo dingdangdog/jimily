@@ -351,6 +351,11 @@ update_flow 专用（纠正/补充上一笔或最近一笔流水）：
 - 改账户：channelHint 填「支付宝」「微信」等，或填 accountId。
 - reply 中说明已改字段即可，不要声称「无法记录支付方式」。
 
+batch_add_fund_accounts / add_fund_account 专用：
+- 用户一次列举多个资金账户（顿号、逗号或「和」分隔，如「微信、支付宝、银行卡、现金」）时，必须用 batch_add_fund_accounts，args.accountNames 为字符串数组，元素用用户原文中的称呼即可。
+- 「微信」「支付宝」「银行卡」「现金」等简短名称是合法账户名，不要要求用户改成更长名字，也不要因名称短而拒绝执行。
+- 仅单个账户时用 add_fund_account，args.name 填用户说法即可。
+
 非记账闲聊：action.name 用 "none"，reply 一两句温和回应并引导用户说出记账需求，不要长篇回答。`;
 
 type JsonPlan = {
@@ -415,21 +420,50 @@ async function runWithJsonPlan(opts: {
   const actionName = parsed.action?.name;
   const args = parsed.action?.args ?? {};
   if (actionName && JSON_SUPPORTED_ACTIONS.has(actionName)) {
-    const firstArgs = applyTemporalHints(
-      actionName,
+    let effectiveActionName = actionName;
+    let firstArgs = applyTemporalHints(
+      effectiveActionName,
       args,
       latestUserText,
       now,
     );
-    const firstRun = await executeTool(actionName, firstArgs, {
+    if (effectiveActionName === "add_fund_account") {
+      const n = String(firstArgs.name || "").trim();
+      if (!n) {
+        const extractedNames =
+          extractBatchFundAccountNamesFromUserText(latestUserText);
+        if (extractedNames.length > 1) {
+          effectiveActionName = "batch_add_fund_accounts";
+          firstArgs = applyTemporalHints(
+            "batch_add_fund_accounts",
+            { accountNames: extractedNames },
+            latestUserText,
+            now,
+          );
+        } else if (extractedNames.length === 1) {
+          firstArgs = { ...firstArgs, name: extractedNames[0] };
+        }
+      }
+    } else if (effectiveActionName === "batch_add_fund_accounts") {
+      firstArgs = applyTemporalHints(
+        "batch_add_fund_accounts",
+        firstArgs,
+        latestUserText,
+        now,
+      );
+    }
+    const firstRun = await executeTool(effectiveActionName, firstArgs, {
       userId,
     });
-    const verified = verifyToolOutput(actionName, firstRun);
-    let finalToolName = actionName;
+    const verified = verifyToolOutput(effectiveActionName, firstRun);
+    let finalToolName = effectiveActionName;
     let finalArgs = firstArgs;
     let toolOutput = firstRun;
     // 针对路由错误做一次轻量自愈：分析请求误路由到明细查询时，切到聚合分析工具
-    if (!verified.ok && shouldFallbackToAnalysisTool(latestUserText, actionName)) {
+    if (
+      !verified.ok &&
+      shouldFallbackToAnalysisTool(latestUserText, effectiveActionName)
+    ) {
       finalToolName = "analyze_consumption_preferences";
       finalArgs = applyTemporalHints(
         finalToolName,
@@ -534,6 +568,15 @@ function routeByRules(text: string): JsonPlan | null {
   }
   if (/(记账|记一笔|新增支出|新增收入|花了|收入了|买了)/.test(t)) {
     return { action: { name: "add_flow", args: {} }, confidence: 0.6 };
+  }
+  if (
+    /(添加|新增|创建|加).{0,60}(资金账户|钱包|账户)/.test(t) &&
+    /(微信|支付宝|银行卡|现金|信用卡|借记卡|储蓄|花呗|白条)/.test(t)
+  ) {
+    return {
+      action: { name: "batch_add_fund_accounts", args: {} },
+      confidence: 0.72,
+    };
   }
   if (
     /(其实是|改成|换成|纠正|改一下|修改|记错|不对|少记|多记|支付宝|微信支付|支付|付的)/.test(
@@ -903,6 +946,88 @@ function getNowContext(now: Date): string {
   return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
 }
 
+/**
+ * 从自然语言中解析用户要批量添加的资金账户名称（顿号/逗号/「和」分隔）。
+ * 与记账渠道词一致：微信、支付宝、银行卡、现金等短名称视为合法账户名。
+ */
+function extractBatchFundAccountNamesFromUserText(text: string): string[] {
+  const t = text.trim();
+  if (!t) return [];
+
+  const stripNoise = (s: string) =>
+    s
+      .replace(/^(请|帮我|给我|麻烦|想|要)+/g, "")
+      .replace(/^(添加|新增|创建|加)(?:上)?(?:一下)?/g, "")
+      .trim();
+
+  const mListAfterVerb = t.match(
+    /(?:添加|新增|创建|加)(?:上)?(?:一下)?[:：\s]*(.+?)(?:这|几)?个?\s*(?:资金)?账户/,
+  );
+  const mAfterLabel = t.match(
+    /(?:资金账户|钱包|支付方式)[:：]\s*(.+?)(?:\s*$|(?:这|几)?个?\s*(?:资金)?账户)/,
+  );
+
+  let segment = "";
+  if (mListAfterVerb) segment = mListAfterVerb[1] || "";
+  else if (mAfterLabel) segment = mAfterLabel[1] || "";
+
+  segment = stripNoise(segment);
+
+  const splitParts = (raw: string): string[] => {
+    const parts = raw
+      .split(/[、,，]+|\s+和\s+|\s+与\s+|\s+以及\s+/)
+      .map((x) => stripNoise(x.trim()))
+      .map((x) => x.replace(/(?:等|之类|这些|那些|几个|多个)$/, "").trim())
+      .filter(
+        (x) =>
+          x.length > 0 &&
+          x.length <= 40 &&
+          !/^(资金|钱包)?账户?$|^账户$|^的$|^一下$|^资金$|^钱包$/.test(x),
+      );
+    return parts;
+  };
+
+  let names = splitParts(segment);
+  names = uniquePreserveAccountNames(names);
+
+  if (names.length > 0) return names;
+
+  // 未命中「…账户」结构时，按常见渠道词顺序拾取（保留出现顺序）
+  const tokenHits: string[] = [];
+  const orderedTokens = [
+    "微信零钱",
+    "微信支付",
+    "微信",
+    "支付宝",
+    "花呗",
+    "京东白条",
+    "白条",
+    "云闪付",
+    "数字人民币",
+    "储蓄卡",
+    "借记卡",
+    "信用卡",
+    "银行卡",
+    "现金",
+  ];
+  for (const tok of orderedTokens) {
+    if (t.includes(tok) && !tokenHits.includes(tok)) tokenHits.push(tok);
+  }
+  return tokenHits;
+}
+
+function uniquePreserveAccountNames(names: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const n of names) {
+    const k = n.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(n);
+  }
+  return out;
+}
+
 function applyTemporalHints(
   toolName: string,
   args: Record<string, unknown>,
@@ -912,6 +1037,26 @@ function applyTemporalHints(
   const text = latestUserText.trim();
   if (!text) return args;
   const next = { ...args };
+
+  if (toolName === "batch_add_fund_accounts") {
+    const raw = next.accountNames;
+    const list = Array.isArray(raw) ? raw : [];
+    const cleaned = list.map((x) => String(x || "").trim()).filter(Boolean);
+    if (cleaned.length === 0) {
+      const extracted = extractBatchFundAccountNamesFromUserText(text);
+      if (extracted.length) next.accountNames = extracted;
+    } else {
+      next.accountNames = uniquePreserveAccountNames(cleaned);
+    }
+  }
+
+  if (toolName === "add_fund_account") {
+    const n = String(next.name || "").trim();
+    if (!n) {
+      const extracted = extractBatchFundAccountNamesFromUserText(text);
+      if (extracted.length === 1) next.name = extracted[0];
+    }
+  }
 
   if (toolName === "add_flow" || toolName === "update_flow") {
     if (/(今天|今日)/.test(text)) next.day = formatDate(now);
