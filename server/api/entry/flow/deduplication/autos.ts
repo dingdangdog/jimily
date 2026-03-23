@@ -18,7 +18,7 @@ import prisma from "~~/server/lib/prisma";
  *               description: boolean 是否检查描述相同
  *               industryType: boolean 是否检查行业类型相同
  *               flowType: boolean 是否检查流水类型相同
- *               payType: boolean 是否检查支付方式相同
+ *               accountId: boolean 是否检查资金账户相同
  *     responses:
  *       200:
  *         description: 重复记录查找成功
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     description: true,
     industryType: true,
     flowType: true,
-    payType: true,
+    accountId: true,
   };
 
   const allFlows = await prisma.flow.findMany({
@@ -57,6 +57,30 @@ export default defineEventHandler(async (event) => {
     ],
   });
 
+  const accountIds = Array.from(
+    new Set(
+      allFlows
+        .map((f) => f.accountId)
+        .filter((id): id is number => id != null && Number.isFinite(Number(id)))
+        .map((id) => Number(id)),
+    ),
+  );
+  const accounts =
+    accountIds.length > 0
+      ? await prisma.fundAccount.findMany({
+          where: { userId, id: { in: accountIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+  const accountMap = new Map(accounts.map((a) => [a.id, a]));
+  const flowsWithAccount = allFlows.map((f) => ({
+    ...f,
+    account:
+      f.accountId != null && Number.isFinite(Number(f.accountId))
+        ? (accountMap.get(Number(f.accountId)) ?? null)
+        : null,
+  }));
+
   // 用于存储可能的重复组
   const duplicateGroups = [];
 
@@ -64,14 +88,14 @@ export default defineEventHandler(async (event) => {
   const processedIds = new Set();
 
   // 遍历所有流水记录
-  for (let i = 0; i < allFlows.length; i++) {
-    const current = allFlows[i];
+  for (let i = 0; i < flowsWithAccount.length; i++) {
+    const current = flowsWithAccount[i];
 
     // 如果当前记录已经被处理过，则跳过
     if (processedIds.has(current.id)) continue;
 
     // 查找与当前记录相似的记录
-    const similarRecords = allFlows.filter((flow, index) => {
+    const similarRecords = flowsWithAccount.filter((flow, index) => {
       // 基础条件：不是同一条记录、未被处理过、同一天、金额相同（这些是必选条件）
       let isSimilar =
         index !== i &&
@@ -101,7 +125,10 @@ export default defineEventHandler(async (event) => {
         return false;
       }
 
-      if (criteria.payType && flow.payType !== current.payType) {
+      if (
+        criteria.accountId &&
+        Number(flow.accountId ?? 0) !== Number(current.accountId ?? 0)
+      ) {
         return false;
       }
 

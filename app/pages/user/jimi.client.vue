@@ -120,7 +120,6 @@ const flowQuery = ref<{
   name?: string;
   description?: string;
   industryType?: string;
-  payType?: string;
   minMoney?: number;
   maxMoney?: number;
 }>({
@@ -133,7 +132,6 @@ const flowQuery = ref<{
   name: "",
   description: "",
   industryType: "",
-  payType: "",
   minMoney: undefined,
   maxMoney: undefined,
 });

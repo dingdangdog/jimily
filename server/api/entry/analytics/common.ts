@@ -13,7 +13,7 @@ import prisma from "~~/server/lib/prisma";
  *       content:
  *         application/json:
  *           schema:
- *             groupBy: string 分组字段（payType/industryType/attribution）
+ *             groupBy: string 分组字段（fundAccount/industryType/attribution）
  *             flowType: string 流水类型（可选）
  *             startDay: string 开始日期（可选）
  *             endDay: string 结束日期（可选）
@@ -37,8 +37,7 @@ import prisma from "~~/server/lib/prisma";
 export default defineEventHandler(async (event) => {
   const body = await readBody(event); // 获取查询参数
 
-  // 验证分组字段
-  const allowedGroupFields = ["payType", "industryType", "attribution"];
+  const allowedGroupFields = ["fundAccount", "industryType", "attribution"];
   if (!body.groupBy || !allowedGroupFields.includes(body.groupBy)) {
     return error("不支持的分组字段");
   }
@@ -67,7 +66,85 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  // 动态分组查询
+  if (body.groupBy === "fundAccount") {
+    const dayGroups = await prisma.flow.groupBy({
+      by: ["accountId", "flowType"],
+      _sum: {
+        money: true,
+      },
+      orderBy: [
+        {
+          accountId: "asc",
+        },
+        {
+          flowType: "asc",
+        },
+      ],
+      where,
+    });
+
+    const ids = Array.from(
+      new Set(
+        dayGroups
+          .map((g) => g.accountId)
+          .filter((id): id is number => id != null && Number.isFinite(id)),
+      ),
+    );
+    const accounts =
+      ids.length > 0
+        ? await prisma.fundAccount.findMany({
+            where: { userId, id: { in: ids } },
+            select: { id: true, name: true },
+          })
+        : [];
+    const idToName = new Map(accounts.map((a) => [a.id, a.name] as const));
+
+    const groupedByField: Record<
+      string,
+      {
+        type: string;
+        accountId: number | null;
+        inSum: number;
+        outSum: number;
+        zeroSum: number;
+      }
+    > = {};
+
+    for (const item of dayGroups) {
+      const aid = item.accountId;
+      const typeLabel =
+        aid == null
+          ? "未关联账户"
+          : idToName.get(aid) || `账户#${aid}`;
+      const key = `${aid ?? "null"}`;
+      const flowType = item.flowType;
+      const raw = item._sum.money || 0;
+      const moneySum =
+        flowType === "收入" || flowType === "支出" ? Math.abs(raw) : raw;
+
+      if (!groupedByField[key]) {
+        groupedByField[key] = {
+          type: typeLabel,
+          accountId: aid,
+          inSum: 0,
+          outSum: 0,
+          zeroSum: 0,
+        };
+      }
+
+      if (flowType === "收入") {
+        groupedByField[key].inSum += moneySum;
+      } else if (flowType === "支出") {
+        groupedByField[key].outSum += moneySum;
+      } else if (flowType === "不计收支") {
+        groupedByField[key].zeroSum += moneySum;
+      }
+    }
+
+    const datas = Object.values(groupedByField);
+    return success(datas);
+  }
+
   const dayGroups = await prisma.flow.groupBy({
     by: [body.groupBy, "flowType"],
     _sum: {
@@ -81,11 +158,16 @@ export default defineEventHandler(async (event) => {
         flowType: "asc",
       },
     ],
-    where, // 使用条件查询
+    where,
   });
 
-  // 初始化结果格式
-  const datas = [];
+  const datas: Array<{
+    type: string;
+    accountId?: number | null;
+    inSum: number;
+    outSum: number;
+    zeroSum: number;
+  }> = [];
   const groupedByField: Record<
     string,
     {
@@ -96,7 +178,6 @@ export default defineEventHandler(async (event) => {
     }
   > = {};
 
-  // 按指定字段分组，合并数据到目标格式
   dayGroups.reduce((acc, item) => {
     let fieldValue = item[body.groupBy as keyof typeof item] as string;
     if (!fieldValue) {
@@ -107,7 +188,6 @@ export default defineEventHandler(async (event) => {
     const moneySum =
       flowType === "收入" || flowType === "支出" ? Math.abs(raw) : raw;
 
-    // 如果当前字段值不存在，则初始化
     if (!acc[fieldValue]) {
       acc[fieldValue] = {
         type: fieldValue,
@@ -117,7 +197,6 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    // 根据 flowType 填充对应的 sum
     if (flowType === "收入") {
       acc[fieldValue].inSum += moneySum;
     } else if (flowType === "支出") {
@@ -129,7 +208,6 @@ export default defineEventHandler(async (event) => {
     return acc;
   }, groupedByField);
 
-  // 转换为数组格式
   for (const fieldValue in groupedByField) {
     datas.push(groupedByField[fieldValue]);
   }

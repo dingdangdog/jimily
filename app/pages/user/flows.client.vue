@@ -193,14 +193,22 @@
 
           <div class="space-y-2">
             <label class="block text-sm font-medium text-foreground/70">
-              支付/收款方式
+              资金账户
             </label>
-            <input
-              v-model="batchChange.payType"
-              type="text"
-              placeholder="不修改"
-              class="w-full px-3 py-2 text-sm border border-border rounded bg-background text-foreground placeholder-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-            />
+            <select
+              v-model="batchChange.accountId"
+              class="w-full px-3 py-2 text-sm border border-border rounded bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">不修改</option>
+              <option value="unassigned">不关联账户</option>
+              <option
+                v-for="acc in fundAccounts"
+                :key="acc.id"
+                :value="String(acc.id)"
+              >
+                {{ acc.name }}
+              </option>
+            </select>
           </div>
 
           <div class="space-y-2">
@@ -346,7 +354,6 @@ const flowQuery = ref<any>({
   description: "",
   flowType: "",
   industryType: "",
-  payType: "",
   minMoney: undefined,
   maxMoney: undefined,
 });
@@ -354,9 +361,19 @@ const flowQuery = ref<any>({
 const batchChange = ref<any>({
   flowType: "",
   industryType: "",
-  payType: "",
+  accountId: "",
   attribution: "",
 });
+
+const fundAccounts = ref<{ id: number; name: string }[]>([]);
+const loadFundAccounts = async () => {
+  try {
+    const res = await doApi.post<any[]>("api/entry/account/all", { status: 1 });
+    fundAccounts.value = Array.isArray(res) ? res : [];
+  } catch (e) {
+    console.error(e);
+  }
+};
 
 // 获取数据列表
 const nameList = ref<string[]>([]);
@@ -494,7 +511,6 @@ const resetQuery = () => {
     description: "",
     flowType: "",
     industryType: "",
-    payType: "",
     minMoney: undefined,
     maxMoney: undefined,
   };
@@ -588,7 +604,7 @@ const closeBatchChangeDialog = () => {
   batchChange.value = {
     flowType: "",
     industryType: "",
-    payType: "",
+    accountId: "",
     attribution: "",
   };
 };
@@ -601,8 +617,13 @@ const confirmBatchChange = () => {
   if (batchChange.value.industryType) {
     changeInfo += `  支出类型/收入类型改为: "${batchChange.value.industryType}"\n`;
   }
-  if (batchChange.value.payType) {
-    changeInfo += `  支付方式/收款方式改为: "${batchChange.value.payType}"`;
+  if (batchChange.value.accountId === "unassigned") {
+    changeInfo += `  资金账户改为: 不关联\n`;
+  } else if (batchChange.value.accountId) {
+    const acc = fundAccounts.value.find(
+      (a) => String(a.id) === String(batchChange.value.accountId),
+    );
+    changeInfo += `  资金账户改为: "${acc?.name ?? batchChange.value.accountId}"\n`;
   }
   if (batchChange.value.attribution) {
     changeInfo += `  流水归属改为: "${batchChange.value.attribution}"`;
@@ -615,12 +636,19 @@ const confirmBatchChange = () => {
     title: "修改确认",
     content: `确定对【${selectedFlows.value.length}】条流水进行如下修改吗? \n${changeInfo}`,
     confirm: () => {
+      const payload: Record<string, unknown> = {
+        ids: selectedFlows.value,
+        flowType: batchChange.value.flowType || undefined,
+        industryType: batchChange.value.industryType || undefined,
+        attribution: batchChange.value.attribution || undefined,
+      };
+      if (batchChange.value.accountId === "unassigned") {
+        payload.accountId = null;
+      } else if (batchChange.value.accountId) {
+        payload.accountId = Number(batchChange.value.accountId);
+      }
       doApi
-        .post("api/entry/flow/updates", {
-          ids: selectedFlows.value,
-
-          ...batchChange.value,
-        })
+        .post("api/entry/flow/updates", payload)
         .then(() => {
           Alert.success("修改成功");
           closeBatchChangeDialog();
@@ -949,6 +977,7 @@ const closeInvoiceDialog = () => {
 onMounted(() => {
   getNames();
   getAttributions();
+  loadFundAccounts();
   doQuery();
 });
 </script>

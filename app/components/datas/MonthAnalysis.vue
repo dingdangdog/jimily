@@ -44,7 +44,7 @@
             收入类型：{{ monthData?.maxIn.industryType }}
           </p>
           <p class="text-foreground">
-            收款方式：{{ monthData?.maxIn.payType }}
+            收款账户：{{ monthData?.maxIn.account?.name ?? "-" }}
           </p>
           <p class="text-foreground">名称：{{ monthData?.maxIn.name }}</p>
           <p class="text-foreground">
@@ -110,7 +110,7 @@
             class="text-foreground"
             v-show="monthData?.maxOut.money && monthData.maxOut.money > 0"
           >
-            支付方式：{{ monthData?.maxOut.payType }}
+            支付账户：{{ monthData?.maxOut.account?.name ?? "-" }}
           </p>
           <p class="text-foreground">
             名称：{{ monthData?.maxOut.name || "" }}，{{

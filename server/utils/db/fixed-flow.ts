@@ -22,7 +22,6 @@ export interface FixedFlowQueryWhere {
   month?: string;
   flowType?: string;
   industryType?: string;
-  payType?: string;
   nameContains?: string;
 }
 
@@ -35,7 +34,6 @@ function buildFixedFlowWhere(
   if (input.month) where.month = input.month;
   if (input.flowType) where.flowType = input.flowType;
   if (input.industryType) where.industryType = input.industryType;
-  if (input.payType) where.payType = input.payType;
   if (input.nameContains)
     where.name = { contains: input.nameContains, mode: "insensitive" };
   return where;
@@ -103,7 +101,6 @@ export async function addFixedFlowByAI(
     description: args.description ? String(args.description) : null,
     flowType: args.flowType ? String(args.flowType) : null,
     industryType: args.industryType ? String(args.industryType) : null,
-    payType: args.payType ? String(args.payType) : null,
     attribution: args.attribution ? String(args.attribution) : null,
   });
   return { success: true, message: "固定流水模板已新增", fixedFlow: row };
@@ -121,7 +118,6 @@ export async function queryFixedFlowsByAI(
       month: args.month ? String(args.month) : undefined,
       flowType: args.flowType ? String(args.flowType) : undefined,
       industryType: args.industryType ? String(args.industryType) : undefined,
-      payType: args.payType ? String(args.payType) : undefined,
       nameContains: args.keyword ? String(args.keyword) : undefined,
     },
     { pageNum, pageSize },

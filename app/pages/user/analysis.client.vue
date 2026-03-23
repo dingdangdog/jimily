@@ -85,14 +85,14 @@
           >
             <div class="w-full border-b md:border-b-0 md:border-r border-border">
               <ChartsCommonPie
-                title="支付方式分析"
+                title="资金账户分析"
                 width="100%"
                 height="300px"
-                groupBy="payType"
+                groupBy="fundAccount"
                 flowType="支出"
-                seriesName="支付方式"
+                seriesName="资金账户"
                 :showLegend="true"
-                queryField="payType"
+                queryField="accountId"
                 :startDay="expenseStartDay || undefined"
                 :endDay="expenseEndDay || undefined"
               />
@@ -135,14 +135,14 @@
         >
           <div class="w-full border-b md:border-b-0 md:border-r border-border">
             <ChartsCommonBar
-              title="支付方式分析"
+              title="资金账户分析"
               width="100%"
               height="300px"
-              groupBy="payType"
+              groupBy="fundAccount"
               flowType="支出"
-              seriesName="支付方式"
+              seriesName="资金账户"
               :showLegend="true"
-              queryField="payType"
+              queryField="accountId"
               :startDay="expenseStartDay || undefined"
               :endDay="expenseEndDay || undefined"
             />
@@ -240,14 +240,14 @@
         >
           <div class="w-full border-b md:border-b-0 md:border-r border-border">
             <ChartsCommonPie
-              title="收款方式分析"
+              title="资金账户分析"
               width="100%"
               height="300px"
-              groupBy="payType"
+              groupBy="fundAccount"
               flowType="收入"
-              seriesName="收款方式"
+              seriesName="资金账户"
               :showLegend="true"
-              queryField="payType"
+              queryField="accountId"
               :startDay="incomeStartDay || undefined"
               :endDay="incomeEndDay || undefined"
             />
@@ -289,14 +289,14 @@
         >
           <div class="w-full border-b md:border-b-0 md:border-r border-border">
             <ChartsCommonBar
-              title="收款方式分析"
+              title="资金账户分析"
               width="100%"
               height="300px"
-              groupBy="payType"
+              groupBy="fundAccount"
               flowType="收入"
-              seriesName="收款方式"
+              seriesName="资金账户"
               :showLegend="true"
-              queryField="payType"
+              queryField="accountId"
               :startDay="incomeStartDay || undefined"
               :endDay="incomeEndDay || undefined"
             />

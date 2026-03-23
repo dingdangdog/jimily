@@ -16,7 +16,7 @@ import prisma from "~~/server/lib/prisma";
  *             id: number 流水ID（可选）
  *             flowType: string 流水类型（可选）
  *             industryType: string 行业分类（可选）
- *             payType: string 支付方式（可选）
+ *             accountUnassigned: boolean 仅未关联资金账户的流水（可选）
  *             startDay: string 开始日期（可选）
  *             endDay: string 结束日期（可选）
  *             name: string 流水名称（可选，支持模糊查询）
@@ -65,15 +65,13 @@ export default defineEventHandler(async (event) => {
       equals: body.industryType,
     };
   }
-  if (body.payType) {
-    where.payType = {
-      equals: body.payType,
-    };
-  }
   if (body.accountId !== undefined && body.accountId !== null && body.accountId !== "") {
     where.accountId = {
       equals: Number(body.accountId),
     };
+  }
+  if (body.accountUnassigned === true) {
+    where.accountId = null;
   }
   if (body.startDay && body.endDay) {
     where.day = {

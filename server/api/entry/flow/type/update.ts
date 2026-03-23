@@ -47,9 +47,6 @@ export default defineEventHandler(async (event) => {
   if (body.type == "支出类型/收入类型") {
     where.industryType = String(body.oldValue);
     data.industryType = String(body.value);
-  } else if (body.type == "支付方式/收款方式") {
-    where.payType = String(body.oldValue);
-    data.payType = String(body.value);
   } else {
     return error("Unknown Type");
   }

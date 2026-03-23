@@ -54,7 +54,7 @@ interface Props {
   title: string;
   width: string;
   height: string;
-  groupBy: string; // 分组字段 (payType/industryType/attribution)
+  groupBy: string; // 分组字段 (fundAccount/industryType/attribution)
   startDay?: string;
   endDay?: string;
   flowType?: string;
@@ -66,7 +66,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   seriesName: "数据分析",
   showLegend: true,
-  queryField: "payType", // 默认为payType，保持向下兼容
+  queryField: "industryType",
 });
 
 // 生成唯一ID避免冲突
@@ -168,6 +168,7 @@ const doQuery = (query: CommonChartQuery & { groupBy: string }) => {
             dataList.push({
               name: data.type,
               value: Number(data.outSum).toFixed(2),
+              accountId: data.accountId,
             });
           });
         } else if (query.flowType == "收入") {
@@ -178,6 +179,7 @@ const doQuery = (query: CommonChartQuery & { groupBy: string }) => {
             dataList.push({
               name: data.type,
               value: Number(data.inSum).toFixed(2),
+              accountId: data.accountId,
             });
           });
         } else {
@@ -188,6 +190,7 @@ const doQuery = (query: CommonChartQuery & { groupBy: string }) => {
             dataList.push({
               name: data.type,
               value: Number(data.zeroSum).toFixed(2),
+              accountId: data.accountId,
             });
           });
         }
@@ -267,12 +270,28 @@ onMounted(() => {
   }
   chart = echarts.init(chartDiv);
   chart.on("click", function (param: any) {
-    // 根据queryField动态设置查询参数
     const itemName = param.name || (param.data && param.data.name) || "";
-    query.value = {
-      ...chartParam.value,
-      [props.queryField]: itemName,
-    };
+    const d = param.data;
+    const base: Record<string, unknown> = { ...chartParam.value };
+    if (
+      props.queryField === "accountId" &&
+      d &&
+      typeof d === "object" &&
+      "accountId" in d &&
+      d.accountId != null
+    ) {
+      base.accountId = d.accountId as number;
+      base.accountUnassigned = false;
+    } else if (
+      props.queryField === "accountId" &&
+      itemName === "未关联账户"
+    ) {
+      base.accountUnassigned = true;
+      delete base.accountId;
+    } else {
+      base[props.queryField] = itemName;
+    }
+    query.value = base;
     showFlowTable.value = true;
   });
   doQuery(chartParam.value);

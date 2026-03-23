@@ -155,7 +155,7 @@
                 <th
                   class="px-3 py-2 text-xs font-medium text-foreground/60 uppercase tracking-wider bg-primary-500/10"
                 >
-                  支付方式
+                  资金账户
                 </th>
                 <th
                   class="px-3 py-2 text-xs font-medium text-foreground/60 uppercase tracking-wider bg-primary-500/10"
@@ -181,7 +181,7 @@
                 <th
                   class="px-3 py-2 text-xs font-medium text-foreground/60 uppercase tracking-wider bg-secondary-500/10"
                 >
-                  支付方式
+                  资金账户
                 </th>
                 <th
                   class="px-3 py-2 text-xs font-medium text-foreground/60 uppercase tracking-wider bg-secondary-500/10"
@@ -243,7 +243,7 @@
                   {{ pair.out.name }}
                 </td>
                 <td class="px-3 py-3 text-sm text-center">
-                  {{ pair.out.payType }}
+                  {{ pair.out.account?.name ?? "-" }}
                 </td>
                 <td class="px-3 py-3 text-sm text-center">
                   {{ pair.out.industryType }}
@@ -287,7 +287,7 @@
                   {{ pair.in.industryType }}
                 </td>
                 <td class="px-3 py-3 text-sm text-center">
-                  {{ pair.in.payType }}
+                  {{ pair.in.account?.name ?? "-" }}
                 </td>
                 <td
                   class="px-3 py-3 text-sm max-w-32 truncate text-center"
@@ -410,11 +410,9 @@
                       }}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                      <span class="text-foreground/60 text-[10px]">{{
-                        pair.out.flowType === "收入" ? "收款" : "支付"
-                      }}</span>
+                      <span class="text-foreground/60 text-[10px]">账户</span>
                       <span class="text-[10px] truncate max-w-[60%]">{{
-                        pair.out.payType
+                        pair.out.account?.name ?? "-"
                       }}</span>
                     </div>
                     <div class="flex justify-between items-center">
@@ -496,11 +494,9 @@
                       }}</span>
                     </div>
                     <div class="flex justify-between items-center">
-                      <span class="text-foreground/60 text-[10px]">{{
-                        pair.in.flowType === "收入" ? "收款" : "支付"
-                      }}</span>
+                      <span class="text-foreground/60 text-[10px]">账户</span>
                       <span class="text-[10px] truncate max-w-[60%]">{{
-                        pair.in.payType
+                        pair.in.account?.name ?? "-"
                       }}</span>
                     </div>
                     <div class="flex justify-between items-center">
@@ -617,8 +613,8 @@ const confirmBalance = (pair: CandidatePair) => {
   Confirm.open({
     title: "平账确认",
     content: `确定要将下列数据平账吗？
-    支出【${pair.out.industryType}-${pair.out.payType}: ${pair.out.money}】
-    收入【${pair.in.industryType}-${pair.in.payType}: ${pair.in.money}】`,
+    支出【${pair.out.industryType}-${pair.out.account?.name ?? "-"}: ${pair.out.money}】
+    收入【${pair.in.industryType}-${pair.in.account?.name ?? "-"}: ${pair.in.money}】`,
     confirm: () => {
       doApi
         .post("api/entry/flow/condidate/confirm", {

@@ -628,7 +628,11 @@ async function summarizeToolResult(opts: {
         totalCount?: number;
         expenseCount?: number;
         topExpenseCategories?: Array<{ category?: string; amount?: number; ratio?: number }>;
-        topExpensePayTypes?: Array<{ payType?: string; amount?: number; ratio?: number }>;
+        topExpenseFundAccounts?: Array<{
+          accountLabel?: string;
+          amount?: number;
+          ratio?: number;
+        }>;
       };
       const categoryTop = (data.topExpenseCategories ?? [])
         .slice(0, 3)
@@ -636,15 +640,15 @@ async function summarizeToolResult(opts: {
           (x) =>
             `${x.category || "其他"} ${Number(x.amount ?? 0).toFixed(2)}元（${(Number(x.ratio ?? 0) * 100).toFixed(1)}%）`,
         );
-      const payTypeTop = (data.topExpensePayTypes ?? [])
+      const accountTop = (data.topExpenseFundAccounts ?? [])
         .slice(0, 2)
         .map(
           (x) =>
-            `${x.payType || "未知"} ${Number(x.amount ?? 0).toFixed(2)}元（${(Number(x.ratio ?? 0) * 100).toFixed(1)}%）`,
+            `${x.accountLabel || "未知"} ${Number(x.amount ?? 0).toFixed(2)}元（${(Number(x.ratio ?? 0) * 100).toFixed(1)}%）`,
         );
       return `消费偏好分析完成：共 ${Number(data.totalCount ?? 0)} 笔，支出 ${Number(data.totalExpense ?? 0).toFixed(2)} 元、收入 ${Number(data.totalIncome ?? 0).toFixed(2)} 元。` +
         (categoryTop.length ? `支出主要集中在：${categoryTop.join("、")}。` : "") +
-        (payTypeTop.length ? `主要支付方式：${payTypeTop.join("、")}。` : "");
+        (accountTop.length ? `主要支出账户：${accountTop.join("、")}。` : "");
     }
     if (toolName === "query_fund_accounts") {
       return `账户查询完成，共 ${parsed.total ?? 0} 个。`;

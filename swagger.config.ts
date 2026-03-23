@@ -84,7 +84,7 @@ const swaggerDefinition = {
         day: "string | 流水发生日期",
         flowType: "string | 流水类型 (in: 收入, out: 支出, zero: 不计收支)",
         type: "string | 分类类型 (例如：餐饮, 交通, 工资等)",
-        payType: "string | 支付方式 (例如：现金, 支付宝, 微信支付, 银行卡)",
+        accountId: "number | 资金账户ID（可选）",
         money: "number | 金额",
         name: "string | 流水名称/标题",
         description: "string | 备注/描述",
@@ -95,7 +95,7 @@ const swaggerDefinition = {
         day: "string | 流水发生日期",
         flowType: "string | 流水类型 (in: 收入, out: 支出, zero: 不计收支)",
         type: "string | 分类类型",
-        payType: "string | 支付方式",
+        accountId: "number | 资金账户ID（可选）",
         money: "number | 金额",
         name: "string | 流水名称/标题",
         description: "string | 备注/描述",
@@ -110,7 +110,8 @@ const swaggerDefinition = {
         endDay: "string | 查询结束日期",
         flowType: "string | 流水类型 (in: 收入, out: 支出, zero: 不计收支)",
         industryType: "string | 行业类型 (如果适用)",
-        payType: "string | 支付方式",
+        accountId: "number | 资金账户ID",
+        accountUnassigned: "boolean | 仅未关联账户的流水",
         name: "string | 流水名称关键词",
         attribution: "string | 归属 (例如：个人, 家庭, 公司)",
         description: "string | 描述关键词",
@@ -139,10 +140,11 @@ const swaggerDefinition = {
 
       //# 通用图表数据
       CommonChartData: {
-        type: "string | 数据标记 key (如日期、年月、支出类型等)",
+        type: "string | 数据标记 key (如日期、年月、支出类型、资金账户名等)",
         inSum: "number | 收入金额",
         outSum: "number | 支出金额",
         zeroSum: "number | 不计收支金额",
+        accountId: "number | 按资金账户分组时存在",
       },
 
       //# 类型操作实体 (用于修改分类名称等)
@@ -185,10 +187,10 @@ const swaggerDefinition = {
       Flow: {
         id: "number | 流水ID",
         userId: "number | 流水所属用户ID",
+        accountId: "number | 资金账户ID（可选）",
         day: "string | 流水发生日期 (YYYY-MM-DD)",
         flowType: "string | 流水类型：收入(in)、支出(out)、不计收支(zero)",
         industryType: "string | 行业分类（例如：餐饮, 交通, 工资等）",
-        payType: "string | 支付方式/收款方式（例如：现金, 支付宝, 银行卡）",
         money: "number | 金额",
         name: "string | 流水名称/标题",
         description: "string | 备注/描述",
@@ -220,7 +222,6 @@ const swaggerDefinition = {
         description: "string | 备注/描述",
         flowType: "string | 流水类型：收入(in)、支出(out)、不计收支(zero)",
         industryType: "string | 行业分类（例如：居住, 交通等）",
-        payType: "string | 支付方式/收款方式",
         attribution: "string | 流水归属（谁的收入/支出，例如：个人, 家庭）",
       },
 

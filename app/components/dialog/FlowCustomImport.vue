@@ -319,7 +319,7 @@ interface Flow {
   day?: string;
   flowType?: string;
   industryType?: string;
-  payType?: string;
+  channelHint?: string;
   money?: number;
   attribution?: string;
   name?: string;
@@ -354,7 +354,7 @@ const targetFields = ref<any[]>([
   { title: "日期", value: "day" },
   { title: "流水类型", value: "flowType" },
   { title: "支出/收入类型", value: "industryType" },
-  { title: "支付/收款方式", value: "payType" },
+  { title: "渠道（匹配资金账户）", value: "channelHint" },
   { title: "金额", value: "money" },
   { title: "流水归属", value: "attribution" },
   { title: "名称", value: "name" },
@@ -701,8 +701,8 @@ const customConvert = (
         flow.flowType = joinedValue;
       } else if (targetField === "industryType") {
         flow.industryType = joinedValue;
-      } else if (targetField === "payType") {
-        flow.payType = joinedValue;
+      } else if (targetField === "channelHint") {
+        flow.channelHint = joinedValue;
       } else if (targetField === "attribution") {
         flow.attribution = joinedValue;
       } else if (targetField === "name") {

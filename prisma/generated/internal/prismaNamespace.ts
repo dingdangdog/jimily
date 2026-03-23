@@ -1890,7 +1890,6 @@ export const FlowScalarFieldEnum = {
   day: 'day',
   flowType: 'flowType',
   industryType: 'industryType',
-  payType: 'payType',
   money: 'money',
   name: 'name',
   description: 'description',
@@ -2068,7 +2067,6 @@ export const FixedFlowScalarFieldEnum = {
   description: 'description',
   flowType: 'flowType',
   industryType: 'industryType',
-  payType: 'payType',
   attribution: 'attribution'
 } as const
 

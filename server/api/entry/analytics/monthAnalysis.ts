@@ -168,7 +168,20 @@ export default defineEventHandler(async (event) => {
       money: "desc",
     },
   });
-  res.maxIn = maxIn || {};
+  // 4b. 为极值流水附加资金账户名称（便于前端展示）
+  const attachAccounts = async (row: (typeof maxIn) | null) => {
+    if (!row) return {};
+    const aid = row.accountId;
+    if (aid == null || !Number.isFinite(Number(aid))) {
+      return { ...row, account: null };
+    }
+    const acc = await prisma.fundAccount.findFirst({
+      where: { userId, id: Number(aid) },
+      select: { id: true, name: true },
+    });
+    return { ...row, account: acc };
+  };
+  res.maxIn = await attachAccounts(maxIn);
   // 5. 查询当月最高单笔支出
   const maxOut = await prisma.flow.findFirst({
     where: {
@@ -179,8 +192,8 @@ export default defineEventHandler(async (event) => {
       money: "desc",
     },
   });
-  res.maxOut = maxOut || {};
-  // 6. 查询当月最高单笔支出
+  res.maxOut = await attachAccounts(maxOut);
+  // 6. 查询当月最高单笔不计收支
   const maxZero = await prisma.flow.findFirst({
     where: {
       ...where,
@@ -190,6 +203,6 @@ export default defineEventHandler(async (event) => {
       money: "desc",
     },
   });
-  res.maxZero = maxZero || {};
+  res.maxZero = await attachAccounts(maxZero);
   return success(res);
 });

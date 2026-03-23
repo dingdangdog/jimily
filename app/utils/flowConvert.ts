@@ -33,7 +33,7 @@ export function templateConvert(
   flow.day = row[indexMap["交易时间"]];
   flow.flowType = String(row[indexMap["收/支"]]);
   flow.industryType = String(row[indexMap["交易分类"]]);
-  flow.payType = String(row[indexMap["收/付款方式"]]);
+  flow.channelHint = String(row[indexMap["收/付款方式"]]);
   flow.money = row[indexMap["金额"]];
   flow.attribution = String(row[indexMap["流水归属"]]);
   flow.name = String(row[indexMap["交易对方"]]);
@@ -82,7 +82,7 @@ export function alipayConvert(
   flow.day = row[indexMap["交易时间"]];
   flow.flowType = String(row[indexMap["收/支"]]);
   flow.industryType = typeConvert(row[indexMap["交易分类"]]);
-  flow.payType = "支付宝";
+  flow.channelHint = "支付宝";
   flow.money = row[indexMap["金额"]];
   flow.name = String(row[indexMap["交易对方"]]);
   flow.description =
@@ -120,7 +120,7 @@ export function wxpayConvert(
   flow.flowType =
     row[indexMap["收/支"]] == "/" ? "不计收支" : row[indexMap["收/支"]];
   flow.industryType = String(typeConvert(row[indexMap["交易类型"]]));
-  flow.payType = "微信";
+  flow.channelHint = "微信";
   flow.money = parseFloat(row[indexMap["金额(元)"]].replace("¥", ""));
   flow.name = String(row[indexMap["商品"]]);
   flow.description =
@@ -150,7 +150,7 @@ export function jdFinanceConvert(
   flow.day = row[indexMap["交易时间"]];
   flow.flowType = String(row[indexMap["收/支"]]);
   flow.industryType = typeConvert(row[indexMap["交易分类"]]);
-  flow.payType = "京东金融";
+  flow.channelHint = "京东金融";
 
   const jdMoney = String(row[indexMap["金额"]]);
   const match = jdMoney.match(/^(\d*\.?\d+)(.*)/);

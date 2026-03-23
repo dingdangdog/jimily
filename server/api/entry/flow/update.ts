@@ -22,7 +22,6 @@ import {
  *             day: string 日期
  *             flowType: string 流水类型（收入、支出）
  *             industryType: string 行业分类
- *             payType: string 支付方式
  *             name: string 流水名称
  *             money: number 金额
  *             description: string 描述
@@ -53,7 +52,6 @@ export default defineEventHandler(async (event) => {
     ...(body.day != null && body.day !== "" && { day: new Date(body.day) }),
     flowType: String(body.flowType || ""), // 流水类型：收入、支出
     industryType: String(body.industryType || ""), // 行业分类 原 type（收入类型、支出类型）
-    payType: String(body.payType || ""), // 支付方式
     money: Number(body.money || ""),
     name: String(body.name || ""),
     description: String(body.description || ""),

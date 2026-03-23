@@ -615,17 +615,19 @@
             <div>
               <label
                 class="block text-sm font-medium text-foreground mb-2"
-                >收款方式</label
+                >资金账户</label
               >
               <select
-                v-model="toFlowData.payType"
+                v-model="toFlowData.accountId"
                 class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="现金">现金</option>
-                <option value="支付宝">支付宝</option>
-                <option value="微信">微信</option>
-                <option value="银行卡">银行卡</option>
-                <option value="其他">其他</option>
+                <option
+                  v-for="acc in fundAccounts"
+                  :key="acc.id"
+                  :value="acc.id"
+                >
+                  {{ acc.name }}
+                </option>
               </select>
             </div>
             <div>
@@ -783,10 +785,30 @@ const collectData = ref({
 // 转流水数据
 const toFlowData = ref({
   actualDay: getCurrentDate(),
-  payType: "现金",
+  accountId: null as number | null,
   industryType: "其他收入",
   attribution: "",
 });
+
+const fundAccounts = ref<{ id: number; name: string }[]>([]);
+const loadFundAccountsForToFlow = async () => {
+  try {
+    const res = await doApi.post<any[]>("api/entry/account/all", { status: 1 });
+    fundAccounts.value = Array.isArray(res) ? res : [];
+    if (
+      fundAccounts.value.length &&
+      (toFlowData.value.accountId == null ||
+        !fundAccounts.value.some((a) => a.id === toFlowData.value.accountId))
+    ) {
+      const cash = fundAccounts.value.find((a) =>
+        /^现金$/i.test(String(a.name || "").trim()),
+      );
+      toFlowData.value.accountId = cash?.id ?? fundAccounts.value[0]!.id;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+};
 
 // 防抖搜索
 let searchTimer: NodeJS.Timeout | null = null;
@@ -815,6 +837,7 @@ onMounted(() => {
   loadData();
   loadStatistics();
   getAttributions();
+  loadFundAccountsForToFlow();
 });
 
 // Methods
@@ -896,11 +919,12 @@ function openToFlowDialog(item: Receivable) {
   selectedReceivable.value = item;
   toFlowData.value = {
     actualDay: getCurrentDate(),
-    payType: "现金",
+    accountId: null,
     industryType: "其他收入",
     attribution: "",
   };
   toFlowDialog.value = true;
+  loadFundAccountsForToFlow();
 }
 
 async function saveReceivable() {
@@ -999,7 +1023,7 @@ async function convertToFlow() {
     await doApi.post("api/entry/receivable/toflow", {
       id: selectedReceivable.value.id,
       actualDay: toFlowData.value.actualDay,
-      payType: toFlowData.value.payType,
+      accountId: toFlowData.value.accountId,
       industryType: toFlowData.value.industryType,
       attribution: toFlowData.value.attribution,
     });

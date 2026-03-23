@@ -401,7 +401,6 @@ const flowQuery = ref<any>({
   description: "",
   flowType: "",
   industryType: "",
-  payType: "",
   minMoney: undefined,
   maxMoney: undefined,
 });
@@ -509,7 +508,6 @@ const resetQuery = () => {
     description: "",
     flowType: "",
     industryType: "",
-    payType: "",
     minMoney: undefined,
     maxMoney: undefined,
   };

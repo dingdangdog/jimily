@@ -1,14 +1,18 @@
 import crypto from "crypto";
 import prisma from "~~/server/lib/prisma";
-import { recalcFundAccountFromFlows } from "~~/server/utils/db";
+import {
+  recalcFundAccountFromFlows,
+  resolveFundAccountByChannelText,
+  getOrCreateCashFundAccount,
+} from "~~/server/utils/db";
 
-/** 根据时间+金额+方式+名称生成唯一流水编号（无第三方订单号时用于去重） */
+/** 根据时间+金额+账户+名称生成唯一流水编号（无第三方订单号时用于去重） */
 function genFlowNoByContent(
   userId: number,
   flow: {
     day?: string | Date;
     money?: number;
-    payType?: string;
+    accountId?: number | null;
     name?: string;
   },
 ): string {
@@ -19,11 +23,14 @@ function genFlowNoByContent(
         ? new Date(flow.day).toISOString().slice(0, 10)
         : "";
   const money = Number(flow.money);
-  const payType = String(flow.payType ?? "").trim();
+  const accountKey =
+    flow.accountId != null && Number.isFinite(Number(flow.accountId))
+      ? String(flow.accountId)
+      : "";
   const name = String(flow.name ?? "").trim();
   const hash = crypto
     .createHash("sha256")
-    .update(`${userId}|${day}|${money}|${payType}|${name}`)
+    .update(`${userId}|${day}|${money}|${accountKey}|${name}`)
     .digest("hex")
     .slice(0, 45);
   return `imp_${hash}`;
@@ -43,7 +50,7 @@ function genFlowNoByContent(
  *         application/json:
  *           schema:
  *             mode: string 导入模式（add-追加，overwrite-覆盖）
- *             flows: [] #[Flow流水记录数组，可含 flowNo 用于去重]
+ *             flows: [] #[Flow流水记录数组，可含 flowNo 用于去重；可选 channelHint 用于匹配资金账户]
  *     responses:
  *       200:
  *         description: 导入成功
@@ -70,8 +77,31 @@ export default defineEventHandler(async (event) => {
     return success({ count: 0, skipped: 0 });
   }
 
-  // 1) 为每条流水确定 flowNo：有则用传入的，无则用 时间+金额+方式+名称 生成
-  const withFlowNo = flows.map((flow, index) => {
+  const resolved = await Promise.all(
+    flows.map(async (flow) => {
+      let accountId: number | null =
+        flow.accountId !== undefined && flow.accountId !== null
+          ? Number(flow.accountId)
+          : null;
+      if (accountId != null && !Number.isFinite(accountId)) {
+        accountId = null;
+      }
+      const hint = String(
+        flow.channelHint ?? flow.payType ?? "",
+      ).trim();
+      if (accountId == null && hint) {
+        const acc = await resolveFundAccountByChannelText(userId, hint);
+        if (acc) accountId = acc.id;
+      }
+      if (accountId == null) {
+        const cash = await getOrCreateCashFundAccount(userId);
+        accountId = cash.id;
+      }
+      return { flow, accountId };
+    }),
+  );
+
+  const withFlowNo = resolved.map(({ flow, accountId }, index) => {
     const rawNo =
       flow.flowNo != null && String(flow.flowNo).trim() !== ""
         ? String(flow.flowNo).trim()
@@ -82,13 +112,12 @@ export default defineEventHandler(async (event) => {
         : genFlowNoByContent(userId, {
             day: flow.day,
             money: flow.money,
-            payType: flow.payType,
+            accountId,
             name: flow.name,
           });
-    return { flow, flowNo, index };
+    return { flow, flowNo, accountId, index };
   });
 
-  // 2) 本批内按 flowNo 去重，保留首次出现
   const seen = new Set<string>();
   const deduped = withFlowNo.filter(({ flowNo }) => {
     if (seen.has(flowNo)) return false;
@@ -98,7 +127,6 @@ export default defineEventHandler(async (event) => {
 
   const flowNos = deduped.map(({ flowNo }) => flowNo);
 
-  // 3) 查询库中已存在的 flowNo（仅追加模式下需要）
   let existingSet = new Set<string>();
   if (mode === "add" && flowNos.length > 0) {
     const existing = await prisma.flow.findMany({
@@ -108,11 +136,10 @@ export default defineEventHandler(async (event) => {
     existingSet = new Set(existing.map((r) => r.flowNo));
   }
 
-  // 4) 仅插入不存在的
   const toInsert = deduped.filter(({ flowNo }) => !existingSet.has(flowNo));
   const skipped = flows.length - toInsert.length;
 
-  const datas = toInsert.map(({ flow, flowNo }) => ({
+  const datas = toInsert.map(({ flow, flowNo, accountId }) => ({
     userId,
     flowNo,
     name: flow.name != null ? String(flow.name) : "",
@@ -121,11 +148,7 @@ export default defineEventHandler(async (event) => {
     flowType: flow.flowType != null ? String(flow.flowType) : null,
     invoice: flow.invoice ? String(flow.invoice) : null,
     money: Number(flow.money),
-    payType: flow.payType != null ? String(flow.payType) : null,
-    accountId:
-      flow.accountId !== undefined && flow.accountId !== null
-        ? Number(flow.accountId)
-        : null,
+    accountId,
     industryType:
       flow.type != null
         ? String(flow.type)
@@ -153,8 +176,8 @@ export default defineEventHandler(async (event) => {
           ),
       ),
     );
-    for (const accountId of accountIds) {
-      await recalcFundAccountFromFlows(accountId);
+    for (const aid of accountIds) {
+      await recalcFundAccountFromFlows(aid);
     }
   }
 

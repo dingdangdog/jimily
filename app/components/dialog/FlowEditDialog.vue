@@ -111,13 +111,6 @@
             leave-to-class="opacity-0 max-h-0 overflow-hidden"
           >
             <div v-show="showDetail" class="space-y-3 mt-3 pl-1">
-              <!-- 支付方式/收款方式 -->
-              <!-- <UiComboInput
-                v-model="flowEdit.payType"
-                :label="payTypeLabel"
-                placeholder="输入或选择支付方式"
-                :options="payTypeOptions"
-              /> -->
               <!-- 流水归属 -->
               <UiComboInput
                 v-model="flowEdit.attribution"
@@ -179,7 +172,7 @@
 <script setup lang="ts">
 import { showFlowEditDialog } from "~/utils/flag";
 import { computed, onMounted, ref } from "vue";
-import { getIndustryType, getPayType } from "~/utils/apis";
+import { getIndustryType } from "~/utils/apis";
 import { ChevronDownIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 
 // ESC键监听
@@ -198,13 +191,10 @@ const { title, flow, successCallback } = defineProps([
 // 表单弹窗标题选项
 const formTitle = ["新增流水", "修改流水"];
 const industryTypeLabel = ref("支出类型/收入类型");
-const payTypeLabel = ref("支付方式/收款方式");
 const flowTypeDialogOptions = ref(["支出", "收入", "不计收支"]);
 
 // 支出类型/收入类型
 const industryTypeOptions = ref<any[]>([]);
-// 支付类型
-const payTypeOptions = ref<any[]>([]);
 const accountOptions = ref<any[]>([]);
 const flowEdit = ref<Flow | any>({
   flowType: "",
@@ -213,7 +203,11 @@ const flowEdit = ref<Flow | any>({
 const showDetail = ref(false);
 const hasDetailContent = computed(
   () =>
-    !!(flowEdit.value?.name || flowEdit.value?.description || flowEdit.value?.attribution || flowEdit.value?.payType)
+    !!(
+      flowEdit.value?.name ||
+      flowEdit.value?.description ||
+      flowEdit.value?.attribution
+    ),
 );
 
 const attributionList = ref<string[]>([]);
@@ -253,7 +247,7 @@ onMounted(() => {
   // 根据当前 flowType 联动标签与选项
   changeFlowTypes();
   // 编辑时若已有名称/备注/归属等，默认展开详细设置
-  if (flow && (flow.name || flow.description || (flow as any).attribution || (flow as any).payType)) {
+  if (flow && (flow.name || flow.description || (flow as any).attribution)) {
     showDetail.value = true;
   }
 });
@@ -264,23 +258,15 @@ onMounted(() => {
 const changeFlowTypes = () => {
   if (flowEdit.value.flowType == "支出") {
     industryTypeLabel.value = "支出类型";
-    payTypeLabel.value = "支付方式";
   } else if (flowEdit.value.flowType == "收入") {
     industryTypeLabel.value = "收入类型";
-    payTypeLabel.value = "收款方式";
   } else {
     industryTypeLabel.value = "支出类型/收入类型";
-    payTypeLabel.value = "支付方式/收款方式";
   }
 
   getIndustryType(flowEdit.value.flowType || "").then((data) => {
     industryTypeOptions.value = data.map((d) => {
       return d.industryType;
-    });
-  });
-  getPayType(flowEdit.value.flowType || "").then((data) => {
-    payTypeOptions.value = data.map((d) => {
-      return d.payType;
     });
   });
 };
@@ -308,7 +294,6 @@ const createOne = (again: boolean) => {
       day: flowEdit.value.day || new Date().toISOString().split("T")[0],
       flowType: flowEdit.value.flowType,
       industryType: flowEdit.value.industryType,
-      payType: flowEdit.value.payType,
       name: flowEdit.value.name,
       money: Number(flowEdit.value.money),
       accountId: flowEdit.value.accountId ? Number(flowEdit.value.accountId) : null,
@@ -347,7 +332,6 @@ const updateOne = () => {
       industryType: flowEdit.value.industryType,
       money: Number(flowEdit.value.money),
       accountId: flowEdit.value.accountId ? Number(flowEdit.value.accountId) : null,
-      payType: flowEdit.value.payType,
       name: flowEdit.value.name,
       description: flowEdit.value.description,
       attribution: flowEdit.value.attribution,

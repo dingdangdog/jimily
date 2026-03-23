@@ -83,13 +83,26 @@
           :options="industryTypeOptions"
         />
 
-        <!-- 支付/收款方式 -->
-        <UiComboInput
-          v-model="localQuery.payType"
-          :label="payTypeLabel"
-          :placeholder="`请输入${payTypeLabel}...`"
-          :options="payTypeOptions"
-        />
+        <!-- 资金账户 -->
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold text-foreground/70">
+            资金账户
+          </label>
+          <select
+            v-model="accountFilter"
+            class="w-full px-3 py-2 text-sm border border-border rounded bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-transparent"
+          >
+            <option value="">全部</option>
+            <option value="unassigned">未关联账户</option>
+            <option
+              v-for="acc in fundAccounts"
+              :key="acc.id"
+              :value="String(acc.id)"
+            >
+              {{ acc.name }}
+            </option>
+          </select>
+        </div>
 
         <!-- 金额范围 -->
         <div class="space-y-2">
@@ -144,7 +157,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from "vue";
 import { XMarkIcon, CheckIcon } from "@heroicons/vue/24/outline";
-import { getIndustryType, getPayType } from "~/utils/apis";
+import { getIndustryType } from "~/utils/apis";
 
 interface FlowQuery {
   startDay?: string;
@@ -154,7 +167,8 @@ interface FlowQuery {
   description?: string;
   flowType?: string;
   industryType?: string;
-  payType?: string;
+  accountId?: number;
+  accountUnassigned?: boolean;
   minMoney?: number;
   maxMoney?: number;
 }
@@ -169,62 +183,80 @@ interface Props {
 const props = defineProps<Props>();
 
 const localQuery = ref<FlowQuery>({ ...props.query });
+const accountFilter = ref("");
+const fundAccounts = ref<{ id: number; name: string }[]>([]);
 
-// 选项列表
 const industryTypeOptions = ref<string[]>([]);
-const payTypeOptions = ref<string[]>([]);
 
-// 标签文本
 const industryTypeLabel = computed(() => {
   if (localQuery.value.flowType === "支出") return "支出类型";
   if (localQuery.value.flowType === "收入") return "收入类型";
   return "支出类型/收入类型";
 });
 
-const payTypeLabel = computed(() => {
-  if (localQuery.value.flowType === "支出") return "支付方式";
-  if (localQuery.value.flowType === "收入") return "收款方式";
-  return "支付方式/收款方式";
-});
+function syncAccountFilterFromQuery(q: FlowQuery) {
+  if (q.accountUnassigned) {
+    accountFilter.value = "unassigned";
+  } else if (q.accountId != null && q.accountId !== "") {
+    accountFilter.value = String(q.accountId);
+  } else {
+    accountFilter.value = "";
+  }
+}
 
-// 监听外部查询变化
 watch(
   () => props.query,
   (newQuery) => {
     localQuery.value = { ...newQuery };
+    syncAccountFilterFromQuery(newQuery);
   },
   { deep: true },
 );
 
-// 获取类型选项
 const loadTypeOptions = async (flowType?: string) => {
   try {
-    const [industryData, payData] = await Promise.all([
-      getIndustryType(flowType || ""),
-      getPayType(flowType || ""),
-    ]);
-
+    const industryData = await getIndustryType(flowType || "");
     industryTypeOptions.value = industryData.map((d) => d.industryType);
-    payTypeOptions.value = payData.map((d) => d.payType);
   } catch (error) {
     console.error("获取类型选项失败:", error);
   }
 };
 
-// 流水类型变更
+const loadFundAccounts = async () => {
+  try {
+    const res = await doApi.post<any[]>("api/entry/account/all", {
+      status: 1,
+    });
+    fundAccounts.value = Array.isArray(res) ? res : [];
+  } catch (e) {
+    console.error("加载资金账户失败:", e);
+  }
+};
+
 const onFlowTypeChange = () => {
   loadTypeOptions(localQuery.value.flowType);
   localQuery.value.industryType = "";
-  localQuery.value.payType = "";
 };
 
 const resetFilters = () => {
   localQuery.value = {};
+  accountFilter.value = "";
   loadTypeOptions();
 };
 
 const applyFilters = () => {
-  emit("apply", localQuery.value);
+  const q: FlowQuery = { ...localQuery.value };
+  if (accountFilter.value === "unassigned") {
+    delete q.accountId;
+    q.accountUnassigned = true;
+  } else if (accountFilter.value) {
+    q.accountId = Number(accountFilter.value);
+    q.accountUnassigned = false;
+  } else {
+    delete q.accountId;
+    q.accountUnassigned = false;
+  }
+  emit("apply", q);
   emit("close");
 };
 
@@ -233,9 +265,10 @@ const emit = defineEmits<{
   apply: [query: FlowQuery];
 }>();
 
-// 初始化加载类型选项
 onMounted(() => {
   loadTypeOptions(localQuery.value.flowType);
+  loadFundAccounts();
+  syncAccountFilterFromQuery(props.query);
 });
 </script>
 

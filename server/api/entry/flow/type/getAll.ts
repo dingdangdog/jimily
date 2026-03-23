@@ -21,7 +21,7 @@ import prisma from "~~/server/lib/prisma";
  *           application/json:
  *             schema:
  *               Result:
- *                 d: [] # { type: 类型分类（"支出类型/收入类型" | "支付方式/收款方式"）, flowType: 流水类型, value: 类型值 }
+ *                 d: [] # { type: 类型分类（"支出类型/收入类型"）, flowType: 流水类型, value: 类型值 }
  */
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);
@@ -51,38 +51,12 @@ export default defineEventHandler(async (event) => {
     ],
     where, // 使用条件查询
   });
-  const payTypes = await prisma.flow.findMany({
-    distinct: ["payType"],
-    select: {
-      payType: true,
-      flowType: true,
-    },
-    orderBy: [
-      {
-        flowType: "asc",
-      },
-      {
-        payType: "asc",
-      },
-    ],
-    where, // 使用条件查询
-  });
-
-  // console.log(industryTypes);
-  // console.log(payTypes);
   const types: any = [];
   industryTypes.forEach((t) => {
     types.push({
       type: "支出类型/收入类型",
       flowType: t.flowType,
       value: t.industryType,
-    });
-  });
-  payTypes.forEach((t) => {
-    types.push({
-      type: "支付方式/收款方式",
-      flowType: t.flowType,
-      value: t.payType,
     });
   });
 

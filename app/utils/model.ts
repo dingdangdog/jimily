@@ -62,7 +62,6 @@ export interface CreateFlowDto {
   accountDelta?: number;
   flowType?: string;
   industryType?: string;
-  payType?: string;
   money?: number;
   name?: string;
   description?: string;
@@ -81,7 +80,6 @@ export interface UpdateFlowDto {
   accountDelta?: number | null;
   flowType?: string;
   industryType?: string;
-  payType?: string;
   money?: number;
   name?: string;
   description?: string;
@@ -97,11 +95,12 @@ export class FlowQuery {
   pageSize?: number = 20;
   id?: string | number;
   accountId?: string | number;
+  /** 仅查询未关联资金账户的流水 */
+  accountUnassigned?: boolean;
   startDay?: string;
   endDay?: string;
   flowType?: string;
   industryType?: string;
-  payType?: string;
   name?: string;
   attribution?: string;
   description?: string;
@@ -128,10 +127,12 @@ export interface CommonChartQuery {
   groupBy?: string; // 新增：分组字段，用于通用接口
 }
 export interface CommonChartData {
-  type: string; // 数据标记 key，可能是日期、年月、支出类型、收入类型等，视具体使用场景而定
+  type: string; // 数据标记 key，可能是日期、年月、支出类型、收入类型、资金账户名等，视具体使用场景而定
   inSum: number; // 收入
   outSum: number; // 支出
   zeroSum: number; // 不计收支
+  /** 按资金账户分组时存在，用于下钻筛选 */
+  accountId?: number | null;
 }
 
 export interface Typer {

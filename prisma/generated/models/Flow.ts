@@ -50,7 +50,6 @@ export type FlowMinAggregateOutputType = {
   day: Date | null
   flowType: string | null
   industryType: string | null
-  payType: string | null
   money: number | null
   name: string | null
   description: string | null
@@ -68,7 +67,6 @@ export type FlowMaxAggregateOutputType = {
   day: Date | null
   flowType: string | null
   industryType: string | null
-  payType: string | null
   money: number | null
   name: string | null
   description: string | null
@@ -86,7 +84,6 @@ export type FlowCountAggregateOutputType = {
   day: number
   flowType: number
   industryType: number
-  payType: number
   money: number
   name: number
   description: number
@@ -122,7 +119,6 @@ export type FlowMinAggregateInputType = {
   day?: true
   flowType?: true
   industryType?: true
-  payType?: true
   money?: true
   name?: true
   description?: true
@@ -140,7 +136,6 @@ export type FlowMaxAggregateInputType = {
   day?: true
   flowType?: true
   industryType?: true
-  payType?: true
   money?: true
   name?: true
   description?: true
@@ -158,7 +153,6 @@ export type FlowCountAggregateInputType = {
   day?: true
   flowType?: true
   industryType?: true
-  payType?: true
   money?: true
   name?: true
   description?: true
@@ -263,7 +257,6 @@ export type FlowGroupByOutputType = {
   day: Date
   flowType: string | null
   industryType: string | null
-  payType: string | null
   money: number | null
   name: string | null
   description: string | null
@@ -304,7 +297,6 @@ export type FlowWhereInput = {
   day?: Prisma.DateTimeFilter<"Flow"> | Date | string
   flowType?: Prisma.StringNullableFilter<"Flow"> | string | null
   industryType?: Prisma.StringNullableFilter<"Flow"> | string | null
-  payType?: Prisma.StringNullableFilter<"Flow"> | string | null
   money?: Prisma.FloatNullableFilter<"Flow"> | number | null
   name?: Prisma.StringNullableFilter<"Flow"> | string | null
   description?: Prisma.StringNullableFilter<"Flow"> | string | null
@@ -322,7 +314,6 @@ export type FlowOrderByWithRelationInput = {
   day?: Prisma.SortOrder
   flowType?: Prisma.SortOrderInput | Prisma.SortOrder
   industryType?: Prisma.SortOrderInput | Prisma.SortOrder
-  payType?: Prisma.SortOrderInput | Prisma.SortOrder
   money?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -343,7 +334,6 @@ export type FlowWhereUniqueInput = Prisma.AtLeast<{
   day?: Prisma.DateTimeFilter<"Flow"> | Date | string
   flowType?: Prisma.StringNullableFilter<"Flow"> | string | null
   industryType?: Prisma.StringNullableFilter<"Flow"> | string | null
-  payType?: Prisma.StringNullableFilter<"Flow"> | string | null
   money?: Prisma.FloatNullableFilter<"Flow"> | number | null
   name?: Prisma.StringNullableFilter<"Flow"> | string | null
   description?: Prisma.StringNullableFilter<"Flow"> | string | null
@@ -361,7 +351,6 @@ export type FlowOrderByWithAggregationInput = {
   day?: Prisma.SortOrder
   flowType?: Prisma.SortOrderInput | Prisma.SortOrder
   industryType?: Prisma.SortOrderInput | Prisma.SortOrder
-  payType?: Prisma.SortOrderInput | Prisma.SortOrder
   money?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -387,7 +376,6 @@ export type FlowScalarWhereWithAggregatesInput = {
   day?: Prisma.DateTimeWithAggregatesFilter<"Flow"> | Date | string
   flowType?: Prisma.StringNullableWithAggregatesFilter<"Flow"> | string | null
   industryType?: Prisma.StringNullableWithAggregatesFilter<"Flow"> | string | null
-  payType?: Prisma.StringNullableWithAggregatesFilter<"Flow"> | string | null
   money?: Prisma.FloatNullableWithAggregatesFilter<"Flow"> | number | null
   name?: Prisma.StringNullableWithAggregatesFilter<"Flow"> | string | null
   description?: Prisma.StringNullableWithAggregatesFilter<"Flow"> | string | null
@@ -404,7 +392,6 @@ export type FlowCreateInput = {
   day: Date | string
   flowType?: string | null
   industryType?: string | null
-  payType?: string | null
   money?: number | null
   name?: string | null
   description?: string | null
@@ -422,7 +409,6 @@ export type FlowUncheckedCreateInput = {
   day: Date | string
   flowType?: string | null
   industryType?: string | null
-  payType?: string | null
   money?: number | null
   name?: string | null
   description?: string | null
@@ -439,7 +425,6 @@ export type FlowUpdateInput = {
   day?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   flowType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   industryType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   money?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -457,7 +442,6 @@ export type FlowUncheckedUpdateInput = {
   day?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   flowType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   industryType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   money?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -475,7 +459,6 @@ export type FlowCreateManyInput = {
   day: Date | string
   flowType?: string | null
   industryType?: string | null
-  payType?: string | null
   money?: number | null
   name?: string | null
   description?: string | null
@@ -492,7 +475,6 @@ export type FlowUpdateManyMutationInput = {
   day?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   flowType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   industryType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   money?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -510,7 +492,6 @@ export type FlowUncheckedUpdateManyInput = {
   day?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   flowType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   industryType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   money?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -528,7 +509,6 @@ export type FlowCountOrderByAggregateInput = {
   day?: Prisma.SortOrder
   flowType?: Prisma.SortOrder
   industryType?: Prisma.SortOrder
-  payType?: Prisma.SortOrder
   money?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
@@ -554,7 +534,6 @@ export type FlowMaxOrderByAggregateInput = {
   day?: Prisma.SortOrder
   flowType?: Prisma.SortOrder
   industryType?: Prisma.SortOrder
-  payType?: Prisma.SortOrder
   money?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
@@ -572,7 +551,6 @@ export type FlowMinOrderByAggregateInput = {
   day?: Prisma.SortOrder
   flowType?: Prisma.SortOrder
   industryType?: Prisma.SortOrder
-  payType?: Prisma.SortOrder
   money?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
@@ -616,7 +594,6 @@ export type FlowSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   day?: boolean
   flowType?: boolean
   industryType?: boolean
-  payType?: boolean
   money?: boolean
   name?: boolean
   description?: boolean
@@ -634,7 +611,6 @@ export type FlowSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   day?: boolean
   flowType?: boolean
   industryType?: boolean
-  payType?: boolean
   money?: boolean
   name?: boolean
   description?: boolean
@@ -652,7 +628,6 @@ export type FlowSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   day?: boolean
   flowType?: boolean
   industryType?: boolean
-  payType?: boolean
   money?: boolean
   name?: boolean
   description?: boolean
@@ -670,7 +645,6 @@ export type FlowSelectScalar = {
   day?: boolean
   flowType?: boolean
   industryType?: boolean
-  payType?: boolean
   money?: boolean
   name?: boolean
   description?: boolean
@@ -680,7 +654,7 @@ export type FlowSelectScalar = {
   eliminate?: boolean
 }
 
-export type FlowOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "flowNo" | "userId" | "accountId" | "day" | "flowType" | "industryType" | "payType" | "money" | "name" | "description" | "invoice" | "origin" | "attribution" | "eliminate", ExtArgs["result"]["flow"]>
+export type FlowOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "flowNo" | "userId" | "accountId" | "day" | "flowType" | "industryType" | "money" | "name" | "description" | "invoice" | "origin" | "attribution" | "eliminate", ExtArgs["result"]["flow"]>
 
 export type $FlowPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Flow"
@@ -714,10 +688,6 @@ export type $FlowPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
      * 行业/分类（支出类型或收入类型）
      */
     industryType: string | null
-    /**
-     * 支付方式或收款方式
-     */
-    payType: string | null
     /**
      * 金额
      */
@@ -1176,7 +1146,6 @@ export interface FlowFieldRefs {
   readonly day: Prisma.FieldRef<"Flow", 'DateTime'>
   readonly flowType: Prisma.FieldRef<"Flow", 'String'>
   readonly industryType: Prisma.FieldRef<"Flow", 'String'>
-  readonly payType: Prisma.FieldRef<"Flow", 'String'>
   readonly money: Prisma.FieldRef<"Flow", 'Float'>
   readonly name: Prisma.FieldRef<"Flow", 'String'>
   readonly description: Prisma.FieldRef<"Flow", 'String'>

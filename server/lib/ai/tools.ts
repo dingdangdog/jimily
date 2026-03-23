@@ -45,9 +45,10 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
             type: "string",
             description: "行业/分类，如餐饮、交通、工资",
           },
-          payType: {
+          channelHint: {
             type: "string",
-            description: "支付方式，如支付宝、微信、银行卡、现金",
+            description:
+              "可选。渠道关键词（如支付宝、微信），仅在未提供 accountId 时用于匹配资金账户。",
           },
           money: {
             type: "number",
@@ -74,7 +75,7 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
               "资金账户名称（如招商银行卡）。根据 accountId 填写对应的 name。",
           },
         },
-        required: ["flowType", "industryType", "payType", "money", "name"],
+        required: ["flowType", "industryType", "money", "name"],
       },
     },
   },
@@ -93,7 +94,6 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
             description: "流水类型",
           },
           industryType: { type: "string", description: "行业分类筛选" },
-          payType: { type: "string", description: "支付方式筛选" },
           startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
           endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
           name: { type: "string", description: "名称模糊搜索" },
@@ -128,7 +128,6 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
             description: "可选，只查某一种类型",
           },
           industryType: { type: "string", description: "行业分类筛选" },
-          payType: { type: "string", description: "支付方式筛选" },
           name: { type: "string", description: "名称模糊搜索" },
           startDay: { type: "string", description: "开始日期 YYYY-MM-DD" },
           endDay: { type: "string", description: "结束日期 YYYY-MM-DD" },
@@ -560,7 +559,6 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
           description: { type: "string", description: "备注" },
           flowType: { type: "string", description: "流水类型" },
           industryType: { type: "string", description: "行业分类" },
-          payType: { type: "string", description: "支付方式" },
           attribution: { type: "string", description: "归属" },
         },
         required: ["name"],
@@ -578,7 +576,6 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
           month: { type: "string", description: "月份 YYYY-MM" },
           flowType: { type: "string", description: "流水类型" },
           industryType: { type: "string", description: "行业分类" },
-          payType: { type: "string", description: "支付方式" },
           keyword: { type: "string", description: "关键字" },
           pageNum: { type: "number", description: "页码" },
           pageSize: { type: "number", description: "每页条数" },

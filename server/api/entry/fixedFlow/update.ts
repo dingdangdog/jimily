@@ -20,7 +20,6 @@ import prisma from "~~/server/lib/prisma";
  *             description: string 描述
  *             flowType: string 流水类型
  *             industryType: string 行业类型
- *             payType: string 支付方式
  *             attribution: string 归属
  *     responses:
  *       200:
@@ -49,7 +48,6 @@ export default defineEventHandler(async (event) => {
     description,
     flowType,
     industryType,
-    payType,
     attribution,
   } = body;
 
@@ -72,7 +70,6 @@ export default defineEventHandler(async (event) => {
       description,
       flowType,
       industryType,
-      payType,
       attribution,
     },
   });

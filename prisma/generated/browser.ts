@@ -84,7 +84,7 @@ export type InvestmentDetail = Prisma.InvestmentDetailModel
 export type FixedFlow = Prisma.FixedFlowModel
 /**
  * Model TypeRelation
- * 类型映射/关联表（如行业类型与支付方式等映射）
+ * 类型映射/关联表（如行业类型等映射）
  */
 export type TypeRelation = Prisma.TypeRelationModel
 /**

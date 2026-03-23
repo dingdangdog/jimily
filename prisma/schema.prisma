@@ -35,7 +35,6 @@ model Flow {
   day          DateTime /// 交易日期
   flowType     String?  @db.VarChar(20) /// 流水类型：收入、支出、不计收支
   industryType String?  @db.VarChar(50) /// 行业/分类（支出类型或收入类型）
-  payType      String?  @db.VarChar(50) /// 支付方式或收款方式
   money        Float? /// 金额
   name         String?  @db.VarChar(200) /// 条目名称/摘要
   description  String?  @db.VarChar(500) /// 备注说明
@@ -230,13 +229,12 @@ model FixedFlow {
   description  String? @db.VarChar(500) /// 说明
   flowType     String? @db.VarChar(20) /// 流水类型：收入、支出、不计收支
   industryType String? @db.VarChar(50) /// 行业/分类（支出类型或收入类型）
-  payType      String? @db.VarChar(50) /// 支付方式或收款方式
   attribution  String? @db.VarChar(100) /// 流水归属（谁的收入/支出）
 
   @@map("user_fixed_flows")
 }
 
-/// 类型映射/关联表（如行业类型与支付方式等映射）
+/// 类型映射/关联表（如行业类型等映射）
 model TypeRelation {
   id     Int    @id @default(autoincrement()) /// 主键
   userId Int /// 用户 ID

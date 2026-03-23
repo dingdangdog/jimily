@@ -30,10 +30,16 @@
           {{ flowQuery.industryType }}
         </span>
         <span
-          v-if="flowQuery.payType"
+          v-if="flowQuery.accountUnassigned"
           class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-surface text-foreground/80 border border-border"
         >
-          {{ flowQuery.payType }}
+          未关联账户
+        </span>
+        <span
+          v-else-if="flowQuery.accountId"
+          class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-surface text-foreground/80 border border-border"
+        >
+          资金账户 #{{ flowQuery.accountId }}
         </span>
         <span
           v-if="flowQuery.attribution"
@@ -503,41 +509,25 @@ const selectedFlow = ref<Flow | any>({});
 const dialogFormTitle = ref("修改流水");
 
 const typeLabel = ref("支出/收入类型");
-const payTypeLabel = ref("支付/收款方式");
 
 const typeDefault = ["请先选择流水类型"];
-// 消费类型/收入类型
 const expenseTypeOptions = ref(typeDefault);
-// 支付类型
-const paymentTypeOptions = ref(typeDefault);
 
-// 修改FlowType后联动
 const changeTypes = () => {
   if (flowQuery.value.flowType === "支出") {
     typeLabel.value = "支出类型";
-    payTypeLabel.value = "支付方式";
   } else if (flowQuery.value.flowType === "收入") {
     typeLabel.value = "收入类型";
-    payTypeLabel.value = "收款方式";
   } else {
     typeLabel.value = "支出/收入类型";
-    payTypeLabel.value = "支付/收款方式";
   }
   if (!flowQuery.value.flowType) {
     expenseTypeOptions.value = typeDefault;
-    paymentTypeOptions.value = typeDefault;
     return;
   }
   getIndustryType(flowQuery.value.flowType).then((data) => {
-    // @ts-ignore
-    expenseTypeOptions.value = data.map((item) => {
-      return item.value;
-    });
-  });
-  getPayType(flowQuery.value.flowType).then((data) => {
-    // @ts-ignore
-    paymentTypeOptions.value = data.map((item) => {
-      return { title: item.value };
+    expenseTypeOptions.value = data.map((item: { industryType?: string }) => {
+      return item.industryType ?? "";
     });
   });
 };
@@ -590,7 +580,8 @@ const hasFilters = computed(() => {
     flowQuery.value.endDay ||
     flowQuery.value.flowType ||
     flowQuery.value.industryType ||
-    flowQuery.value.payType ||
+    flowQuery.value.accountId ||
+    flowQuery.value.accountUnassigned ||
     flowQuery.value.attribution
   );
 });

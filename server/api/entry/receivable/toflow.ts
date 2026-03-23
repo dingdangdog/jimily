@@ -1,4 +1,6 @@
+import type { Prisma } from "~~/prisma/generated/client";
 import prisma from "~~/server/lib/prisma";
+import { recalcFundAccountFromFlows } from "~~/server/utils/db";
 
 /**
  * @swagger
@@ -15,7 +17,7 @@ import prisma from "~~/server/lib/prisma";
  *           schema:
  *             id: number 待收款ID
  *             actualDay: string 实际收款日期
- *             payType: string 收款方式（可选）
+ *             accountId: number 资金账户ID（可选，默认现金账户）
  *             industryType: string 收入类型（可选）
  *             attribution: string 流水归属（可选）
  *     responses:
@@ -40,7 +42,8 @@ import prisma from "~~/server/lib/prisma";
  */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-  const { id, actualDay, payType, industryType, attribution } = body;
+  const { id, actualDay, accountId: bodyAccountId, industryType, attribution } =
+    body;
 
   if (!id) {
     return error("待收款ID不能为空");
@@ -63,31 +66,79 @@ export default defineEventHandler(async (event) => {
     return error("待收款记录不存在或已收款");
   }
 
-  // 开始事务处理
+  let accountId: number | null =
+    bodyAccountId !== undefined && bodyAccountId !== null
+      ? Number(bodyAccountId)
+      : null;
+  if (accountId != null && !Number.isFinite(accountId)) {
+    accountId = null;
+  }
+  if (accountId == null) {
+    const cash = await prisma.fundAccount.findFirst({
+      where: {
+        userId,
+        status: { not: -1 },
+        name: { equals: "现金", mode: "insensitive" },
+      },
+    });
+    if (!cash) {
+      const created = await prisma.fundAccount.create({
+        data: {
+          userId,
+          name: "现金",
+          currency: "CNY",
+          initialBalance: 0,
+          currentBalance: 0,
+          totalIncome: 0,
+          totalExpense: 0,
+          totalLiability: 0,
+          totalProfit: 0,
+          status: 1,
+          sortBy: 0,
+        },
+      });
+      accountId = created.id;
+    } else {
+      accountId = cash.id;
+    }
+  } else {
+    const acc = await prisma.fundAccount.findFirst({
+      where: { id: accountId, userId, status: { not: -1 } },
+    });
+    if (!acc) {
+      return error("资金账户不存在或不可用");
+    }
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     const actualDate = new Date(actualDay);
     const flow = await tx.flow.create({
       data: {
         userId,
+        flowNo: `F${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
         day: actualDate,
         flowType: "收入",
         name: receivable.name || "待收款收入",
         description: receivable.description || `来自待收款: ${receivable.name}`,
         money: receivable.money || 0,
-        payType: payType || "现金",
         industryType: industryType || "其他收入",
         attribution: attribution || "",
         origin: "待收款转入",
+        accountId,
       },
     });
 
-    // 更新待收款状态
     const updatedReceivable = await tx.receivable.update({
       where: { id: Number(id) },
       data: {
-        status: 1, // 已收款
+        status: 1,
       },
     });
+
+    await recalcFundAccountFromFlows(
+      accountId ?? undefined,
+      tx as Prisma.TransactionClient,
+    );
 
     return {
       receivable: updatedReceivable,

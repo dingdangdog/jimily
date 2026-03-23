@@ -18,13 +18,6 @@ export const getIndustryType = (flowType: string): Promise<any[]> => {
   });
 };
 
-export const getPayType = (flowType: string): Promise<any[]> => {
-  return doApi.post<any[]>("api/entry/flow/type/getPayType", {
-    flowType,
-    
-  });
-};
-
 export const getTypeRelation = (): Promise<TypeRelation[]> => {
   return doApi.post<TypeRelation[]>("api/entry/typeRelation/list", {
     

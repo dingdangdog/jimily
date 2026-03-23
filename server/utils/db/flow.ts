@@ -15,7 +15,7 @@ import {
   getFundAccountById,
   getFundAccountByName,
   getOrCreateCashFundAccount,
-  resolveFundAccountByPayType,
+  resolveFundAccountByChannelText,
 } from "./fund-account";
 
 type Flow = Prisma.FlowGetPayload<Record<string, never>>;
@@ -28,7 +28,6 @@ export interface FlowQueryWhere {
   flowNo?: string;
   flowType?: string;
   industryType?: string;
-  payType?: string;
   startDay?: Date | string;
   endDay?: Date | string;
   name?: string;
@@ -47,7 +46,6 @@ function buildFlowWhere(input: FlowQueryWhere = {}): Prisma.FlowWhereInput {
   if (input.flowNo) where.flowNo = input.flowNo;
   if (input.flowType) where.flowType = input.flowType;
   if (input.industryType) where.industryType = input.industryType;
-  if (input.payType) where.payType = input.payType;
   if (input.eliminate != null) where.eliminate = input.eliminate;
   if (input.name) where.name = { contains: input.name, mode: "insensitive" };
   if (input.description)
@@ -221,7 +219,7 @@ export async function createFlowByAI(
   const flowType =
     normalizeFlowTypeLabel(String(args.flowType ?? "支出")) ?? "支出";
   const industryType = String(args.industryType ?? "其他");
-  const payType = String(args.payType ?? "未知");
+  const channelHint = String(args.channelHint ?? "").trim();
   const money = Number(args.money ?? 0);
   const name = String(args.name ?? "");
   const day = args.day ? new Date(String(args.day)) : new Date();
@@ -244,7 +242,7 @@ export async function createFlowByAI(
       ? Math.abs(money)
       : Number(money);
   let matchedAccount = null as Awaited<
-    ReturnType<typeof resolveFundAccountByPayType>
+    ReturnType<typeof resolveFundAccountByChannelText>
   >;
   if (accountIdArg != null && Number.isFinite(accountIdArg)) {
     const accountById = await getFundAccountById(accountIdArg);
@@ -265,8 +263,11 @@ export async function createFlowByAI(
       matchedAccount = accountByName;
     }
   }
-  if (!matchedAccount) {
-    matchedAccount = await resolveFundAccountByPayType(ctx.userId, payType);
+  if (!matchedAccount && channelHint) {
+    matchedAccount = await resolveFundAccountByChannelText(
+      ctx.userId,
+      channelHint,
+    );
   }
   if (!matchedAccount) {
     matchedAccount = await getOrCreateCashFundAccount(ctx.userId);
@@ -281,7 +282,6 @@ export async function createFlowByAI(
         day,
         flowType,
         industryType,
-        payType,
         money: normalizedMoney,
         name,
         description,
@@ -323,7 +323,6 @@ export async function queryFlowsByAI(
     day: Date;
     flowType: string | null;
     industryType: string | null;
-    payType: string | null;
     money: number | null;
     name: string | null;
     description: string | null;
@@ -332,7 +331,6 @@ export async function queryFlowsByAI(
   const whereInput: FlowQueryWhere = { userId: ctx.userId };
   if (args.flowType) whereInput.flowType = String(args.flowType);
   if (args.industryType) whereInput.industryType = String(args.industryType);
-  if (args.payType) whereInput.payType = String(args.payType);
   if (args.name) whereInput.name = String(args.name);
   if (args.startDay) whereInput.startDay = String(args.startDay);
   if (args.endDay) whereInput.endDay = String(args.endDay);
@@ -363,7 +361,6 @@ export async function queryFlowsByAI(
       day: f.day,
       flowType: f.flowType,
       industryType: f.industryType,
-      payType: f.payType,
       money: f.money,
       name: f.name,
       description: f.description,
@@ -379,7 +376,6 @@ export async function queryFlowExtremesByAI(
   filters: {
     flowType?: string;
     industryType?: string;
-    payType?: string;
     name?: string;
   };
   topExpense: Array<{
@@ -387,7 +383,6 @@ export async function queryFlowExtremesByAI(
     day: Date;
     flowType: string | null;
     industryType: string | null;
-    payType: string | null;
     money: number | null;
     name: string | null;
     description: string | null;
@@ -397,7 +392,6 @@ export async function queryFlowExtremesByAI(
     day: Date;
     flowType: string | null;
     industryType: string | null;
-    payType: string | null;
     money: number | null;
     name: string | null;
     description: string | null;
@@ -458,8 +452,7 @@ export async function queryFlowExtremesByAI(
     : null;
   const name = args.name ? String(args.name) : undefined;
   const industryType = args.industryType ? String(args.industryType) : undefined;
-  const payType = args.payType ? String(args.payType) : undefined;
-  
+
   // 处理账户筛选：优先使用accountId，否则通过accountName查找
   let accountId: number | undefined;
   if (args.accountId) {
@@ -478,7 +471,6 @@ export async function queryFlowExtremesByAI(
     userId: ctx.userId,
     day: { gte: start, lte: end },
     ...(industryType ? { industryType } : {}),
-    ...(payType ? { payType } : {}),
     ...(name ? { name: { contains: name, mode: "insensitive" } } : {}),
     ...(accountId !== undefined ? { accountId } : {}),
   };
@@ -538,7 +530,6 @@ export async function queryFlowExtremesByAI(
     day: f.day,
     flowType: f.flowType,
     industryType: f.industryType,
-    payType: f.payType,
     money: f.money,
     name: f.name,
     description: f.description,
@@ -549,7 +540,6 @@ export async function queryFlowExtremesByAI(
     filters: {
       flowType: normalizedFlowType ?? undefined,
       industryType,
-      payType,
       name,
     },
     topExpense: topExpenseRows.map(mapRow),
@@ -662,8 +652,9 @@ export async function analyzeConsumptionPreferencesByAI(
     count: number;
     ratio: number;
   }>;
-  topExpensePayTypes: Array<{
-    payType: string;
+  topExpenseFundAccounts: Array<{
+    accountLabel: string;
+    accountId: number | null;
     amount: number;
     count: number;
     ratio: number;
@@ -703,7 +694,7 @@ export async function analyzeConsumptionPreferencesByAI(
     ...(accountId !== undefined ? { accountId } : {}),
   };
 
-  const [sumByType, expenseByCategory, expenseByPayType] = (await Promise.all([
+  const [sumByType, expenseByCategory, expenseByAccount] = (await Promise.all([
     prisma.flow.groupBy({
       by: ["flowType"],
       where,
@@ -717,7 +708,7 @@ export async function analyzeConsumptionPreferencesByAI(
       _count: true,
     }),
     prisma.flow.groupBy({
-      by: ["payType"],
+      by: ["accountId"],
       where: { ...where, flowType: "支出" },
       _sum: { money: true },
       _count: true,
@@ -725,8 +716,26 @@ export async function analyzeConsumptionPreferencesByAI(
   ])) as [
     Array<{ flowType: string | null; _sum: { money: number | null }; _count: number }>,
     Array<{ industryType: string | null; _sum: { money: number | null }; _count: number }>,
-    Array<{ payType: string | null; _sum: { money: number | null }; _count: number }>,
+    Array<{ accountId: number | null; _sum: { money: number | null }; _count: number }>,
   ];
+
+  const expenseAccIds = Array.from(
+    new Set(
+      expenseByAccount
+        .map((x) => x.accountId)
+        .filter((id): id is number => id != null && Number.isFinite(id)),
+    ),
+  );
+  const expenseAccounts =
+    expenseAccIds.length > 0
+      ? await prisma.fundAccount.findMany({
+          where: { userId: ctx.userId, id: { in: expenseAccIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+  const expenseAccIdToName = new Map(
+    expenseAccounts.map((a) => [a.id, a.name] as const),
+  );
 
   const expenseRow = sumByType.find((x) => x.flowType === "支出");
   const incomeRow = sumByType.find((x) => x.flowType === "收入");
@@ -749,11 +758,17 @@ export async function analyzeConsumptionPreferencesByAI(
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 8);
 
-  const topExpensePayTypes = expenseByPayType
+  const topExpenseFundAccounts = expenseByAccount
     .map((x) => {
       const amount = Math.abs(Number(x._sum.money ?? 0));
+      const aid = x.accountId;
+      const accountLabel =
+        aid == null
+          ? "未关联账户"
+          : expenseAccIdToName.get(aid) || `账户#${aid}`;
       return {
-        payType: x.payType || "未知",
+        accountLabel,
+        accountId: aid,
         amount,
         count: Number(x._count ?? 0),
         ratio: totalExpense > 0 ? Number((amount / totalExpense).toFixed(4)) : 0,
@@ -770,6 +785,6 @@ export async function analyzeConsumptionPreferencesByAI(
     totalExpense,
     totalIncome,
     topExpenseCategories,
-    topExpensePayTypes,
+    topExpenseFundAccounts,
   };
 }

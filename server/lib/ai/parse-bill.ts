@@ -5,7 +5,8 @@ export interface ParsedFlowRow {
   day: string;
   flowType: "收入" | "支出" | "不计收支";
   industryType: string;
-  payType: string;
+  /** 渠道文本，用于匹配资金账户（如微信、支付宝） */
+  channelHint: string;
   money: number;
   name: string;
   description?: string;
@@ -19,7 +20,7 @@ const PARSE_SYSTEM = `你是一个账单数据解析助手。用户的账单数�
 - day: 日期，格式 YYYY-MM-DD
 - flowType: 必为 "收入" | "支出" | "不计收支"
 - industryType: 行业/分类（如：餐饮、交通、工资、理财等），根据交易描述智能推断
-- payType: 支付/收款方式（如：微信、支付宝、银行卡、现金等）
+- channelHint: 支付/收款渠道文本（如：微信、支付宝、银行卡、现金等），用于匹配资金账户
 - money: 金额（正数为收入，负数为支出；若原始为正数表示支出则转为负数）
 - name: 条目名称/摘要
 - description: 备注（可选）
@@ -28,7 +29,7 @@ const PARSE_SYSTEM = `你是一个账单数据解析助手。用户的账单数�
 规则：
 1. 根据交易描述判断 flowType：收入类（工资、转账入、理财收益等）、支出类（消费、转账出等）、不计收支（内部转账、退款等）
 2. industryType 使用常见中文分类
-3. payType 根据渠道推断，没有则填"未知"
+3. channelHint 根据渠道推断，没有则填空字符串
 4. 金额统一：收入为正，支出为负`;
 
 /**
@@ -97,7 +98,9 @@ export async function parseBillDataWithAI(
         day,
         flowType,
         industryType: String(row?.industryType ?? row?.分类 ?? "").trim() || "其他",
-        payType: String(row?.payType ?? row?.支付方式 ?? "").trim() || "未知",
+        channelHint: String(
+          row?.channelHint ?? row?.payType ?? row?.支付方式 ?? "",
+        ).trim(),
         money: Number(money),
         name: String(row?.name ?? row?.摘要 ?? row?.描述 ?? "").trim() || "未命名",
         description: row?.description ? String(row.description) : undefined,

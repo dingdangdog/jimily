@@ -20,7 +20,6 @@ import {
  *             ids: number[] 流水ID数组
  *             flowType: string 流水类型（可选）
  *             industryType: string 行业分类（可选）
- *             payType: string 支付方式（可选）
  *             attribution: string 归属（可选）
  *     responses:
  *       200:
@@ -43,8 +42,7 @@ export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);
   const body = await readBody(event);
   const ids = body.ids;
-  const { flowType, industryType, payType, attribution, accountId, accountDelta } =
-    body;
+  const { flowType, industryType, attribution, accountId, accountDelta } = body;
 
   if (!ids) {
     return error("Not Find ID");
@@ -56,9 +54,6 @@ export default defineEventHandler(async (event) => {
   }
   if (industryType) {
     updateInfo.industryType = String(industryType);
-  }
-  if (payType) {
-    updateInfo.payType = String(payType);
   }
   if (attribution) {
     updateInfo.attribution = String(attribution);

@@ -1,6 +1,10 @@
 import { getUserId } from "~~/server/utils/jwt";
 import { parseBillDataWithAI } from "~~/server/lib/ai";
-import { createFlow } from "~~/server/utils/db";
+import {
+  createFlow,
+  getOrCreateCashFundAccount,
+  resolveFundAccountByChannelText,
+} from "~~/server/utils/db";
 import { success, error } from "~~/server/utils/common";
 
 function genFlowNo(): string {
@@ -36,18 +40,25 @@ export default defineEventHandler(async (event) => {
 
   for (const f of flows) {
     try {
+      let matched = await resolveFundAccountByChannelText(
+        userId,
+        f.channelHint,
+      );
+      if (!matched) {
+        matched = await getOrCreateCashFundAccount(userId);
+      }
       await createFlow({
         flowNo: genFlowNo(),
         userId,
         day: new Date(f.day),
         flowType: f.flowType,
         industryType: f.industryType,
-        payType: f.payType,
         money: f.money,
         name: f.name,
         description: f.description || null,
         attribution: f.attribution || null,
         origin: "Excel/CSV导入-AI解析",
+        accountId: matched.id,
       });
       imported++;
     } catch (e) {

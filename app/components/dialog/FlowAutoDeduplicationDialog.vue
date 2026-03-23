@@ -39,7 +39,7 @@ const deduplicationCriteria = ref({
   description: true,
   industryType: true,
   flowType: true,
-  payType: true,
+  accountId: true,
 });
 
 // 计算属性
@@ -248,10 +248,10 @@ const closeDialog = () => {
             <label class="flex items-center">
               <input
                 type="checkbox"
-                v-model="deduplicationCriteria.payType"
+                v-model="deduplicationCriteria.accountId"
                 class="w-4 h-4 text-primary-600 bg-background border-border rounded focus:ring-primary-500 focus:ring-2"
               />
-              <span class="ml-2 text-sm text-foreground/80">支付/收款方式</span>
+              <span class="ml-2 text-sm text-foreground/80">资金账户</span>
             </label>
             <button
               @click="fetchDuplicates"
@@ -408,7 +408,7 @@ const closeDialog = () => {
                       {{ formatDay(item.day) }}
                     </td>
                     <td class="px-2 py-1 text-sm">
-                      {{ item.payType }}
+                      {{ item.account?.name ?? "-" }}
                     </td>
                     <td class="px-2 py-1 text-sm">
                       {{ item.industryType }}
@@ -500,7 +500,7 @@ const closeDialog = () => {
                   </div>
                   <div class="flex justify-between">
                     <span class="text-foreground/60">支付方式:</span>
-                    <span>{{ item.payType }}</span>
+                    <span>{{ item.account?.name ?? "-" }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-foreground/60">类别:</span>

@@ -356,7 +356,7 @@ import { typeRelationStore } from "~/utils/store";
 // 加载蒙版显示控制器
 const searchPanelVisible = ref(false);
 const loading = ref(true);
-const typerOptions = ref<string[]>(["支出类型/收入类型", "支付方式/收款方式"]);
+const typerOptions = ref<string[]>(["支出类型/收入类型"]);
 
 // 列表数据绑定
 const types = ref<Typer[]>([]);
@@ -364,12 +364,8 @@ const allTypes = ref<Typer[]>([]);
 
 // 分组：收入/支出类型 与 支付/收款方式
 const TYPE_FLOW = "支出类型/收入类型";
-const TYPE_PAY = "支付方式/收款方式";
 const typeGroupFlow = computed(() =>
   types.value.filter((t) => t.type === TYPE_FLOW),
-);
-const typeGroupPay = computed(() =>
-  types.value.filter((t) => t.type === TYPE_PAY),
 );
 
 const typeQueryRef = ref<Typer>({

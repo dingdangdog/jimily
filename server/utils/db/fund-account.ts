@@ -70,9 +70,9 @@ function splitAccountKeywords(input: string): string[] {
 }
 
 /**
- * 从支付方式等文本拆出关键词，并补充常见渠道简称，便于按账户名称/机构匹配（无独立「账户类型」字段）。
+ * 从渠道/摘要等文本拆出关键词，并补充常见渠道简称，便于按账户名称/机构匹配。
  */
-function expandPayTypeSearchTerms(input: string): string[] {
+function expandChannelSearchTerms(input: string): string[] {
   const base = splitAccountKeywords(input);
   const extra: string[] = [];
   for (const x of base) {
@@ -87,16 +87,16 @@ function expandPayTypeSearchTerms(input: string): string[] {
 }
 
 /**
- * 按记账支付方式智能匹配资金账户（名称精确优先，其次名称/机构模糊）
+ * 按渠道文本（如微信、支付宝、某银行卡名）智能匹配资金账户（名称精确优先，其次名称/机构模糊）
  */
-export async function resolveFundAccountByPayType(
+export async function resolveFundAccountByChannelText(
   userId: number,
-  payType?: string | null,
+  channelText?: string | null,
 ): Promise<FundAccount | null> {
-  const text = String(payType || "").trim();
+  const text = String(channelText || "").trim();
   if (!text) return null;
 
-  const terms = expandPayTypeSearchTerms(text);
+  const terms = expandChannelSearchTerms(text);
   if (terms.length === 0) return null;
 
   const exactByName = await prisma.fundAccount.findFirst({
@@ -127,7 +127,7 @@ export async function resolveFundAccountByPayType(
 
 /**
  * 获取用户默认现金账户；若不存在则自动创建。
- * 用于无法从 payType/账户信息中解析目标账户时的兜底。
+ * 用于无法从渠道文本/账户信息中解析目标账户时的兜底。
  */
 export async function getOrCreateCashFundAccount(
   userId: number,

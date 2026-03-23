@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model TypeRelation
- * 类型映射/关联表（如行业类型与支付方式等映射）
+ * 类型映射/关联表（如行业类型等映射）
  */
 export type TypeRelationModel = runtime.Types.Result.DefaultSelection<Prisma.$TypeRelationPayload>
 

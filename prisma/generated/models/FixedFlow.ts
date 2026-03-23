@@ -47,7 +47,6 @@ export type FixedFlowMinAggregateOutputType = {
   description: string | null
   flowType: string | null
   industryType: string | null
-  payType: string | null
   attribution: string | null
 }
 
@@ -60,7 +59,6 @@ export type FixedFlowMaxAggregateOutputType = {
   description: string | null
   flowType: string | null
   industryType: string | null
-  payType: string | null
   attribution: string | null
 }
 
@@ -73,7 +71,6 @@ export type FixedFlowCountAggregateOutputType = {
   description: number
   flowType: number
   industryType: number
-  payType: number
   attribution: number
   _all: number
 }
@@ -100,7 +97,6 @@ export type FixedFlowMinAggregateInputType = {
   description?: true
   flowType?: true
   industryType?: true
-  payType?: true
   attribution?: true
 }
 
@@ -113,7 +109,6 @@ export type FixedFlowMaxAggregateInputType = {
   description?: true
   flowType?: true
   industryType?: true
-  payType?: true
   attribution?: true
 }
 
@@ -126,7 +121,6 @@ export type FixedFlowCountAggregateInputType = {
   description?: true
   flowType?: true
   industryType?: true
-  payType?: true
   attribution?: true
   _all?: true
 }
@@ -226,7 +220,6 @@ export type FixedFlowGroupByOutputType = {
   description: string | null
   flowType: string | null
   industryType: string | null
-  payType: string | null
   attribution: string | null
   _count: FixedFlowCountAggregateOutputType | null
   _avg: FixedFlowAvgAggregateOutputType | null
@@ -262,7 +255,6 @@ export type FixedFlowWhereInput = {
   description?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
   flowType?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
   industryType?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
-  payType?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
   attribution?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
 }
 
@@ -275,7 +267,6 @@ export type FixedFlowOrderByWithRelationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   flowType?: Prisma.SortOrderInput | Prisma.SortOrder
   industryType?: Prisma.SortOrderInput | Prisma.SortOrder
-  payType?: Prisma.SortOrderInput | Prisma.SortOrder
   attribution?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
@@ -291,7 +282,6 @@ export type FixedFlowWhereUniqueInput = Prisma.AtLeast<{
   description?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
   flowType?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
   industryType?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
-  payType?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
   attribution?: Prisma.StringNullableFilter<"FixedFlow"> | string | null
 }, "id">
 
@@ -304,7 +294,6 @@ export type FixedFlowOrderByWithAggregationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   flowType?: Prisma.SortOrderInput | Prisma.SortOrder
   industryType?: Prisma.SortOrderInput | Prisma.SortOrder
-  payType?: Prisma.SortOrderInput | Prisma.SortOrder
   attribution?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.FixedFlowCountOrderByAggregateInput
   _avg?: Prisma.FixedFlowAvgOrderByAggregateInput
@@ -325,7 +314,6 @@ export type FixedFlowScalarWhereWithAggregatesInput = {
   description?: Prisma.StringNullableWithAggregatesFilter<"FixedFlow"> | string | null
   flowType?: Prisma.StringNullableWithAggregatesFilter<"FixedFlow"> | string | null
   industryType?: Prisma.StringNullableWithAggregatesFilter<"FixedFlow"> | string | null
-  payType?: Prisma.StringNullableWithAggregatesFilter<"FixedFlow"> | string | null
   attribution?: Prisma.StringNullableWithAggregatesFilter<"FixedFlow"> | string | null
 }
 
@@ -337,7 +325,6 @@ export type FixedFlowCreateInput = {
   description?: string | null
   flowType?: string | null
   industryType?: string | null
-  payType?: string | null
   attribution?: string | null
 }
 
@@ -350,7 +337,6 @@ export type FixedFlowUncheckedCreateInput = {
   description?: string | null
   flowType?: string | null
   industryType?: string | null
-  payType?: string | null
   attribution?: string | null
 }
 
@@ -362,7 +348,6 @@ export type FixedFlowUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   flowType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   industryType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attribution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -375,7 +360,6 @@ export type FixedFlowUncheckedUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   flowType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   industryType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attribution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -388,7 +372,6 @@ export type FixedFlowCreateManyInput = {
   description?: string | null
   flowType?: string | null
   industryType?: string | null
-  payType?: string | null
   attribution?: string | null
 }
 
@@ -400,7 +383,6 @@ export type FixedFlowUpdateManyMutationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   flowType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   industryType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attribution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -413,7 +395,6 @@ export type FixedFlowUncheckedUpdateManyInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   flowType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   industryType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  payType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attribution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -426,7 +407,6 @@ export type FixedFlowCountOrderByAggregateInput = {
   description?: Prisma.SortOrder
   flowType?: Prisma.SortOrder
   industryType?: Prisma.SortOrder
-  payType?: Prisma.SortOrder
   attribution?: Prisma.SortOrder
 }
 
@@ -445,7 +425,6 @@ export type FixedFlowMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   flowType?: Prisma.SortOrder
   industryType?: Prisma.SortOrder
-  payType?: Prisma.SortOrder
   attribution?: Prisma.SortOrder
 }
 
@@ -458,7 +437,6 @@ export type FixedFlowMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   flowType?: Prisma.SortOrder
   industryType?: Prisma.SortOrder
-  payType?: Prisma.SortOrder
   attribution?: Prisma.SortOrder
 }
 
@@ -479,7 +457,6 @@ export type FixedFlowSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   description?: boolean
   flowType?: boolean
   industryType?: boolean
-  payType?: boolean
   attribution?: boolean
 }, ExtArgs["result"]["fixedFlow"]>
 
@@ -492,7 +469,6 @@ export type FixedFlowSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   description?: boolean
   flowType?: boolean
   industryType?: boolean
-  payType?: boolean
   attribution?: boolean
 }, ExtArgs["result"]["fixedFlow"]>
 
@@ -505,7 +481,6 @@ export type FixedFlowSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   description?: boolean
   flowType?: boolean
   industryType?: boolean
-  payType?: boolean
   attribution?: boolean
 }, ExtArgs["result"]["fixedFlow"]>
 
@@ -518,11 +493,10 @@ export type FixedFlowSelectScalar = {
   description?: boolean
   flowType?: boolean
   industryType?: boolean
-  payType?: boolean
   attribution?: boolean
 }
 
-export type FixedFlowOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "month" | "money" | "name" | "description" | "flowType" | "industryType" | "payType" | "attribution", ExtArgs["result"]["fixedFlow"]>
+export type FixedFlowOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "month" | "money" | "name" | "description" | "flowType" | "industryType" | "attribution", ExtArgs["result"]["fixedFlow"]>
 
 export type $FixedFlowPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "FixedFlow"
@@ -560,10 +534,6 @@ export type $FixedFlowPayload<ExtArgs extends runtime.Types.Extensions.InternalA
      * 行业/分类（支出类型或收入类型）
      */
     industryType: string | null
-    /**
-     * 支付方式或收款方式
-     */
-    payType: string | null
     /**
      * 流水归属（谁的收入/支出）
      */
@@ -999,7 +969,6 @@ export interface FixedFlowFieldRefs {
   readonly description: Prisma.FieldRef<"FixedFlow", 'String'>
   readonly flowType: Prisma.FieldRef<"FixedFlow", 'String'>
   readonly industryType: Prisma.FieldRef<"FixedFlow", 'String'>
-  readonly payType: Prisma.FieldRef<"FixedFlow", 'String'>
   readonly attribution: Prisma.FieldRef<"FixedFlow", 'String'>
 }
     

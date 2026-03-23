@@ -39,7 +39,8 @@ export interface Flow {
   day?: string;
   flowType?: string; // 收入、支出、不计收支
   industryType?: string; // 行业/分类（支出类型或收入类型）
-  payType?: string; // 支付方式/收款方式
+  /** 导入用：渠道文本，服务端用于匹配资金账户 */
+  channelHint?: string;
   money?: number;
   name?: string;
   description?: string;
@@ -100,7 +101,6 @@ export interface FixedFlow {
   description?: string;
   flowType?: string;
   industryType?: string;
-  payType?: string;
   attribution?: string;
   /** API 兼容：批量生成时用 */
   startMonth?: string;

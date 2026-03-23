@@ -166,8 +166,10 @@ const mapJsonToFlow = (raw: Record<string, any>): Flow | null => {
     flow.industryType = String(raw.type).trim();
   }
 
-  if (raw.payType != null) {
-    flow.payType = String(raw.payType).trim();
+  if (raw.channelHint != null) {
+    flow.channelHint = String(raw.channelHint).trim();
+  } else if (raw.payType != null) {
+    flow.channelHint = String(raw.payType).trim();
   }
 
   const moneySource = raw.money ?? raw.amount;

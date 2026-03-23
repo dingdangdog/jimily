@@ -248,9 +248,9 @@ let payTypeChart: echarts.ECharts;
 
 const doQuery = (query: CommonChartQuery) => {
   doApi
-    .post<CommonChartData[]>("api/entry/analytics/payType", {
-      
+    .post<CommonChartData[]>("api/entry/analytics/common", {
       ...query,
+      groupBy: "fundAccount",
     })
     .then((res) => {
       if (res) {
@@ -269,6 +269,7 @@ const doQuery = (query: CommonChartQuery) => {
             dataList.push({
               value: Number(data.outSum).toFixed(2),
               name: data.type,
+              accountId: data.accountId,
             });
           });
         } else if (query.flowType == "收入") {
@@ -278,6 +279,7 @@ const doQuery = (query: CommonChartQuery) => {
             dataList.push({
               value: Number(data.inSum).toFixed(2),
               name: data.type,
+              accountId: data.accountId,
             });
           });
         } else {
@@ -287,6 +289,7 @@ const doQuery = (query: CommonChartQuery) => {
             dataList.push({
               value: Number(data.zeroSum).toFixed(2),
               name: data.type,
+              accountId: data.accountId,
             });
           });
         }
@@ -334,8 +337,21 @@ onMounted(() => {
     oldInstance.dispose();
   }
   payTypeChart = echarts.init(payTypeDiv);
-  payTypeChart.on("click", function (param) {
-    query.value = { ...chartParam.value, payType: param.name };
+  payTypeChart.on("click", function (param: any) {
+    const d = param.data;
+    const base: Record<string, unknown> = { ...chartParam.value };
+    if (
+      d &&
+      typeof d === "object" &&
+      "accountId" in d &&
+      d.accountId != null
+    ) {
+      base.accountId = d.accountId as number;
+      base.accountUnassigned = false;
+    } else if (param.name === "未关联账户") {
+      base.accountUnassigned = true;
+    }
+    query.value = base;
     showFlowTable.value = true;
   });
   doQuery(chartParam.value);
