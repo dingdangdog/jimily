@@ -79,10 +79,6 @@ const navigateToPath = (path: string) => {
   navigateTo({ path: `/${path}` });
 };
 
-const openAdmin = () => {
-  window.open(`/admin`, "_blank");
-};
-
 const openConvertDialog = () => {
   showSetConvertDialog.value = true;
 };
@@ -111,8 +107,7 @@ const openJimi = () => {
   <div class="h-screen p-0 m-0 overflow-hidden">
     <!-- Header -->
     <LayoutAppHeader :is-mobile="isMobile" @toggle-sidebar="sidebarOpen = !sidebarOpen" @logout="logout"
-      @open-admin="openAdmin" @open-convert-dialog="openConvertDialog"
-      @open-change-password-dialog="openChangePasswordDialog" />
+      @open-convert-dialog="openConvertDialog" @open-change-password-dialog="openChangePasswordDialog" />
 
     <div class="flex relative" style="height: calc(100vh - 64px)" :class="{ 'pb-12': isMobile }">
       <!-- Sidebar - Desktop -->
