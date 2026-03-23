@@ -240,12 +240,7 @@ const testSummaryLines = computed(() => {
 
           <div class="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
             <p class="text-xs text-muted leading-relaxed">
-                  将使用「仅 Bearer、不带 Cookie」的方式请求当前站点，与脚本
-              <code class="bg-surface-muted px-0.5 rounded">test-api-token.mjs</code>
-              一致：测
-              <code class="bg-surface-muted px-0.5 rounded">/api/entry/user/info</code>、
-              <code class="bg-surface-muted px-0.5 rounded">/api/v1/ai/conversations</code>、
-              <code class="bg-surface-muted px-0.5 rounded">/api/admin/config/get</code>。
+              将使用填写的token自动请求当前站点。
             </p>
 
             <div>
