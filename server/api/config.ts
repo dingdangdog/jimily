@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/config:
  *   get:
  *     summary: 获取系统配置信息
- *     tags: ["Base"]
+ *     tags: ["基础"]
  *     responses:
  *       200:
  *         description: 系统配置获取成功

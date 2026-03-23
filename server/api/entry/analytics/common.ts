@@ -6,7 +6,7 @@ import { parseDateBoundary } from "~~/server/utils/db/flow";
  * /api/entry/analytics/common:
  *   post:
  *     summary: 获取通用图表分析数据
- *     tags: ["Analytics"]
+ *     tags: ["统计分析"]
  *     security:
  *       - Authorization: []
  *     requestBody:

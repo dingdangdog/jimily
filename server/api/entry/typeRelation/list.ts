@@ -6,7 +6,7 @@ import { initTypeRelation } from "~~/server/utils/data";
  * /api/entry/typeRelation/list:
  *   post:
  *     summary: 获取类型关系列表
- *     tags: ["Type Relation"]
+ *     tags: ["类型映射"]
  *     security:
  *       - Authorization: []
  *     requestBody:

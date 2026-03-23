@@ -11,9 +11,34 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: "http://localhost:9090/api",
-      description: "本地服务器",
+      url: "http://localhost:9090",
+      description:
+        "请以你的服务器地址为准",
     },
+  ],
+  /**
+   * 顶层 tags 顺序会被 Scalar / Swagger UI 等用作侧栏分组顺序。
+   * 未在此列出的 tag 一般会排在后面（实现相关）。
+   */
+  tags: [
+    { name: "基础", description: "登录、注册、站点配置、健康检查与 OpenAPI 规范入口" },
+    { name: "用户", description: "当前用户信息、密码、API 访问令牌" },
+    { name: "管理后台", description: "管理员登录与登出" },
+    {
+      name: "AI 接口（v1）",
+      description: "对外稳定的 AI 对话 REST API（与站内会话同源数据）",
+    },
+    { name: "流水", description: "收支流水：增删改查、分页、导入与关联转换" },
+    { name: "流水分类", description: "流水分类、行业类型等类型字典维护" },
+    { name: "固定流水", description: "固定（周期性）流水" },
+    { name: "预算", description: "预算" },
+    { name: "应收", description: "应收及与流水转换" },
+    { name: "发票", description: "流水关联发票上传、查看与清理" },
+    { name: "统计分析", description: "统计与图表分析" },
+    { name: "类型映射", description: "外部类别与系统类别的映射关系" },
+    { name: "导入候选", description: "导入流水候选确认、忽略与批量处理" },
+    { name: "去重", description: "流水去重" },
+    { name: "测试", description: "开发/联调用测试接口" },
   ],
   components: {
     // securitySchemes: {

@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/user/changePassword:
  *   post:
  *     summary: 修改用户密码
- *     tags: ["User"]
+ *     tags: ["用户"]
  *     security:
  *       - Authorization: []
  *     requestBody:

@@ -9,7 +9,7 @@ import {
  * /api/entry/flow/updates:
  *   post:
  *     summary: 批量更新流水记录
- *     tags: ["Flow"]
+ *     tags: ["流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:

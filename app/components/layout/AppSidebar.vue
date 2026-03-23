@@ -176,10 +176,10 @@ const handleNavigate = (menu: Menu) => {
     // 打开文档站，可以根据需要修改为实际的文档URL
     window.open("https://doc.cashbook.oldmoon.top", "_blank");
     return;
-  } else if (menu.path === "api-docs") {
-    // 打开文档站，可以根据需要修改为实际的文档URL
-    window.open("https://doc.cashbook.oldmoon.top/api-docs", "_blank");
-    return;
+  // } else if (menu.path === "api-docs") {
+  //   // 打开文档站，可以根据需要修改为实际的文档URL
+  //   window.open("https://doc.cashbook.oldmoon.top/api-docs", "_blank");
+  //   return;
   }
   // emit("navigate", menu.path || "calendar");
   navigateTo(menu.path || "/");

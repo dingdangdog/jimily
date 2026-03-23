@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/deduplication/autos:
  *   post:
  *     summary: 自动查找重复流水记录
- *     tags: ["Deduplication"]
+ *     tags: ["去重"]
  *     security:
  *       - Authorization: []
  *     requestBody:

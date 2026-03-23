@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/check:
  *   get:
  *     summary: 获取用户数量
- *     tags: ["Base"]
+ *     tags: ["基础"]
  *     responses:
  *       200:
  *         description: 用户数量获取成功

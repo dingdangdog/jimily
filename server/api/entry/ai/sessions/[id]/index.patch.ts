@@ -1,6 +1,6 @@
-import prisma from "~~/server/lib/prisma";
 import { getUserId } from "~~/server/utils/jwt";
 import { success, error } from "~~/server/utils/common";
+import { updateUserChatSessionTitle } from "~~/server/lib/ai/user-chat-service";
 
 /** PATCH /api/entry/ai/sessions/:id - 更新会话标题 */
 export default defineEventHandler(async (event) => {
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     return error("无效的会话 ID");
   }
 
-  const body = await readBody(event); // 获取请求体
+  const body = await readBody(event);
   const title =
     body?.title === null || body?.title === ""
       ? null
@@ -31,17 +31,10 @@ export default defineEventHandler(async (event) => {
     return error("请提供 title 字段");
   }
 
-  const session = await prisma.userChatSession.findFirst({
-    where: { id: sessionId, userId },
-  });
-  if (!session) {
+  const updated = await updateUserChatSessionTitle(userId, sessionId, title);
+  if (!updated) {
     return error("会话不存在或无权访问");
   }
-
-  const updated = await prisma.userChatSession.update({
-    where: { id: sessionId },
-    data: { title: title || null },
-  });
 
   return success({
     id: updated.id,

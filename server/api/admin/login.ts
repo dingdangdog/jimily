@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
  * /api/admin/login:
  *   post:
  *     summary: 管理员登录（需 User.roles 含 admin）
- *     tags: ["Admin"]
+ *     tags: ["管理后台"]
  *     requestBody:
  *       content:
  *         application/json:

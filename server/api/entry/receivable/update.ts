@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/receivable/update:
  *   post:
  *     summary: 更新待收款
- *     tags: ["Receivable"]
+ *     tags: ["应收"]
  *     security:
  *       - Authorization: []
  *     requestBody:

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * 测试「API 访问令牌」对两类接口的权限表现：
+ * 测试「API 访问令牌」对接口的权限表现：
  * 1) 普通用户接口：GET /api/entry/user/info（任意有效登录用户应成功）
- * 2) 管理员接口：GET /api/admin/config/get（仅 roles 含 admin 的用户应成功）
+ * 2) v1 AI：GET /api/v1/ai/conversations（与 1 相同，验证外部 AI API 可达）
+ * 3) 管理员接口：GET /api/admin/config/get（仅 roles 含 admin 的用户应成功）
  *
  * 用法（任选其一）：
  *   set API_TOKEN=你的JWT
@@ -72,6 +73,7 @@ console.log("Token 长度:", token.length);
 console.log("");
 
 const entry = await callApi("普通用户接口", "GET", "/api/entry/user/info");
+const v1Ai = await callApi("v1 AI 对话列表", "GET", "/api/v1/ai/conversations");
 const admin = await callApi("管理员接口", "GET", "/api/admin/config/get");
 
 function printBlock(r) {
@@ -102,12 +104,14 @@ function printBlock(r) {
 }
 
 printBlock(entry);
+printBlock(v1Ai);
 printBlock(admin);
 
 console.log("—".repeat(48));
 console.log("汇总");
 
 const entryOk = isBizSuccess(entry.body);
+const v1Ok = isBizSuccess(v1Ai.body);
 const adminOk = isBizSuccess(admin.body);
 const adminDenied =
   isBizNoPermission(admin.body) &&
@@ -121,6 +125,14 @@ if (!entryOk) {
 }
 
 console.log("· 普通用户接口：通过（该 Token 至少具备登录用户身份）。");
+
+if (v1Ok) {
+  console.log("· v1 AI 对话列表：通过（可调用 /api/v1/ai/conversations）。");
+} else {
+  console.log(
+    "· v1 AI 对话列表：未通过，请检查路由部署或服务日志（普通用户接口已通过时通常应成功）。",
+  );
+}
 
 if (adminOk) {
   console.log("· 管理员接口：通过（该账号具备 admin 角色，可调用 /api/admin）。");

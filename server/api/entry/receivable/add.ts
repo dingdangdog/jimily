@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/receivable/add:
  *   post:
  *     summary: 添加待收款
- *     tags: ["Receivable"]
+ *     tags: ["应收"]
  *     security:
  *       - Authorization: []
  *     requestBody:
@@ -32,9 +32,7 @@ import prisma from "~~/server/lib/prisma";
  *         content:
  *           application/json:
  *             schema:
- *               Error: {
- *                 message: "请先选择账本" | "待收款名称不能为空" | "发生日期不能为空" | "金额不能为空"
- *               }
+ *               message: string 错误文案（如请先选择账本、待收款名称不能为空、发生日期不能为空、金额不能为空）
  */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);

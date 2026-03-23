@@ -6,7 +6,7 @@ import { parseDateBoundary } from "~~/server/utils/db/flow";
  * /api/entry/analytics/industryType:
  *   post:
  *     summary: 获取行业类型分析数据
- *     tags: ["Analytics"]
+ *     tags: ["统计分析"]
  *     security:
  *       - Authorization: []
  *     requestBody:

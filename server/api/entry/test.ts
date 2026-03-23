@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/test:
  *   get:
  *     summary: 测试接口
- *     tags: ["Test"]
+ *     tags: ["测试"]
  *     security:
  *       - Authorization: []
  *     responses:

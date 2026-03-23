@@ -7,7 +7,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/invoice/upload:
  *   post:
  *     summary: 上传流水发票
- *     tags: ["Invoice"]
+ *     tags: ["发票"]
  *     security:
  *       - Authorization: []
  *     requestBody:

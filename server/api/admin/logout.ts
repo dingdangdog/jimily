@@ -3,7 +3,7 @@
  * /api/admin/logout:
  *   post:
  *     summary: 管理员退出登录
- *     tags: ["Admin"]
+ *     tags: ["管理后台"]
  *     responses:
  *       200:
  *         description: 退出成功

@@ -35,6 +35,7 @@ const testToken = ref("");
 const testLoading = ref(false);
 const testEntry = ref<ApiTokenProbeResult | null>(null);
 const testAdmin = ref<ApiTokenProbeResult | null>(null);
+const testV1Ai = ref<ApiTokenProbeResult | null>(null);
 const testRunError = ref("");
 
 useEscapeKey(() => {
@@ -65,6 +66,7 @@ const openTestDialog = () => {
   testRunError.value = "";
   testEntry.value = null;
   testAdmin.value = null;
+  testV1Ai.value = null;
   if (!testToken.value.trim() && result.value?.token) {
     testToken.value = result.value.token;
   }
@@ -94,10 +96,12 @@ const runTokenTest = async () => {
   testRunError.value = "";
   testEntry.value = null;
   testAdmin.value = null;
+  testV1Ai.value = null;
   try {
     const suite = await runApiTokenTestSuite(window.location.origin, t);
     testEntry.value = suite.entry;
     testAdmin.value = suite.admin;
+    testV1Ai.value = suite.v1AiConversations;
   } catch (e: unknown) {
     testRunError.value =
       e instanceof Error ? e.message : String(e ?? "请求失败");
@@ -118,14 +122,20 @@ const probeVerdict = (r: ApiTokenProbeResult) => {
 
 const testSummaryLines = computed(() => {
   const lines: string[] = [];
-  if (!testEntry.value || !testAdmin.value) return lines;
+  if (!testEntry.value || !testAdmin.value || !testV1Ai.value) return lines;
   const eOk = isBizSuccess(testEntry.value.body);
   const aOk = isBizSuccess(testAdmin.value.body);
+  const v1Ok = isBizSuccess(testV1Ai.value.body);
   if (!eOk) {
     lines.push("· 普通用户接口未通过：Token 可能无效、过期，或服务不可达。");
     return lines;
   }
   lines.push("· 普通用户接口：通过（Token 具备有效用户身份）。");
+  if (v1Ok) {
+    lines.push("· v1 AI 对话列表：通过（可调用 /api/v1/ai/conversations）。");
+  } else {
+    lines.push("· v1 AI 对话列表：未通过，请查看详情（部署或路由异常时可能出现）。");
+  }
   if (aOk) {
     lines.push("· 管理员接口：通过（该 Token 对应账号含 admin，可访问管理端）。");
   } else if (isBizNoPermission(testAdmin.value.body)) {
@@ -149,9 +159,8 @@ const testSummaryLines = computed(() => {
             userStore.user?.username || "…"
           }}）生成 JWT，用于自行调用
           <code class="text-xs bg-surface-muted px-1 rounded">/api/entry</code>
-          等接口；请求头携带
-          <code class="text-xs bg-surface-muted px-1 rounded">Authorization: Bearer &lt;token&gt;</code>。不会写入浏览器
-          Cookie，不影响网页登录。仅可为本人生成。
+          、<code class="text-xs bg-surface-muted px-1 rounded">/api/v1/ai</code>
+          等接口。
         </p>
       </div>
 
@@ -231,10 +240,11 @@ const testSummaryLines = computed(() => {
 
           <div class="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
             <p class="text-xs text-muted leading-relaxed">
-              将使用「仅 Bearer、不带 Cookie」的方式请求当前站点，与脚本
+                  将使用「仅 Bearer、不带 Cookie」的方式请求当前站点，与脚本
               <code class="bg-surface-muted px-0.5 rounded">test-api-token.mjs</code>
-              一致：先测
-              <code class="bg-surface-muted px-0.5 rounded">/api/entry/user/info</code>，再测
+              一致：测
+              <code class="bg-surface-muted px-0.5 rounded">/api/entry/user/info</code>、
+              <code class="bg-surface-muted px-0.5 rounded">/api/v1/ai/conversations</code>、
               <code class="bg-surface-muted px-0.5 rounded">/api/admin/config/get</code>。
             </p>
 
@@ -273,6 +283,21 @@ const testSummaryLines = computed(() => {
                 </div>
                 <pre
                   class="mt-2 p-2 rounded bg-surface border border-border text-[11px] overflow-x-auto max-h-40 overflow-y-auto whitespace-pre-wrap break-words">{{ formatProbeBody(testEntry.body) }}</pre>
+              </div>
+            </template>
+
+            <template v-if="testV1Ai">
+              <div class="rounded-lg border border-border bg-surface-muted/40 p-3 space-y-1 text-xs">
+                <div class="font-semibold text-foreground">
+                  【{{ testV1Ai.label }}】 {{ testV1Ai.method }} {{ testV1Ai.path }}
+                </div>
+                <div class="text-muted break-all">HTTP {{ testV1Ai.status }}</div>
+                <div class="font-medium"
+                  :class="probeVerdict(testV1Ai).ok ? 'text-green-600 dark:text-green-400' : 'text-amber-700 dark:text-amber-300'">
+                  {{ probeVerdict(testV1Ai).text }}
+                </div>
+                <pre
+                  class="mt-2 p-2 rounded bg-surface border border-border text-[11px] overflow-x-auto max-h-40 overflow-y-auto whitespace-pre-wrap break-words">{{ formatProbeBody(testV1Ai.body) }}</pre>
               </div>
             </template>
 

@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/getNames:
  *   post:
  *     summary: 获取流水名称列表
- *     tags: ["Flow"]
+ *     tags: ["流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:

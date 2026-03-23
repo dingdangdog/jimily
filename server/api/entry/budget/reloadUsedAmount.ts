@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/budget/reloadUsedAmount:
  *   post:
  *     summary: 重新加载预算已使用金额
- *     tags: ["Budget"]
+ *     tags: ["预算"]
  *     security:
  *       - Authorization: []
  *     requestBody:

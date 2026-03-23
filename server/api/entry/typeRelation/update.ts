@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/typeRelation/update:
  *   post:
  *     summary: 更新类型关系
- *     tags: ["Type Relation"]
+ *     tags: ["类型映射"]
  *     security:
  *       - Authorization: []
  *     requestBody:

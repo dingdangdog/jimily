@@ -1,6 +1,6 @@
-import prisma from "~~/server/lib/prisma";
 import { getUserId } from "~~/server/utils/jwt";
 import { success, error } from "~~/server/utils/common";
+import { createUserChatSession } from "~~/server/lib/ai/user-chat-service";
 
 /** POST /api/entry/ai/sessions - 创建新对话会话 */
 export default defineEventHandler(async (event) => {
@@ -9,9 +9,14 @@ export default defineEventHandler(async (event) => {
     return error("未授权或 token 无效");
   }
 
-  const session = await prisma.userChatSession.create({
-    data: { userId, title: "新对话" },
-  });
+  const body = await readBody(event).catch(() => ({}));
+  const title =
+    body?.title !== undefined
+      ? typeof body.title === "string"
+        ? body.title.trim().slice(0, 200) || null
+        : null
+      : undefined;
 
+  const session = await createUserChatSession(userId, title);
   return success(session);
 });

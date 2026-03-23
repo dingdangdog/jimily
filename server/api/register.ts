@@ -6,7 +6,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/register:
  *   post:
  *     summary: 用户注册
- *     tags: ["Base"]
+ *     tags: ["基础"]
  *     requestBody:
  *       required: true
  *       content:

@@ -61,7 +61,7 @@ export async function probeApiWithBearer(
   };
 }
 
-/** 依次探测：普通用户接口、管理员接口 */
+/** 依次探测：普通用户接口、管理员接口、v1 AI 对话列表 */
 export async function runApiTokenTestSuite(baseOrigin: string, token: string) {
   const entry = await probeApiWithBearer(
     baseOrigin,
@@ -77,7 +77,14 @@ export async function runApiTokenTestSuite(baseOrigin: string, token: string) {
     "GET",
     "/api/admin/config/get",
   );
-  return { entry, admin };
+  const v1AiConversations = await probeApiWithBearer(
+    baseOrigin,
+    token,
+    "v1 AI 对话列表",
+    "GET",
+    "/api/v1/ai/conversations",
+  );
+  return { entry, admin, v1AiConversations };
 }
 
 export function formatProbeBody(body: unknown): string {

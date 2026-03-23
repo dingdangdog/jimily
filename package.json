@@ -18,13 +18,13 @@
     "@popperjs/core": "2.11.8",
     "@prisma/adapter-pg": "7.4.1",
     "@prisma/extension-accelerate": "3.0.1",
+    "@scalar/api-reference": "^1.49.3",
     "echarts": "6.0.0",
     "jsonwebtoken": "^9.0.2",
     "jszip": "3.10.1",
     "markdown-it": "^14.1.1",
     "nuxt": "4.3.1",
     "nuxt-echarts": "1.0.1",
-    "nuxt-openapi-docs-module": "5.3.2",
     "openai": "^6.25.0",
     "pinia": "^3.0.4",
     "v-calendar": "3.1.2",
@@ -39,8 +39,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/swagger-jsdoc": "6.0.4",
     "prisma": "7.4.1",
-    "swagger-jsdoc": "6.2.8",
-    "swagger-ui-express": "5.0.1"
+    "swagger-jsdoc": "6.2.8"
   },
   "packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"
 }

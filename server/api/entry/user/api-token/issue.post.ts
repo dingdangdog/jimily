@@ -11,7 +11,7 @@ import {
  * /api/entry/user/api-token/issue:
  *   post:
  *     summary: 为当前登录用户签发 API 访问令牌（仅响应体，不写 Cookie）
- *     tags: ["User"]
+ *     tags: ["用户"]
  *     security:
  *       - Authorization: []
  *     requestBody:

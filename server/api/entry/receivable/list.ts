@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/receivable/list:
  *   post:
  *     summary: 获取待收款列表（分页）
- *     tags: ["Receivable"]
+ *     tags: ["应收"]
  *     security:
  *       - Authorization: []
  *     requestBody:
@@ -26,12 +26,7 @@ import prisma from "~~/server/lib/prisma";
  *           application/json:
  *             schema:
  *               Result:
- *                 d: {
- *                   datas: Receivable[],
- *                   total: number,
- *                   pageNum: number,
- *                   pageSize: number
- *                 }
+ *                 d: object 含 datas(Receivable 数组)、total、pageNum、pageSize
  */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);

@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/condidate/patchignore:
  *   post:
  *     summary: 批量忽略候选平账记录
- *     tags: ["Candidate"]
+ *     tags: ["导入候选"]
  *     security:
  *       - Authorization: []
  *     requestBody:
@@ -21,15 +21,13 @@ import prisma from "~~/server/lib/prisma";
  *           application/json:
  *             schema:
  *               Result:
- *                 d: { count: number } 影响条数
+ *                 d: object 含 count(number) 影响条数
  *       400:
  *         description: 批量忽略失败
  *         content:
  *           application/json:
  *             schema:
- *               Error: {
- *                 message: string
- *               }
+ *               message: string 错误信息
  */
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);

@@ -7,7 +7,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/invoice/clean:
  *   post:
  *     summary: 清理流水所有发票
- *     tags: ["Invoice"]
+ *     tags: ["发票"]
  *     security:
  *       - Authorization: []
  *     requestBody:

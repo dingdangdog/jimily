@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/type/getIndustryType:
  *   post:
  *     summary: 获取行业类型列表
- *     tags: ["Flow Type"]
+ *     tags: ["流水分类"]
  *     security:
  *       - Authorization: []
  *     requestBody:

@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/condidate/ignoreAll:
  *   post:
  *     summary: 批量忽略候选平账记录
- *     tags: ["Candidate"]
+ *     tags: ["导入候选"]
  *     security:
  *       - Authorization: []
  *     requestBody:

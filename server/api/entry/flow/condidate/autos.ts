@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/condidate/autos:
  *   post:
  *     summary: 自动查找候选平账记录
- *     tags: ["Candidate"]
+ *     tags: ["导入候选"]
  *     security:
  *       - Authorization: []
  *     requestBody:

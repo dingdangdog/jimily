@@ -1,6 +1,6 @@
-import prisma from "~~/server/lib/prisma";
 import { getUserId } from "~~/server/utils/jwt";
 import { success, error } from "~~/server/utils/common";
+import { deleteUserChatSession } from "~~/server/lib/ai/user-chat-service";
 
 /** DELETE /api/entry/ai/sessions/:id - 删除对话会话（及其消息） */
 export default defineEventHandler(async (event) => {
@@ -19,19 +19,10 @@ export default defineEventHandler(async (event) => {
     return error("无效的会话 ID");
   }
 
-  const session = await prisma.userChatSession.findFirst({
-    where: { id: sessionId, userId },
-  });
-  if (!session) {
+  const ok = await deleteUserChatSession(userId, sessionId);
+  if (!ok) {
     return error("会话不存在或无权访问");
   }
-
-  await prisma.userChatMessage.deleteMany({
-    where: { sessionId },
-  });
-  await prisma.userChatSession.delete({
-    where: { id: sessionId },
-  });
 
   return success({ ok: true });
 });

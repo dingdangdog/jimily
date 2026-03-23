@@ -7,7 +7,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/invoice/show:
  *   get:
  *     summary: 显示发票图片
- *     tags: ["Invoice"]
+ *     tags: ["发票"]
  *     parameters:
  *       - in: query
  *         name: invoice

@@ -41,7 +41,7 @@ function genFlowNoByContent(
  * /api/entry/flow/imports:
  *   post:
  *     summary: 批量导入流水记录
- *     tags: ["Flow"]
+ *     tags: ["流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:
@@ -58,7 +58,7 @@ function genFlowNoByContent(
  *           application/json:
  *             schema:
  *               Result:
- *                 d: { count, skipped } 导入条数与被去重跳过条数
+ *                 d: object 含 count(number) 导入条数、skipped(number) 去重跳过条数
  *       400:
  *         description: 导入失败
  */

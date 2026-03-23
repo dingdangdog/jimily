@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/budget/del:
  *   post:
  *     summary: 删除预算
- *     tags: ["Budget"]
+ *     tags: ["预算"]
  *     security:
  *       - Authorization: []
  *     requestBody:

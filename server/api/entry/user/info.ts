@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/user/info:
  *   get:
  *     summary: 获取用户信息
- *     tags: ["User"]
+ *     tags: ["用户"]
  *     security:
  *       - Authorization: []
  *     responses:

@@ -3,7 +3,7 @@
  * /api/logout:
  *   post:
  *     summary: 用户退出登录
- *     tags: ["Base"]
+ *     tags: ["基础"]
  *     security:
  *       - Authorization: []
  *     responses:

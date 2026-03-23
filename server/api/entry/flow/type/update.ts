@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/type/update:
  *   post:
  *     summary: 更新流水类型
- *     tags: ["Flow Type"]
+ *     tags: ["流水分类"]
  *     security:
  *       - Authorization: []
  *     requestBody:

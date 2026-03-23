@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/analytics/monthAnalysis:
  *   post:
  *     summary: 获取月度详细分析数据
- *     tags: ["Analytics"]
+ *     tags: ["统计分析"]
  *     security:
  *       - Authorization: []
  *     requestBody:

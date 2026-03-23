@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/toreceivable:
  *   post:
  *     summary: 将支出流水转换为待收款（借出记录）
- *     tags: ["Flow"]
+ *     tags: ["流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:

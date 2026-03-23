@@ -6,7 +6,7 @@ import type { Prisma } from "@prisma/client";
  * /api/entry/flow/condidate/patchcomfirm:
  *   post:
  *     summary: 批量确认候选平账记录
- *     tags: ["Candidate"]
+ *     tags: ["导入候选"]
  *     security:
  *       - Authorization: []
  *     requestBody:
@@ -14,7 +14,7 @@ import type { Prisma } from "@prisma/client";
  *       content:
  *         application/json:
  *           schema:
- *             items: { outId: number; inIds: number[] }[] 批量平账项
+ *             items: array 批量平账项，元素字段 outId(number)、inIds(number 数组)
  *     responses:
  *       200:
  *         description: 批量平账确认成功
@@ -22,15 +22,13 @@ import type { Prisma } from "@prisma/client";
  *           application/json:
  *             schema:
  *               Result:
- *                 d: { count: number } 成功处理的记录数（out+in 总数）
+ *                 d: object 含 count(number) 成功处理条数（out+in 总数）
  *       400:
  *         description: 确认失败
  *         content:
  *           application/json:
  *             schema:
- *               Error: {
- *                 message: 错误信息（"Invalid params"）
- *               }
+ *               message: string 错误信息，如 Invalid params
  */
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);

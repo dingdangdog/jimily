@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/analytics/daily:
  *   post:
  *     summary: 获取日常流水分析数据
- *     tags: ["Analytics"]
+ *     tags: ["统计分析"]
  *     security:
  *       - Authorization: []
  *     requestBody:

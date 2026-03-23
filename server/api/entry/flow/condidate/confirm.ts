@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/condidate/confirm:
  *   post:
  *     summary: 确认候选平账记录
- *     tags: ["Candidate"]
+ *     tags: ["导入候选"]
  *     security:
  *       - Authorization: []
  *     requestBody:

@@ -104,7 +104,6 @@ export default defineNuxtConfig({
   modules: [
     "@nuxtjs/tailwindcss",
     "nuxt-echarts",
-    "nuxt-openapi-docs-module",
     "@pinia/nuxt",
   ],
   // 动态引入echars图表

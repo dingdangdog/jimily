@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
  * /api/login:
  *   post:
  *     summary: 用户登录
- *     tags: ["Base"]
+ *     tags: ["基础"]
  *     requestBody:
  *       required: true
  *       content:

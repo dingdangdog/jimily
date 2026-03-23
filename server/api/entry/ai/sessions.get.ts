@@ -1,6 +1,6 @@
-import prisma from "~~/server/lib/prisma";
 import { getUserId } from "~~/server/utils/jwt";
 import { success, error } from "~~/server/utils/common";
+import { listUserChatSessions } from "~~/server/lib/ai/user-chat-service";
 
 /** GET /api/entry/ai/sessions - 获取当前用户的对话会话列表 */
 export default defineEventHandler(async (event) => {
@@ -9,16 +9,6 @@ export default defineEventHandler(async (event) => {
     return error("未授权或 token 无效");
   }
 
-  const sessions = await prisma.userChatSession.findMany({
-    where: { userId },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
-
+  const sessions = await listUserChatSessions(userId);
   return success(sessions);
 });

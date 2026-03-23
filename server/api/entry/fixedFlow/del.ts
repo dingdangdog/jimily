@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/fixedFlow/del:
  *   post:
  *     summary: 删除固定流水
- *     tags: ["Fixed Flow"]
+ *     tags: ["固定流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:

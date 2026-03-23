@@ -6,7 +6,7 @@ import { recalcFundAccountFromFlows } from "~~/server/utils/db";
  * /api/entry/flow/dels:
  *   post:
  *     summary: 批量删除流水记录
- *     tags: ["Flow"]
+ *     tags: ["流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:

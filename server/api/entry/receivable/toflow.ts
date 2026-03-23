@@ -7,7 +7,7 @@ import { recalcFundAccountFromFlows } from "~~/server/utils/db";
  * /api/entry/receivable/toflow:
  *   post:
  *     summary: 将待收款转换为收入流水
- *     tags: ["Receivable"]
+ *     tags: ["应收"]
  *     security:
  *       - Authorization: []
  *     requestBody:

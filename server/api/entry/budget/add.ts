@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/budget/add:
  *   post:
  *     summary: 添加预算
- *     tags: ["Budget"]
+ *     tags: ["预算"]
  *     security:
  *       - Authorization: []
  *     requestBody:

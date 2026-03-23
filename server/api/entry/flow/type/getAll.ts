@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/flow/type/getAll:
  *   post:
  *     summary: 获取所有流水类型
- *     tags: ["Flow Type"]
+ *     tags: ["流水分类"]
  *     security:
  *       - Authorization: []
  *     requestBody:

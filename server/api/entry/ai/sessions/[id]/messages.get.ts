@@ -1,6 +1,6 @@
-import prisma from "~~/server/lib/prisma";
 import { getUserId } from "~~/server/utils/jwt";
 import { success, error } from "~~/server/utils/common";
+import { listUserChatMessages } from "~~/server/lib/ai/user-chat-service";
 
 /** GET /api/entry/ai/sessions/:id/messages - 获取指定会话的消息列表 */
 export default defineEventHandler(async (event) => {
@@ -19,18 +19,10 @@ export default defineEventHandler(async (event) => {
     return error("无效的会话 ID");
   }
 
-  const session = await prisma.userChatSession.findFirst({
-    where: { id: sessionId, userId },
-  });
-  if (!session) {
+  const messages = await listUserChatMessages(userId, sessionId);
+  if (messages === null) {
     return error("会话不存在或无权访问");
   }
-
-  const messages = await prisma.userChatMessage.findMany({
-    where: { sessionId },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, role: true, content: true, createdAt: true },
-  });
 
   return success(messages);
 });

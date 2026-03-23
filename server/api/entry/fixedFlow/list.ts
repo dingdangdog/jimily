@@ -5,7 +5,7 @@ import prisma from "~~/server/lib/prisma";
  * /api/entry/fixedFlow/list:
  *   post:
  *     summary: 获取固定流水列表
- *     tags: ["Fixed Flow"]
+ *     tags: ["固定流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:

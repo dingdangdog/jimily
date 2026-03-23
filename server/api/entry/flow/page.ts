@@ -6,7 +6,7 @@ import { parseDateBoundary } from "~~/server/utils/db/flow";
  * /api/entry/flow/page:
  *   post:
  *     summary: 分页获取流水记录列表
- *     tags: ["Flow"]
+ *     tags: ["流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:

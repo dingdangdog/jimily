@@ -1,6 +1,6 @@
-// server/api/openapi.json.ts
+// GET /api/openapi.json — 合并后的 OpenAPI 规范（Scalar /api-docs、Postman 等依赖此地址，勿删）
 import swaggerJsdoc from "swagger-jsdoc";
-import options from "../../swagger.config"; // 导入你的 OpenAPI 配置
+import options from "../../swagger.config";
 
 let swaggerSpec: any;
 
@@ -9,7 +9,7 @@ let swaggerSpec: any;
  * /api/openapi.json:
  *   get:
  *     summary: 获取OpenAPI规范文档
- *     tags: ["Base"]
+ *     tags: ["基础"]
  *     responses:
  *       200:
  *         description: OpenAPI规范文档

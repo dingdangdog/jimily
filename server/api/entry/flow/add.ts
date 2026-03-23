@@ -10,7 +10,7 @@ import {
  * /api/entry/flow/add:
  *   post:
  *     summary: 添加流水记录
- *     tags: ["Flow"]
+ *     tags: ["流水"]
  *     security:
  *       - Authorization: []
  *     requestBody:
