@@ -129,7 +129,6 @@
     v-if="deleteInvoiceConfirmDialog"
     class="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
     style="z-index: 10000"
-    @click.self="cancelDeleteInvoice"
   >
     <div
       class="bg-surface text-foreground rounded-lg shadow-xl w-full max-w-md mx-auto border border-border"

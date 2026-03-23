@@ -319,8 +319,7 @@ const goBack = () => {
     </div>
 
     <!-- CSV 流水导入对话框（与账本日历一致） -->
-    <div v-if="showFlowExcelImportDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"
-      @click="closeCsvTableDialog">
+    <div v-if="showFlowExcelImportDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div
         class="bg-surface text-foreground rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col border border-border"
         @click.stop>

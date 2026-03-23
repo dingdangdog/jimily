@@ -225,8 +225,7 @@ const testSummaryLines = computed(() => {
 
     <!-- 测试令牌弹窗 -->
     <Teleport to="body">
-      <div v-if="testDialogOpen" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50"
-        @click.self="closeTestDialog">
+      <div v-if="testDialogOpen" class="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50">
         <div
           class="bg-surface text-foreground rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col border border-border"
           @click.stop>

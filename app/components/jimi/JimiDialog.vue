@@ -12,7 +12,6 @@ const close = () => {
   <div
     v-if="showJimiAssistant"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    @click.self="close"
   >
     <div
       class="flex h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-border bg-background shadow-xl"

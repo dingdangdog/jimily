@@ -264,7 +264,6 @@
   <div
     v-if="showFlowExcelImportDialog"
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-    @click.self="closeCsvTableDialog"
   >
     <div
       class="bg-surface text-foreground rounded-lg shadow-xl w-full max-w-7xl mx-auto max-h-[90vh] overflow-y-auto border border-border"

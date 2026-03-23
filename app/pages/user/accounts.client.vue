@@ -116,7 +116,6 @@
     <div
       v-if="dialogVisible"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      @click="dialogVisible = false"
     >
       <div class="bg-surface rounded-lg w-full max-w-md border border-border" @click.stop>
         <div class="px-4 py-3 border-b border-border font-semibold">

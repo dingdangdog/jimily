@@ -87,7 +87,6 @@ const close = () => {
   <div
     v-if="editInfoFlag"
     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-    @click="close"
   >
     <div
       class="bg-surface text-foreground rounded-lg shadow-xl w-full max-w-md border border-border transform transition-all"
