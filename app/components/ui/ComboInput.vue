@@ -123,7 +123,7 @@ function clearInput() {
       >
         <div
           v-for="(item, index) in filteredOptions"
-          :key="item"
+          :key="`${index}-${item}`"
           @mousedown.prevent="select(item)"
           :class="[
             'px-3 py-2 hover:bg-surface-muted cursor-pointer text-sm text-foreground',

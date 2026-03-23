@@ -16,7 +16,6 @@ import {
   EllipsisVerticalIcon,
 } from "@heroicons/vue/24/outline";
 import MarkdownIt from "markdown-it";
-import UiComboInput from "~/components/ui/ComboInput.vue";
 
 export interface ChatSession {
   id: number;
@@ -68,6 +67,11 @@ const md = new MarkdownIt({
 const aiProviders = ref<AIProviderOption[]>([]);
 const selectedProviderId = ref<string | null>(null);
 const selectedProviderName = ref("");
+
+const onSelectProvider = (e: Event) => {
+  const v = (e.target as HTMLSelectElement).value;
+  selectedProviderId.value = v || null;
+};
 
 /** 移动端双视图：list = 会话列表全屏，chat = 对话全屏 */
 const mobileView = ref<"list" | "chat">("list");
@@ -126,7 +130,6 @@ const loadProviders = async () => {
     const first = aiProviders.value[0];
     if (first && !selectedProviderId.value) {
       selectedProviderId.value = first.id;
-      selectedProviderName.value = first.name;
     }
   } catch {
     aiProviders.value = [];
@@ -345,8 +348,6 @@ const currentSessionTitle = computed(
     "Jimi 助手",
 );
 
-const providerOptions = computed(() => aiProviders.value.map((p) => p.name));
-
 const renderAssistantMarkdown = (content: string) => {
   return md.render(content || "");
 };
@@ -442,11 +443,6 @@ watch(selectedProviderId, (id) => {
   } else {
     selectedProviderName.value = "";
   }
-});
-
-watch(selectedProviderName, (name) => {
-  const p = aiProviders.value.find((x) => x.name === name);
-  selectedProviderId.value = p?.id ?? null;
 });
 
 watch(
@@ -566,8 +562,11 @@ watch(
         <div v-if="aiProviders.length > 0"
           class="flex flex-shrink-0 items-center gap-2 border-b border-border bg-surface-muted/50 px-3 py-2">
           <span class="text-xs text-foreground/60">当前模型</span>
-          <UiComboInput v-model="selectedProviderName" placeholder="选择模型" :options="providerOptions"
-            class="flex-1 min-w-0" />
+          <select :value="selectedProviderId ?? ''" class="flex-1 min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-[15px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/50" aria-label="选择模型" @change="onSelectProvider">
+            <option v-for="p in aiProviders" :key="p.id" :value="p.id">
+              {{ p.name }}
+            </option>
+          </select>
         </div>
         <div ref="mobileChatScrollRef"
           class="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 touch-pan-y select-text">
@@ -725,7 +724,11 @@ watch(
           class="flex flex-shrink-0 items-center gap-3 border-b border-border bg-surface-muted/50 px-4 py-2">
           <span class="text-sm text-foreground/70">当前模型</span>
           <div class="w-48">
-            <UiComboInput v-model="selectedProviderName" placeholder="选择模型" :options="providerOptions" />
+            <select :value="selectedProviderId ?? ''" class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/50" aria-label="选择模型" @change="onSelectProvider">
+              <option v-for="p in aiProviders" :key="p.id" :value="p.id">
+                {{ p.name }}
+              </option>
+            </select>
           </div>
         </div>
         <div v-if="showSessionList && isMobile"
