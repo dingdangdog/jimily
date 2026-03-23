@@ -317,6 +317,8 @@ model UserChatMessage {
   sessionId Int /// 会话 ID
   role      String   @db.VarChar(20) /// 角色：user / assistant / system
   content   String   @db.Text /// 消息内容
+  /// 助手消息扩展（如本次记账流水摘要，供前端「查看详情」等）
+  meta      Json?
   createdAt DateTime @default(now()) /// 创建时间
 
   @@index([sessionId])

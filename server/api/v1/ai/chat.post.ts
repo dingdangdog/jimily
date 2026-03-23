@@ -95,6 +95,9 @@ export default defineEventHandler(async (event) => {
       persisted.kind === "ok" ? persisted.content : persisted.failContent,
     conversationId: persisted.sessionId,
     conversation: persisted.session,
+    ...(persisted.kind === "ok" && persisted.assistantMeta
+      ? { assistantMeta: persisted.assistantMeta }
+      : {}),
   };
 
   if (persisted.kind === "ok") {

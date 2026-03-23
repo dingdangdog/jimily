@@ -17,11 +17,12 @@ const SYSTEM_PROMPT = `${JIMI_IDENTITY_BLOCK}
 
 执行原则：
 1) 能用工具就用工具，避免空泛聊天；
-2) 回复必须基于工具结果，不编造；本系统已不记录「支付方式」字段，不要在回复中提及或推测支付方式；
+2) 回复必须基于工具结果，不编造；系统不单独存储「支付方式」字符串字段，但用户说的微信、支付宝、某银行卡等必须映射到「资金账户」（工具参数 channelHint / accountId / accountName），用于归属到哪张「钱包」；不要说「系统不支持记录支付方式」而拒绝处理账户归属。
 3) 信息不足时，先问清关键参数（金额、收支方向、日期、分类、账户等）；
 4) 记账时的行业分类 industryType：根据用户描述具体推断，优先使用常见中文分类名。公交/地铁/打车/停车/加油/过路费/共享单车等→「交通」；早餐/午餐/晚餐/外卖/奶茶/咖啡/聚餐等→「餐饮」；超市/买菜/日用品等→「购物」；房租/水电/物业/宽带→「居住」；电影/游戏/会员/演出→「娱乐」；药/医院/挂号→「医疗」；学费/培训/书籍→「教育」；工资/奖金/报销→「工资」或「收入」等明确收入项。只有无法归类时才用「其他」，不要把交通类记成「其他」。
 5) 金额理解：如「早晚各一次各 2 元」「来回各 5 块」等，先正确计算合计金额（次数×单价）再记账；若一句内多笔同类支出，用户未要求拆分时，可合并为一条流水，name 中简要说明（如「早晚公交」）。
-6) 资金账户：用户未说明账户时，按工具规则使用默认现金账户即可，回复中可说明记入的账户名称（来自工具结果），不要杜撰支付方式。`;
+6) 资金账户：用户未说明账户时，按工具规则使用默认现金账户即可；用户补充「用支付宝/微信付的」时，应使用 update_flow 或 add_flow 的 channelHint 将流水归属到对应资金账户。
+7) 用户纠正上一笔记账（改账户、改金额、改分类）时，使用 update_flow，并结合最近对话理解「刚才那笔」指哪一条。`;
 
 export interface ChatAgentOptions {
   userId: number;
@@ -35,6 +36,8 @@ export interface ChatAgentResult {
   content: string;
   toolCalls?: Array<{ name: string; args: Record<string, unknown> }>;
   strategy?: "tool_calls" | "json";
+  /** 写入助手消息 meta，供前端展示「查看记账详情」等 */
+  assistantMeta?: Record<string, unknown> | null;
 }
 
 const TOOL_CALLS_UNSUPPORTED_PROVIDERS = new Set<string>();
@@ -203,6 +206,7 @@ async function runWithToolCalls(opts: {
     name: string;
     args: Record<string, unknown>;
   }> = [];
+  let assistantMeta: Record<string, unknown> | null = null;
 
   let round = 0;
   let lastContent = "";
@@ -266,6 +270,10 @@ async function runWithToolCalls(opts: {
         detail: { round: round + 1, toolName: name, toolArgs: normalizedArgs },
       });
       const output = await executeTool(name, normalizedArgs, { userId });
+      const metaFromTool = buildAssistantMetaFromToolOutput(name, output);
+      if (metaFromTool) {
+        assistantMeta = metaFromTool;
+      }
       logAIExecution({
         event: "tool_execute",
         userId,
@@ -306,6 +314,7 @@ async function runWithToolCalls(opts: {
     content: lastContent,
     strategy: "tool_calls",
     toolCalls: executedToolCalls,
+    assistantMeta: assistantMeta ?? undefined,
   };
 }
 
@@ -329,11 +338,18 @@ const ROUTER_SYSTEM_PROMPT = `你是 Jimi 记账助手的「意图路由器」�
 4) 能调用工具就不要返回 none；
 5) 参数尽量结构化，数字字段必须是 number。
 
-add_flow 专用（行业分类字段为 industryType，勿与支付方式混淆；系统无支付方式字段，reply 中禁止出现支付方式）：
+add_flow 专用：
 - 金额：正确解析「各 N 元」「每人 N 元」「来回各 N」等，先算总支出/总收入再填入 money；同类多笔且用户未要求拆开时，合并一条，name 写清（如「早晚公交」）。
 - industryType：公交/地铁/打车/共享单车/停车/加油等→「交通」；外卖/三餐/咖啡奶茶→「餐饮」；超市买菜→「购物」；房租水电→「居住」；娱乐会员→「娱乐」；医疗→「医疗」；教育培训→「教育」。仅在无法判断时用「其他」，不要把公交地铁归为「其他」。
 - flowType：花费为「支出」，进账为「收入」。
+- 用户提到支付宝、微信、某银行卡等：填入 channelHint 或从资金账户列表选 accountId，用于归属资金账户（不是「支付方式」字段，但必须映射到账户）。
 - accountId：仅从提供的资金账户列表匹配；用户未提账户时不要编造，交给工具默认现金逻辑（args 可不填 accountId）。
+
+update_flow 专用（纠正/补充上一笔或最近一笔流水）：
+- 用户说「其实是支付宝付的」「改一下刚才那笔」「米线那笔账户不对」「金额改成 20」等 → 必须路由到 update_flow。
+- 定位：优先 flowId；否则用 name 填条目关键字（如「米线」以匹配「淘宝六盒米线」）；若用户刚记过一笔，结合最近对话提取关键字。
+- 改账户：channelHint 填「支付宝」「微信」等，或填 accountId。
+- reply 中说明已改字段即可，不要声称「无法记录支付方式」。
 
 非记账闲聊：action.name 用 "none"，reply 一两句温和回应并引导用户说出记账需求，不要长篇回答。`;
 
@@ -348,6 +364,7 @@ type JsonPlan = {
 
 const JSON_SUPPORTED_ACTIONS = new Set([
   "add_flow",
+  "update_flow",
   "query_flows",
   "query_flow_extremes",
   "get_statistics",
@@ -430,10 +447,15 @@ async function runWithJsonPlan(opts: {
       toolOutput,
       hintReply: parsed.reply,
     });
+    const assistantMeta = buildAssistantMetaFromToolOutput(
+      finalToolName,
+      toolOutput,
+    );
     return {
       content: finalText,
       toolCalls: [{ name: finalToolName, args: finalArgs }],
       strategy: "json",
+      assistantMeta: assistantMeta ?? undefined,
     };
   }
 
@@ -444,7 +466,7 @@ async function runWithJsonPlan(opts: {
   if (!reply) {
     throw new Error("json 方案缺少可用 reply");
   }
-  return { content: reply, strategy: "json" };
+  return { content: reply, strategy: "json", assistantMeta: undefined };
 }
 
 async function routeUserIntent(opts: {
@@ -513,6 +535,14 @@ function routeByRules(text: string): JsonPlan | null {
   if (/(记账|记一笔|新增支出|新增收入|花了|收入了|买了)/.test(t)) {
     return { action: { name: "add_flow", args: {} }, confidence: 0.6 };
   }
+  if (
+    /(其实是|改成|换成|纠正|改一下|修改|记错|不对|少记|多记|支付宝|微信支付|支付|付的)/.test(
+      t,
+    ) &&
+    /(刚才|上一笔|那笔|这条|米线|流水|账户|金额|外卖|淘宝|块|元)/.test(t)
+  ) {
+    return { action: { name: "update_flow", args: {} }, confidence: 0.58 };
+  }
   return null;
 }
 
@@ -564,6 +594,67 @@ function parseJsonPlan(raw: string): JsonPlan {
   }
 }
 
+function flowDayToYmd(day: unknown): string {
+  if (day instanceof Date && !Number.isNaN(day.getTime())) {
+    return formatDate(day);
+  }
+  if (typeof day === "string") {
+    const s = day.trim();
+    return s.length >= 10 ? s.slice(0, 10) : s;
+  }
+  return "";
+}
+
+/** 从 add_flow / update_flow 工具 JSON 结果生成前端可用的 meta */
+function buildAssistantMetaFromToolOutput(
+  toolName: string,
+  toolOutput: string,
+): Record<string, unknown> | null {
+  if (toolName !== "add_flow" && toolName !== "update_flow") {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(toolOutput) as {
+      success?: boolean;
+      flow?: {
+        id: number;
+        flowNo?: string | null;
+        day?: unknown;
+        flowType?: string | null;
+        industryType?: string | null;
+        money?: number | null;
+        name?: string | null;
+        description?: string | null;
+        origin?: string | null;
+      };
+      matchedFundAccount?: { id: number; name: string } | null;
+    };
+    if (!parsed.success || !parsed.flow) {
+      return null;
+    }
+    const f = parsed.flow;
+    return {
+      flowBookkeeping: {
+        action: toolName === "update_flow" ? "update" : "create",
+        flow: {
+          id: f.id,
+          flowNo: f.flowNo ?? null,
+          day: flowDayToYmd(f.day),
+          flowType: f.flowType ?? null,
+          industryType: f.industryType ?? null,
+          money: f.money ?? null,
+          name: f.name ?? null,
+          description: f.description ?? null,
+          origin: f.origin ?? null,
+        },
+        matchedFundAccount: parsed.matchedFundAccount ?? null,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function summarizeToolResult(opts: {
   client: NonNullable<Awaited<ReturnType<typeof getAIClient>>>;
   config: NonNullable<Awaited<ReturnType<typeof getAIProviderConfig>>>;
@@ -585,7 +676,7 @@ async function summarizeToolResult(opts: {
         {
           role: "system",
           content:
-            "你是 Jimi（记账助手）。请根据工具返回的 JSON 给用户写一段简短、温柔、口语化的中文回复。必须严格依据工具结果，不编造数据。不要提及「支付方式」（系统无此字段）。优先说明成功与否、金额、分类（industryType）、条目名称、资金账户（如有 matchedFundAccount 或 flow 关联信息）。非记账类请求若未调用工具，可温和简短回应并引导回记账。避免冗长寒暄。",
+            "你是 Jimi（记账助手）。请根据工具返回的 JSON 给用户写一段简短、温柔、口语化的中文回复。必须严格依据工具结果，不编造数据。用户说的支付宝/微信等对应「资金账户」归属，已在工具结果 matchedFundAccount 中体现，可直接说明记入哪个账户；不要说系统无法记录支付方式。优先说明成功与否、金额、分类（industryType）、条目名称、资金账户。非记账类请求若未调用工具，可温和简短回应并引导回记账。避免冗长寒暄。",
         },
         {
           role: "user",
@@ -621,6 +712,15 @@ async function summarizeToolResult(opts: {
       const catPart = cat ? `，分类「${cat}」` : "";
       const acctPart = acct ? `，账户「${acct}」` : "";
       return `${base}${catPart}${acctPart}。`;
+    }
+    if (toolName === "update_flow" && parsed.success) {
+      const acct = (
+        parsed as { matchedFundAccount?: { name?: string } }
+      ).matchedFundAccount?.name;
+      const amt = Math.abs(Number(parsed.flow?.money ?? 0));
+      const base = `已更新：${parsed.flow?.name || "流水"} ${amt} 元`;
+      const acctPart = acct ? `，当前归属账户「${acct}」` : "";
+      return `${base}${acctPart}。`;
     }
     if (toolName === "query_flows") {
       return `查询完成，共 ${parsed.total ?? 0} 条。`;
@@ -749,7 +849,7 @@ function buildRecentConversationContext(
 
 function isLikelyToolIntent(text: string): boolean {
   if (!text) return false;
-  return /(记账|记一笔|新增|添加|查|查询|统计|分析|偏好|总支出|总收入|花了多少|最高|最低|明细|流水|预算|账户|余额|负债|应收|投资|固定流水)/.test(
+  return /(记账|记一笔|新增|添加|查|查询|统计|分析|偏好|总支出|总收入|花了多少|最高|最低|明细|流水|预算|账户|余额|负债|应收|投资|固定流水|纠正|修改|改一下|其实是|换成|刚才那笔|上一笔)/.test(
     text,
   );
 }
@@ -813,7 +913,7 @@ function applyTemporalHints(
   if (!text) return args;
   const next = { ...args };
 
-  if (toolName === "add_flow") {
+  if (toolName === "add_flow" || toolName === "update_flow") {
     if (/(今天|今日)/.test(text)) next.day = formatDate(now);
     if (/(昨天|昨日)/.test(text)) next.day = formatDate(addDays(now, -1));
   }

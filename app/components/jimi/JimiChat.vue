@@ -14,6 +14,7 @@ import {
   ArrowPathIcon,
   DocumentTextIcon,
   EllipsisVerticalIcon,
+  EyeIcon,
 } from "@heroicons/vue/24/outline";
 import MarkdownIt from "markdown-it";
 
@@ -24,11 +25,29 @@ export interface ChatSession {
   updatedAt: string;
 }
 
+/** 助手消息 meta 中的记账摘要（与后端 assistantMeta.flowBookkeeping 一致） */
+export interface JimiFlowBookkeepingMeta {
+  action: string;
+  flow: {
+    id: number;
+    flowNo: string | null;
+    day: string;
+    flowType: string | null;
+    industryType: string | null;
+    money: number | null;
+    name: string | null;
+    description: string | null;
+    origin: string | null;
+  };
+  matchedFundAccount: { id: number; name: string } | null;
+}
+
 export interface ChatMessage {
   id: number;
   role: string;
   content: string;
   createdAt: string;
+  meta?: Record<string, unknown> | null;
 }
 
 export interface AIProviderOption {
@@ -267,6 +286,7 @@ const sendMessage = async () => {
     const res = await doApi.post<{
       content: string;
       sessionId: number;
+      assistantMeta?: Record<string, unknown> | null;
     }>("api/entry/ai/chat", {
       sessionId: currentSessionId.value ?? undefined,
       content: text,
@@ -313,6 +333,7 @@ const retryWithMessage = async (content: string) => {
     const res = await doApi.post<{
       content: string;
       sessionId: number;
+      assistantMeta?: Record<string, unknown> | null;
     }>("api/entry/ai/chat", {
       sessionId: currentSessionId.value ?? undefined,
       content: text,
@@ -350,6 +371,59 @@ const currentSessionTitle = computed(
 
 const renderAssistantMarkdown = (content: string) => {
   return md.render(content || "");
+};
+
+const bookkeepingDetail = ref<JimiFlowBookkeepingMeta | null>(null);
+
+function getFlowBookkeepingFromMeta(
+  meta: Record<string, unknown> | null | undefined,
+): JimiFlowBookkeepingMeta | null {
+  if (!meta || typeof meta !== "object") return null;
+  const raw = meta.flowBookkeeping;
+  if (!raw || typeof raw !== "object") return null;
+  const wrap = raw as Record<string, unknown>;
+  const flowRaw = wrap.flow;
+  if (!flowRaw || typeof flowRaw !== "object") return null;
+  const f = flowRaw as Record<string, unknown>;
+  const id = Number(f.id);
+  if (!Number.isFinite(id)) return null;
+  const acctRaw = wrap.matchedFundAccount;
+  let matchedFundAccount: { id: number; name: string } | null = null;
+  if (acctRaw && typeof acctRaw === "object") {
+    const a = acctRaw as Record<string, unknown>;
+    const aid = Number(a.id);
+    const aname = a.name != null ? String(a.name) : "";
+    if (Number.isFinite(aid) && aname) {
+      matchedFundAccount = { id: aid, name: aname };
+    }
+  }
+  return {
+    action: String(wrap.action ?? "create"),
+    flow: {
+      id,
+      flowNo: f.flowNo != null ? String(f.flowNo) : null,
+      day: f.day != null ? String(f.day).slice(0, 10) : "",
+      flowType: f.flowType != null ? String(f.flowType) : null,
+      industryType: f.industryType != null ? String(f.industryType) : null,
+      money: f.money != null ? Number(f.money) : null,
+      name: f.name != null ? String(f.name) : null,
+      description: f.description != null ? String(f.description) : null,
+      origin: f.origin != null ? String(f.origin) : null,
+    },
+    matchedFundAccount,
+  };
+}
+
+const openBookkeepingDetail = (payload: JimiFlowBookkeepingMeta) => {
+  bookkeepingDetail.value = payload;
+};
+const closeBookkeepingDetail = () => {
+  bookkeepingDetail.value = null;
+};
+
+const formatMoney = (n: number | null | undefined) => {
+  if (n == null || Number.isNaN(Number(n))) return "—";
+  return `${Math.abs(Number(n)).toFixed(2)} 元`;
 };
 
 const buildChatMarkdown = () => {
@@ -456,6 +530,105 @@ watch(
 
 <template>
   <div class="flex h-full min-h-0 bg-background text-foreground">
+    <Teleport to="body">
+      <div
+        v-if="bookkeepingDetail"
+        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="jimi-bookkeeping-detail-title"
+        @click.self="closeBookkeepingDetail"
+      >
+        <div
+          class="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-surface p-4 text-foreground shadow-xl"
+          @click.stop
+        >
+          <div class="mb-3 flex items-center justify-between border-b border-border pb-2">
+            <h3 id="jimi-bookkeeping-detail-title" class="text-base font-semibold">
+              记账详情
+            </h3>
+            <button
+              type="button"
+              class="rounded-full p-1.5 text-foreground/60 hover:bg-surface-muted hover:text-foreground"
+              aria-label="关闭"
+              @click="closeBookkeepingDetail"
+            >
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+          <dl class="space-y-2.5 text-sm">
+            <div class="flex justify-between gap-3">
+              <dt class="shrink-0 text-foreground/55">条目</dt>
+              <dd class="text-right font-medium">
+                {{ bookkeepingDetail.flow.name || "—" }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="shrink-0 text-foreground/55">金额</dt>
+              <dd class="text-right font-medium">
+                {{ formatMoney(bookkeepingDetail.flow.money) }}
+                <span
+                  v-if="bookkeepingDetail.flow.flowType"
+                  class="text-foreground/60"
+                >
+                  （{{ bookkeepingDetail.flow.flowType }}）</span>
+              </dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="shrink-0 text-foreground/55">分类</dt>
+              <dd class="text-right">
+                {{ bookkeepingDetail.flow.industryType || "—" }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="shrink-0 text-foreground/55">日期</dt>
+              <dd class="text-right">
+                {{ bookkeepingDetail.flow.day || "—" }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="shrink-0 text-foreground/55">资金账户</dt>
+              <dd class="text-right">
+                {{
+                  bookkeepingDetail.matchedFundAccount?.name || "—"
+                }}
+              </dd>
+            </div>
+            <div
+              v-if="bookkeepingDetail.flow.description"
+              class="flex justify-between gap-3"
+            >
+              <dt class="shrink-0 text-foreground/55">备注</dt>
+              <dd class="text-right">
+                {{ bookkeepingDetail.flow.description }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="shrink-0 text-foreground/55">流水号</dt>
+              <dd class="break-all text-right text-xs text-foreground/70">
+                {{ bookkeepingDetail.flow.flowNo || `ID ${bookkeepingDetail.flow.id}` }}
+              </dd>
+            </div>
+            <div
+              v-if="bookkeepingDetail.flow.origin"
+              class="flex justify-between gap-3"
+            >
+              <dt class="shrink-0 text-foreground/55">来源</dt>
+              <dd class="text-right text-foreground/80">
+                {{ bookkeepingDetail.flow.origin }}
+              </dd>
+            </div>
+          </dl>
+          <p class="mt-4 text-xs text-foreground/50">
+            {{
+              bookkeepingDetail.action === "update"
+                ? "以上为更新后的流水信息。"
+                : "本次通过助手新记的流水。"
+            }}
+          </p>
+        </div>
+      </div>
+    </Teleport>
     <!-- ========== 移动端：全屏双视图（先列表 or 对话） ========== -->
     <template v-if="isMobile && showSessionList">
       <!-- 视图：会话列表（类似微信对话列表） -->
@@ -587,8 +760,29 @@ watch(
                     ? 'group rounded-br-md bg-primary-500 text-white'
                     : 'rounded-bl-md bg-surface-muted text-foreground'
                     ">
-                    <div v-if="msg.role === 'assistant'" class="jimi-markdown break-words"
-                      v-html="renderAssistantMarkdown(msg.content)" />
+                    <template v-if="msg.role === 'assistant'">
+                      <div
+                        class="jimi-markdown break-words"
+                        v-html="renderAssistantMarkdown(msg.content)"
+                      />
+                      <div
+                        v-if="getFlowBookkeepingFromMeta(msg.meta)"
+                        class="mt-2 flex border-t border-border/50 pt-2"
+                      >
+                        <button
+                          type="button"
+                          class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-500/10 active:opacity-90"
+                          @click.stop="
+                            openBookkeepingDetail(
+                              getFlowBookkeepingFromMeta(msg.meta)!,
+                            )
+                          "
+                        >
+                          <EyeIcon class="h-3.5 w-3.5" />
+                          查看详情
+                        </button>
+                      </div>
+                    </template>
                     <template v-else>
                       <div class="whitespace-pre-wrap break-words">
                         {{ msg.content }}
@@ -759,8 +953,29 @@ watch(
                 ? 'group bg-primary-500 text-white'
                 : 'bg-surface-muted text-foreground'
                 ">
-                <div v-if="msg.role === 'assistant'" class="jimi-markdown break-words"
-                  v-html="renderAssistantMarkdown(msg.content)" />
+                <template v-if="msg.role === 'assistant'">
+                  <div
+                    class="jimi-markdown break-words"
+                    v-html="renderAssistantMarkdown(msg.content)"
+                  />
+                  <div
+                    v-if="getFlowBookkeepingFromMeta(msg.meta)"
+                    class="mt-2 flex border-t border-border/50 pt-2"
+                  >
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-500/10 active:opacity-90"
+                      @click.stop="
+                        openBookkeepingDetail(
+                          getFlowBookkeepingFromMeta(msg.meta)!,
+                        )
+                      "
+                    >
+                      <EyeIcon class="h-3.5 w-3.5" />
+                      查看详情
+                    </button>
+                  </div>
+                </template>
                 <template v-else>
                   <div class="whitespace-pre-wrap break-words">
                     {{ msg.content }}

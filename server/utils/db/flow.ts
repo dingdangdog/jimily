@@ -312,6 +312,175 @@ export async function createFlowByAI(
   };
 }
 
+/**
+ * 按 id 或名称关键字定位最近流水并部分更新（供 AI 纠正「刚才那笔」等场景）
+ */
+export async function updateFlowByAI(
+  args: Record<string, unknown>,
+  ctx: AIToolContext,
+): Promise<{
+  success: boolean;
+  message: string;
+  flow?: Flow;
+  matchedFundAccount?: { id: number; name: string } | null;
+}> {
+  const flowIdArg =
+    args.flowId !== undefined && args.flowId !== null
+      ? Number(args.flowId)
+      : NaN;
+  const nameHint = String(args.name ?? args.nameSearch ?? "").trim();
+  const moneyHint =
+    args.money !== undefined && args.money !== null
+      ? Number(args.money)
+      : null;
+
+  let target: Flow | null = null;
+  if (Number.isFinite(flowIdArg)) {
+    const row = await prisma.flow.findFirst({
+      where: { id: flowIdArg, userId: ctx.userId },
+    });
+    target = row;
+  }
+  if (!target && nameHint) {
+    const candidates = await prisma.flow.findMany({
+      where: {
+        userId: ctx.userId,
+        name: { contains: nameHint, mode: "insensitive" },
+      },
+      orderBy: { id: "desc" },
+      take: 15,
+    });
+    let list = candidates;
+    if (
+      moneyHint != null &&
+      Number.isFinite(moneyHint) &&
+      list.length > 1
+    ) {
+      const abs = Math.abs(moneyHint);
+      const narrowed = list.filter(
+        (f) => f.money != null && Math.abs(Number(f.money) - abs) < 0.015,
+      );
+      if (narrowed.length === 1) {
+        list = narrowed;
+      }
+    }
+    if (list.length === 1) {
+      target = list[0]!;
+    } else if (list.length === 0) {
+      return {
+        success: false,
+        message: `未找到名称包含「${nameHint}」的流水，请说得更具体一点或先查询流水。`,
+      };
+    } else {
+      return {
+        success: false,
+        message: `找到多笔名称相近的流水（${list.length} 条），请补充金额、日期或说「流水 id 为 xxx」以便唯一定位。`,
+      };
+    }
+  }
+  if (!target) {
+    return {
+      success: false,
+      message:
+        "请说明要改哪一笔：可提供流水 id（flowId），或用名称关键字（name）指代最近记的那一笔。",
+    };
+  }
+
+  const data: Prisma.FlowUpdateInput = {};
+  if (args.flowType != null && String(args.flowType).trim()) {
+    data.flowType = String(args.flowType).trim();
+  }
+  if (args.industryType != null && String(args.industryType).trim()) {
+    data.industryType = String(args.industryType).trim();
+  }
+  if (args.name != null && String(args.name).trim()) {
+    data.name = String(args.name).trim();
+  }
+  if (args.description !== undefined) {
+    data.description = args.description
+      ? String(args.description)
+      : null;
+  }
+  if (args.attribution !== undefined) {
+    data.attribution = args.attribution
+      ? String(args.attribution)
+      : null;
+  }
+  if (args.day != null && String(args.day).trim()) {
+    data.day = new Date(String(args.day).trim());
+  }
+  if (args.money !== undefined && args.money !== null) {
+    const m = Number(args.money);
+    if (!Number.isNaN(m)) {
+      data.money = m;
+    }
+  }
+
+  const accountIdArg =
+    args.accountId !== undefined && args.accountId !== null
+      ? Number(args.accountId)
+      : null;
+  const accountNameArg = args.accountName
+    ? String(args.accountName).trim()
+    : "";
+  const channelHint = String(args.channelHint ?? "").trim();
+
+  let matchedAccount: Awaited<
+    ReturnType<typeof resolveFundAccountByChannelText>
+  > | null = null;
+  if (accountIdArg != null && Number.isFinite(accountIdArg)) {
+    const accountById = await getFundAccountById(accountIdArg);
+    if (
+      accountById &&
+      accountById.userId === ctx.userId &&
+      accountById.status !== -1
+    ) {
+      matchedAccount = accountById;
+    }
+  }
+  if (!matchedAccount && accountNameArg) {
+    const accountByName = await getFundAccountByName(
+      ctx.userId,
+      accountNameArg,
+    );
+    if (accountByName && accountByName.status !== -1) {
+      matchedAccount = accountByName;
+    }
+  }
+  if (!matchedAccount && channelHint) {
+    matchedAccount = await resolveFundAccountByChannelText(
+      ctx.userId,
+      channelHint,
+    );
+  }
+  if (matchedAccount) {
+    data.accountId = matchedAccount.id;
+  }
+
+  if (Object.keys(data).length === 0) {
+    return {
+      success: false,
+      message: "没有需要更新的字段。可修改：资金账户（如支付宝）、金额、名称、分类、日期等。",
+    };
+  }
+
+  const updated = await updateFlow(target.id, data);
+  const acct =
+    matchedAccount ??
+    (updated.accountId != null
+      ? await getFundAccountById(updated.accountId)
+      : null);
+
+  return {
+    success: true,
+    message: "流水已更新",
+    flow: updated,
+    matchedFundAccount: acct
+      ? { id: acct.id, name: acct.name }
+      : null,
+  };
+}
+
 export async function queryFlowsByAI(
   args: Record<string, unknown>,
   ctx: AIToolContext,

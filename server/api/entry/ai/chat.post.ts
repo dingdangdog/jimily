@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
       return success({
         content: persisted.content,
         sessionId: persisted.sessionId,
+        assistantMeta: persisted.assistantMeta ?? undefined,
       });
     }
     return error(persisted.reason, {

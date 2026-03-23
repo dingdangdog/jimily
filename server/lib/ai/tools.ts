@@ -8,6 +8,7 @@ import {
   addFixedFlowByAI,
   batchAddFundAccountsByAI,
   createFlowByAI,
+  updateFlowByAI,
   queryBudgetsByAI,
   getFlowStatisticsByAI,
   analyzeConsumptionPreferencesByAI,
@@ -77,6 +78,51 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
           },
         },
         required: ["flowType", "industryType", "money", "name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_flow",
+      description:
+        "修改已存在的一条流水。用户说「改一下刚才那笔」「其实是支付宝付的」「金额不对」「米线那笔改成支付宝」等纠正/补充意图时使用。可通过 flowId 或名称关键字 name 定位最近匹配的一条。",
+      parameters: {
+        type: "object",
+        properties: {
+          flowId: {
+            type: "number",
+            description: "流水 id，若已知则优先使用",
+          },
+          name: {
+            type: "string",
+            description:
+              "名称关键字，用于在多条中定位（如「米线」对应「淘宝六盒米线」）；与 flowId 二选一，至少填其一",
+          },
+          nameSearch: {
+            type: "string",
+            description: "与 name 同义，任选其一",
+          },
+          money: { type: "number", description: "修正后的金额（可选）" },
+          flowType: {
+            type: "string",
+            enum: ["收入", "支出", "不计收支"],
+            description: "流水类型（可选）",
+          },
+          industryType: { type: "string", description: "分类（可选）" },
+          day: { type: "string", description: "日期 YYYY-MM-DD（可选）" },
+          description: { type: "string", description: "备注（可选）" },
+          channelHint: {
+            type: "string",
+            description:
+              "用于匹配资金账户的渠道词（如支付宝、微信）；用户说「用支付宝付的」时填入以更换归属账户",
+          },
+          accountId: { type: "number", description: "资金账户 ID（可选）" },
+          accountName: {
+            type: "string",
+            description: "资金账户名称（可选）",
+          },
+        },
       },
     },
   },
@@ -599,6 +645,8 @@ export async function executeTool(
   switch (name) {
     case "add_flow":
       return JSON.stringify(await createFlowByAI(args, ctx));
+    case "update_flow":
+      return JSON.stringify(await updateFlowByAI(args, ctx));
     case "query_flows":
       return JSON.stringify(await queryFlowsByAI(args, ctx));
     case "query_flow_extremes":

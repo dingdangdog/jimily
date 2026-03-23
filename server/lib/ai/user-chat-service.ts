@@ -105,7 +105,7 @@ export async function listUserChatMessages(
   const messages = await prisma.userChatMessage.findMany({
     where: { sessionId },
     orderBy: { createdAt: "asc" },
-    select: { id: true, role: true, content: true, createdAt: true },
+    select: { id: true, role: true, content: true, meta: true, createdAt: true },
   });
   return messages;
 }
@@ -116,6 +116,7 @@ export type PersistedChatResult =
       content: string;
       sessionId: number;
       session: UserChatSessionMeta;
+      assistantMeta: Record<string, unknown> | null;
     }
   | {
       kind: "error";
@@ -203,6 +204,9 @@ export async function runPersistedUserChat(params: {
         sessionId: session.id,
         role: "assistant",
         content: result.content,
+        ...(result.assistantMeta != null
+          ? { meta: result.assistantMeta as object }
+          : {}),
       },
     });
 
@@ -211,6 +215,7 @@ export async function runPersistedUserChat(params: {
       content: result.content,
       sessionId: session.id,
       session: await sessionMeta(),
+      assistantMeta: result.assistantMeta ?? null,
     };
   } catch (e) {
     const reason = explainAIError(e);
