@@ -5,7 +5,7 @@ WORKDIR /app
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --registry=https://registry.npmmirror.com
 
 COPY . .
 RUN pnpm build
@@ -28,7 +28,7 @@ COPY ./prisma.config.ts ./prisma.config.ts
 ENV DATABASE_URL="postgresql://postgres:123456@localhost:5432/cashbook5?schema=public"
 
 ENV NODE_ENV="production"
-ENV NUXT_APP_VERSION="5.0.1"
+ENV NUXT_APP_VERSION="5.1.0"
 ENV NUXT_DATA_PATH="/app/data"
 ENV NUXT_AUTH_SECRET="auth123"
 

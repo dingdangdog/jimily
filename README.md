@@ -22,9 +22,9 @@
 - QQ交流群：`564081656`
 
 ```dockerfile
-docker build -t jimily:5.0.1 .
-docker save -o jimily.5.0.1.tar jimily:5.0.1
-docker load -i jimily.5.0.1.tar
+docker build -t jimily:5.1.0 .
+docker save -o jimily.5.1.0.tar jimily:5.1.0
+docker load -i jimily.5.1.0.tar
 ```
 
 ## 简述（Description）
