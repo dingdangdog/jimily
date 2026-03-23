@@ -10,13 +10,18 @@ import prisma from "~~/server/lib/prisma";
  *       - Authorization: []
  *     responses:
  *       200:
- *         description: 流水记录列表获取成功
+ *         description: 流水记录列表获取成功，d 为 FlowWithAccount 数组
  *         content:
  *           application/json:
  *             schema:
- *               Result: {
- *                 d: [] #[Flow流水记录数组]
- *               }
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     d:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/FlowWithAccount'
  */
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);

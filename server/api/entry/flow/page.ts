@@ -14,33 +14,25 @@ import { parseDateBoundary } from "~~/server/utils/db/flow";
  *       content:
  *         application/json:
  *           schema:
- *             id: number 流水ID（可选）
- *             flowType: string 流水类型（可选）
- *             industryType: string 行业分类（可选）
- *             accountUnassigned: boolean 仅未关联资金账户的流水（可选）
- *             startDay: string 开始日期（可选）
- *             endDay: string 结束日期（可选）
- *             name: string 流水名称（可选，支持模糊查询）
- *             attribution: string 归属（可选，支持模糊查询）
- *             description: string 描述（可选，支持模糊查询）
- *             pageNum: number 页码（默认为1）
- *             pageSize: number 每页大小（默认为15，-1表示查询全部）
- *             moneySort: string 金额排序（asc/desc）
- *             minMoney: number 最小金额（可选）
- *             maxMoney: number 最大金额（可选）
+ *             $ref: '#/components/schemas/FlowPageFilter'
  *     responses:
  *       200:
- *         description: 分页数据获取成功
+ *         description: 分页数据获取成功，d 为 FlowPagePayload
  *         content:
  *           application/json:
  *             schema:
- *               Result:
- *                 d: PagePack<Flow> 流水分页数据
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     d:
+ *                       $ref: '#/components/schemas/FlowPagePayload'
  *       400:
  *         description: 获取失败
  *         content:
  *           application/json:
  *             schema:
+ *               $ref: '#/components/schemas/ApiEnvelope'
  */
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);

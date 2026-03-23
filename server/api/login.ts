@@ -13,24 +13,20 @@ import jwt from "jsonwebtoken";
  *       content:
  *         application/json:
  *           schema:
- *             username: string 用户名
- *             password: string 密码
+ *             $ref: '#/components/schemas/LoginParam'
  *     responses:
  *       200:
- *         description: 登录成功
+ *         description: 登录成功，响应为统一信封 ApiEnvelope，d 中含用户信息及 token
  *         content:
  *           application/json:
  *             schema:
- *               Result:
- *                 d:
- *                   id: 用户ID
- *                   username: 用户名
- *                   name: 显示名称
- *                   email: 邮箱
- *                   roles: 角色
- *                   token: JWT令牌
+ *               $ref: '#/components/schemas/ApiEnvelope'
  *       400:
  *         description: 登录失败
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiEnvelope'
  */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);

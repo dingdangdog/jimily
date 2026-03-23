@@ -18,30 +18,25 @@ import {
  *       content:
  *         application/json:
  *           schema:
- *             id: number 流水ID
- *             day: string 日期
- *             flowType: string 流水类型（收入、支出）
- *             industryType: string 行业分类
- *             name: string 流水名称
- *             money: number 金额
- *             description: string 描述
- *             attribution: string 归属
+ *             $ref: '#/components/schemas/UpdateFlowDto'
  *     responses:
  *       200:
- *         description: 流水记录更新成功
+ *         description: 流水记录更新成功，d 为更新后的 Flow
  *         content:
  *           application/json:
  *             schema:
- *               Result:
- *                 d: Flow 更新后的流水记录
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     d:
+ *                       $ref: '#/components/schemas/Flow'
  *       400:
- *         description: 更新失败
+ *         description: 更新失败（如缺少 id 或记录不存在）
  *         content:
  *           application/json:
  *             schema:
- *               Error: {
- *                 message: "Not Find ID"
- *               }
+ *               $ref: '#/components/schemas/ApiEnvelope'
  */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);

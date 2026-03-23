@@ -18,21 +18,19 @@ import {
  *       content:
  *         application/json:
  *           schema:
- *             day: string 日期
- *             flowType: string 流水类型（收入、支出）
- *             industryType: string 行业分类
- *             name: string 流水名称
- *             money: number 金额
- *             description: string 描述
- *             attribution: string 归属
+ *             $ref: '#/components/schemas/CreateFlowDto'
  *     responses:
  *       200:
- *         description: 流水记录添加成功
+ *         description: 流水记录添加成功，d 为新建 Flow
  *         content:
  *           application/json:
  *             schema:
- *               Result:
- *                 d: Flow 流水记录信息
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     d:
+ *                       $ref: '#/components/schemas/Flow'
  */
 export default defineEventHandler(async (event) => {
   const body = await readBody(event); // 获取请求体

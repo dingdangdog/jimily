@@ -14,23 +14,25 @@ import { recalcFundAccountFromFlows } from "~~/server/utils/db";
  *       content:
  *         application/json:
  *           schema:
- *             id: number 流水ID
+ *             $ref: '#/components/schemas/FlowIdBody'
  *     responses:
  *       200:
- *         description: 流水记录删除成功
+ *         description: 流水记录删除成功，d 为被删除的 Flow
  *         content:
  *           application/json:
  *             schema:
- *               Result:
- *                 d: Flow 删除的流水记录信息
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     d:
+ *                       $ref: '#/components/schemas/Flow'
  *       400:
- *         description: 删除失败
+ *         description: 删除失败（缺少 id 或无权访问）
  *         content:
  *           application/json:
  *             schema:
- *               Error: {
- *                 message: "Not Find ID"
- *               }
+ *               $ref: '#/components/schemas/ApiEnvelope'
  */
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);

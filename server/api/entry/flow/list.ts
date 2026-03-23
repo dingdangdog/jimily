@@ -14,29 +14,27 @@ import { parseDateBoundary } from "~~/server/utils/db/flow";
  *       content:
  *         application/json:
  *           schema:
- *             id: number 流水ID（可选）
- *             flowType: string 流水类型（可选）
- *             industryType: string 行业分类（可选）
- *             startDay: string 开始日期（可选）
- *             endDay: string 结束日期（可选）
- *             name: string 流水名称（可选，支持模糊查询）
- *             attribution: string 归属（可选，支持模糊查询）
- *             description: string 描述（可选，支持模糊查询）
- *             minMoney: number 最小金额（可选）
- *             maxMoney: number 最大金额（可选）
+ *             $ref: '#/components/schemas/FlowListFilter'
  *     responses:
  *       200:
- *         description: 流水记录列表获取成功
+ *         description: 流水记录列表获取成功，d 为 FlowWithAccount 数组
  *         content:
  *           application/json:
  *             schema:
- *               Result:
- *                 d: [] #[Flow流水记录数组]
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     d:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/FlowWithAccount'
  *       400:
  *         description: 获取失败
  *         content:
  *           application/json:
  *             schema:
+ *               $ref: '#/components/schemas/ApiEnvelope'
  */
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);

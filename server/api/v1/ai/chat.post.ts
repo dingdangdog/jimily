@@ -26,22 +26,36 @@ function parseConversationId(body: Record<string, unknown>): number | null {
  *       content:
  *         application/json:
  *           schema:
- *             content: string 用户消息（必填）
- *             conversationId: number 已有对话 ID（可选；不传或无效则新建）
- *             sessionId: number 与 conversationId 同义（可选）
- *             providerId: string 模型提供商（可选，与 entry 一致）
+ *             $ref: '#/components/schemas/AiV1ChatRequest'
  *     responses:
  *       200:
  *         description: 成功
  *         content:
  *           application/json:
  *             schema:
- *               Result:
- *                 d: object 含 content、conversationId、conversation
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     d:
+ *                       $ref: '#/components/schemas/AiV1ChatData'
  *       400:
  *         description: 参数错误
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiEnvelope'
  *       500:
  *         description: AI 或业务失败（d 可能仍含会话信息）
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiEnvelope'
+ *                 - type: object
+ *                   properties:
+ *                     d:
+ *                       $ref: '#/components/schemas/AiV1ChatData'
  */
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);
