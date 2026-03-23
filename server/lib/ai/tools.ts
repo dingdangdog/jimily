@@ -43,12 +43,13 @@ export const CHAT_TOOLS: ChatCompletionTool[] = [
           },
           industryType: {
             type: "string",
-            description: "行业/分类，如餐饮、交通、工资",
+            description:
+              "行业/分类（记账类目）。公交/地铁/打车/停车/加油/共享单车→交通；三餐/外卖/咖啡奶茶→餐饮；超市/买菜→购物；房租/水电→居住；会员/影音→娱乐；医疗→医疗；培训/书籍→教育；工资奖金→工资等。勿用「其他」代替明确的交通/餐饮等。与支付方式无关。",
           },
           channelHint: {
             type: "string",
             description:
-              "可选。渠道关键词（如支付宝、微信），仅在未提供 accountId 时用于匹配资金账户。",
+              "可选。用于匹配资金账户的渠道词（如支付宝、微信）；未提供 accountId 时可填。",
           },
           money: {
             type: "number",

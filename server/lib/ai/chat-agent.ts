@@ -1,14 +1,27 @@
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-import { getAIClient } from "./client";
-import { getAIProviderConfig } from "./client";
+import {
+  getAIClient,
+  getAIProviderConfig,
+  CHAT_AGENT_ROUTER_TEMPERATURE,
+  CHAT_AGENT_SUMMARY_TEMPERATURE,
+  clampDialogTemperature,
+} from "./client";
 import { CHAT_TOOLS, executeTool } from "./tools";
 import { getFundAccountsAll } from "~~/server/utils/db";
 
-const SYSTEM_PROMPT = `你是个人记账助手，负责通过工具完成个人记账场景中的数据库数据管理（增删改查与分析）。
-原则：
+/** Jimi 核心行为：人设、分类、边界（工具路径与摘要共用逻辑由后续 system 引用） */
+const JIMI_IDENTITY_BLOCK = `你的名字是 Jimi，是个人记账助手。语气自然、温和、简短，像朋友在帮对方理清账目；不要用生硬公文腔，也不要长篇寒暄。
+核心任务：理解用户的记账/查账/统计/预算/账户等相关需求，并通过工具落库或查询。非记账类闲聊（与收支、账户、预算无关）：用一两句温和话回应即可，并轻轻引导回记账；不要展开科普、不要替用户做与记账无关的长篇建议。`;
+
+const SYSTEM_PROMPT = `${JIMI_IDENTITY_BLOCK}
+
+执行原则：
 1) 能用工具就用工具，避免空泛聊天；
-2) 回复必须基于工具结果，不编造；
-3) 信息不足时，先询问关键参数。`;
+2) 回复必须基于工具结果，不编造；本系统已不记录「支付方式」字段，不要在回复中提及或推测支付方式；
+3) 信息不足时，先问清关键参数（金额、收支方向、日期、分类、账户等）；
+4) 记账时的行业分类 industryType：根据用户描述具体推断，优先使用常见中文分类名。公交/地铁/打车/停车/加油/过路费/共享单车等→「交通」；早餐/午餐/晚餐/外卖/奶茶/咖啡/聚餐等→「餐饮」；超市/买菜/日用品等→「购物」；房租/水电/物业/宽带→「居住」；电影/游戏/会员/演出→「娱乐」；药/医院/挂号→「医疗」；学费/培训/书籍→「教育」；工资/奖金/报销→「工资」或「收入」等明确收入项。只有无法归类时才用「其他」，不要把交通类记成「其他」。
+5) 金额理解：如「早晚各一次各 2 元」「来回各 5 块」等，先正确计算合计金额（次数×单价）再记账；若一句内多笔同类支出，用户未要求拆分时，可合并为一条流水，name 中简要说明（如「早晚公交」）。
+6) 资金账户：用户未说明账户时，按工具规则使用默认现金账户即可，回复中可说明记入的账户名称（来自工具结果），不要杜撰支付方式。`;
 
 export interface ChatAgentOptions {
   userId: number;
@@ -177,6 +190,7 @@ async function runWithToolCalls(opts: {
   const { userId, messages, maxToolRounds, client, config } = opts;
   const now = new Date();
   const latestUserText = getLatestUserText(messages);
+  const dialogTemp = clampDialogTemperature(config.temperature);
   const accountPrompt = await buildFundAccountsPrompt(userId);
   const fullMessages: ChatCompletionMessageParam[] = [
     {
@@ -196,7 +210,7 @@ async function runWithToolCalls(opts: {
   while (round < maxToolRounds) {
     const response = await client.chat.completions.create({
       model: config.model,
-      temperature: config.temperature ?? 0.5,
+      temperature: dialogTemp,
       max_tokens: config.maxTokens ?? 3000,
       messages: fullMessages,
       tools: CHAT_TOOLS,
@@ -280,7 +294,7 @@ async function runWithToolCalls(opts: {
   if (fullMessages.some((m) => m.role === "tool")) {
     const finalResponse = await client.chat.completions.create({
       model: config.model,
-      temperature: config.temperature ?? 0.5,
+      temperature: dialogTemp,
       max_tokens: config.maxTokens ?? 3000,
       messages: fullMessages,
     });
@@ -295,7 +309,7 @@ async function runWithToolCalls(opts: {
   };
 }
 
-const ROUTER_SYSTEM_PROMPT = `你是记账助手的“意图路由器”。只做一件事：把用户请求路由成可执行工具指令。
+const ROUTER_SYSTEM_PROMPT = `你是 Jimi 记账助手的「意图路由器」。只做一件事：把用户请求路由成可执行工具指令。
 只输出 JSON，不要输出 markdown，不要输出额外解释。
 
 输出格式：
@@ -304,7 +318,7 @@ const ROUTER_SYSTEM_PROMPT = `你是记账助手的“意图路由器”。只�
     "name": "<工具名或none>",
     "args": { ... }
   },
-  "reply": "当无法调用工具时给用户的简短澄清问题",
+  "reply": "当无法调用工具或需要澄清时给用户的简短回复（温和、简短）",
   "confidence": 0.0
 }
 
@@ -313,7 +327,15 @@ const ROUTER_SYSTEM_PROMPT = `你是记账助手的“意图路由器”。只�
 2) 查询类优先路由到 query_flows/query_flow_extremes/get_statistics；
 3) 分析类（偏好、结构、画像、分类占比）优先路由到 analyze_consumption_preferences；
 4) 能调用工具就不要返回 none；
-5) 参数尽量结构化，数字字段必须是 number。`;
+5) 参数尽量结构化，数字字段必须是 number。
+
+add_flow 专用（行业分类字段为 industryType，勿与支付方式混淆；系统无支付方式字段，reply 中禁止出现支付方式）：
+- 金额：正确解析「各 N 元」「每人 N 元」「来回各 N」等，先算总支出/总收入再填入 money；同类多笔且用户未要求拆开时，合并一条，name 写清（如「早晚公交」）。
+- industryType：公交/地铁/打车/共享单车/停车/加油等→「交通」；外卖/三餐/咖啡奶茶→「餐饮」；超市买菜→「购物」；房租水电→「居住」；娱乐会员→「娱乐」；医疗→「医疗」；教育培训→「教育」。仅在无法判断时用「其他」，不要把公交地铁归为「其他」。
+- flowType：花费为「支出」，进账为「收入」。
+- accountId：仅从提供的资金账户列表匹配；用户未提账户时不要编造，交给工具默认现金逻辑（args 可不填 accountId）。
+
+非记账闲聊：action.name 用 "none"，reply 一两句温和回应并引导用户说出记账需求，不要长篇回答。`;
 
 type JsonPlan = {
   action?: {
@@ -447,7 +469,7 @@ async function routeUserIntent(opts: {
   try {
     const planResponse = await client.chat.completions.create({
       model: config.model,
-      temperature: 0.1,
+      temperature: CHAT_AGENT_ROUTER_TEMPERATURE,
       max_tokens: Math.min(config.maxTokens ?? 3000, 1200),
       messages: fullMessages,
     });
@@ -467,7 +489,8 @@ async function routeUserIntent(opts: {
   if (fallback) return fallback;
   return {
     action: { name: "none", args: {} },
-    reply: "我理解到你在管理记账数据，但还缺少关键条件。请补充时间范围或对象。",
+    reply:
+      "我有点没跟上呢～如果是记账或查账，跟我说下金额、是收入还是支出，或想查哪段时间就好。",
     confidence: 0.2,
   };
 }
@@ -556,13 +579,13 @@ async function summarizeToolResult(opts: {
   try {
     const res = await client.chat.completions.create({
       model: config.model,
-      temperature: 0.2,
+      temperature: CHAT_AGENT_SUMMARY_TEMPERATURE,
       max_tokens: config.maxTokens ?? 1000,
       messages: [
         {
           role: "system",
           content:
-            "你是记账助手，请基于工具执行结果给用户生成简洁中文回复。不要编造，严格基于结果。禁止输出与本次工具结果无关的客套话；优先明确结果是否成功、关键数字、账户或条目名称。",
+            "你是 Jimi（记账助手）。请根据工具返回的 JSON 给用户写一段简短、温柔、口语化的中文回复。必须严格依据工具结果，不编造数据。不要提及「支付方式」（系统无此字段）。优先说明成功与否、金额、分类（industryType）、条目名称、资金账户（如有 matchedFundAccount 或 flow 关联信息）。非记账类请求若未调用工具，可温和简短回应并引导回记账。避免冗长寒暄。",
         },
         {
           role: "user",
@@ -588,7 +611,16 @@ async function summarizeToolResult(opts: {
       skipped?: string[];
     };
     if (toolName === "add_flow" && parsed.success) {
-      return `已记账：${parsed.flow?.name || "未命名"} ${Math.abs(Number(parsed.flow?.money ?? 0))} 元。`;
+      const cat = (parsed.flow as { industryType?: string } | undefined)
+        ?.industryType;
+      const acct = (
+        parsed as { matchedFundAccount?: { name?: string } }
+      ).matchedFundAccount?.name;
+      const amt = Math.abs(Number(parsed.flow?.money ?? 0));
+      const base = `已记好：${parsed.flow?.name || "未命名"} ${amt} 元`;
+      const catPart = cat ? `，分类「${cat}」` : "";
+      const acctPart = acct ? `，账户「${acct}」` : "";
+      return `${base}${catPart}${acctPart}。`;
     }
     if (toolName === "query_flows") {
       return `查询完成，共 ${parsed.total ?? 0} 条。`;

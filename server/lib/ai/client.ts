@@ -16,6 +16,24 @@ async function getProvider(providerId?: string | null) {
   return providers[0] ?? null;
 }
 
+/** Jimi 记账对话：限制上限，避免高温导致分类/金额解析漂移；低于此值时保留用户配置 */
+export const CHAT_AGENT_DIALOG_TEMPERATURE_CAP = 0.35;
+
+/** JSON 意图路由（结构化输出，保持低温度） */
+export const CHAT_AGENT_ROUTER_TEMPERATURE = 0.1;
+
+/** 工具结果摘要（略低温度，兼顾自然语气与忠实于数据） */
+export const CHAT_AGENT_SUMMARY_TEMPERATURE = 0.25;
+
+export function clampDialogTemperature(configured?: number | null): number {
+  const cap = CHAT_AGENT_DIALOG_TEMPERATURE_CAP;
+  const base =
+    typeof configured === "number" && Number.isFinite(configured)
+      ? configured
+      : cap;
+  return Math.min(base, cap);
+}
+
 /** 获取 OpenAI 兼容客户端，可选指定服务商 ID */
 export async function getAIClient(
   providerId?: string | null,
