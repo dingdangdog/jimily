@@ -152,11 +152,11 @@ export default defineEventHandler(async (event) => {
         userId,
         id: { in: accountIds },
       },
-      select: { id: true, name: true, accountType: true },
+      select: { id: true, name: true },
     });
     const accountMap = new Map(
       accounts.map((acc) => [Number(acc.id), acc]),
-    ) as Map<number, { id: number; name: string; accountType: string }>;
+    ) as Map<number, { id: number; name: string }>;
 
     flows = flows.map((f: any) => {
       const accId =

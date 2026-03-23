@@ -51,7 +51,7 @@ export type User = Prisma.UserModel
 export type Flow = Prisma.FlowModel
 /**
  * Model FundAccount
- * 资金账户表（银行卡、信用卡、微信、支付宝、投资账户等）
+ * 资金账户表（银行卡、信用卡、微信、支付宝、投资账户等；类型由账户本身表达，不再单独存类型字段）
  */
 export type FundAccount = Prisma.FundAccountModel
 /**

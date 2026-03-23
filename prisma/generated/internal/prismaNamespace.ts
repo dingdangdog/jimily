@@ -1907,7 +1907,6 @@ export const FundAccountScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   name: 'name',
-  accountType: 'accountType',
   institution: 'institution',
   accountNo: 'accountNo',
   currency: 'currency',

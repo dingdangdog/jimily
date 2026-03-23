@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model FundAccount
- * 资金账户表（银行卡、信用卡、微信、支付宝、投资账户等）
+ * 资金账户表（银行卡、信用卡、微信、支付宝、投资账户等；类型由账户本身表达，不再单独存类型字段）
  */
 export type FundAccountModel = runtime.Types.Result.DefaultSelection<Prisma.$FundAccountPayload>
 
@@ -56,7 +56,6 @@ export type FundAccountMinAggregateOutputType = {
   id: number | null
   userId: number | null
   name: string | null
-  accountType: string | null
   institution: string | null
   accountNo: string | null
   currency: string | null
@@ -78,7 +77,6 @@ export type FundAccountMaxAggregateOutputType = {
   id: number | null
   userId: number | null
   name: string | null
-  accountType: string | null
   institution: string | null
   accountNo: string | null
   currency: string | null
@@ -100,7 +98,6 @@ export type FundAccountCountAggregateOutputType = {
   id: number
   userId: number
   name: number
-  accountType: number
   institution: number
   accountNo: number
   currency: number
@@ -150,7 +147,6 @@ export type FundAccountMinAggregateInputType = {
   id?: true
   userId?: true
   name?: true
-  accountType?: true
   institution?: true
   accountNo?: true
   currency?: true
@@ -172,7 +168,6 @@ export type FundAccountMaxAggregateInputType = {
   id?: true
   userId?: true
   name?: true
-  accountType?: true
   institution?: true
   accountNo?: true
   currency?: true
@@ -194,7 +189,6 @@ export type FundAccountCountAggregateInputType = {
   id?: true
   userId?: true
   name?: true
-  accountType?: true
   institution?: true
   accountNo?: true
   currency?: true
@@ -303,7 +297,6 @@ export type FundAccountGroupByOutputType = {
   id: number
   userId: number
   name: string
-  accountType: string
   institution: string | null
   accountNo: string | null
   currency: string
@@ -348,7 +341,6 @@ export type FundAccountWhereInput = {
   id?: Prisma.IntFilter<"FundAccount"> | number
   userId?: Prisma.IntFilter<"FundAccount"> | number
   name?: Prisma.StringFilter<"FundAccount"> | string
-  accountType?: Prisma.StringFilter<"FundAccount"> | string
   institution?: Prisma.StringNullableFilter<"FundAccount"> | string | null
   accountNo?: Prisma.StringNullableFilter<"FundAccount"> | string | null
   currency?: Prisma.StringFilter<"FundAccount"> | string
@@ -370,7 +362,6 @@ export type FundAccountOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  accountType?: Prisma.SortOrder
   institution?: Prisma.SortOrderInput | Prisma.SortOrder
   accountNo?: Prisma.SortOrderInput | Prisma.SortOrder
   currency?: Prisma.SortOrder
@@ -395,7 +386,6 @@ export type FundAccountWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.FundAccountWhereInput | Prisma.FundAccountWhereInput[]
   userId?: Prisma.IntFilter<"FundAccount"> | number
   name?: Prisma.StringFilter<"FundAccount"> | string
-  accountType?: Prisma.StringFilter<"FundAccount"> | string
   institution?: Prisma.StringNullableFilter<"FundAccount"> | string | null
   accountNo?: Prisma.StringNullableFilter<"FundAccount"> | string | null
   currency?: Prisma.StringFilter<"FundAccount"> | string
@@ -417,7 +407,6 @@ export type FundAccountOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  accountType?: Prisma.SortOrder
   institution?: Prisma.SortOrderInput | Prisma.SortOrder
   accountNo?: Prisma.SortOrderInput | Prisma.SortOrder
   currency?: Prisma.SortOrder
@@ -447,7 +436,6 @@ export type FundAccountScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"FundAccount"> | number
   userId?: Prisma.IntWithAggregatesFilter<"FundAccount"> | number
   name?: Prisma.StringWithAggregatesFilter<"FundAccount"> | string
-  accountType?: Prisma.StringWithAggregatesFilter<"FundAccount"> | string
   institution?: Prisma.StringNullableWithAggregatesFilter<"FundAccount"> | string | null
   accountNo?: Prisma.StringNullableWithAggregatesFilter<"FundAccount"> | string | null
   currency?: Prisma.StringWithAggregatesFilter<"FundAccount"> | string
@@ -468,7 +456,6 @@ export type FundAccountScalarWhereWithAggregatesInput = {
 export type FundAccountCreateInput = {
   userId: number
   name: string
-  accountType: string
   institution?: string | null
   accountNo?: string | null
   currency?: string
@@ -490,7 +477,6 @@ export type FundAccountUncheckedCreateInput = {
   id?: number
   userId: number
   name: string
-  accountType: string
   institution?: string | null
   accountNo?: string | null
   currency?: string
@@ -511,7 +497,6 @@ export type FundAccountUncheckedCreateInput = {
 export type FundAccountUpdateInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  accountType?: Prisma.StringFieldUpdateOperationsInput | string
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
@@ -533,7 +518,6 @@ export type FundAccountUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  accountType?: Prisma.StringFieldUpdateOperationsInput | string
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
@@ -555,7 +539,6 @@ export type FundAccountCreateManyInput = {
   id?: number
   userId: number
   name: string
-  accountType: string
   institution?: string | null
   accountNo?: string | null
   currency?: string
@@ -576,7 +559,6 @@ export type FundAccountCreateManyInput = {
 export type FundAccountUpdateManyMutationInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  accountType?: Prisma.StringFieldUpdateOperationsInput | string
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
@@ -598,7 +580,6 @@ export type FundAccountUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  accountType?: Prisma.StringFieldUpdateOperationsInput | string
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountNo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
@@ -620,7 +601,6 @@ export type FundAccountCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  accountType?: Prisma.SortOrder
   institution?: Prisma.SortOrder
   accountNo?: Prisma.SortOrder
   currency?: Prisma.SortOrder
@@ -655,7 +635,6 @@ export type FundAccountMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  accountType?: Prisma.SortOrder
   institution?: Prisma.SortOrder
   accountNo?: Prisma.SortOrder
   currency?: Prisma.SortOrder
@@ -677,7 +656,6 @@ export type FundAccountMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  accountType?: Prisma.SortOrder
   institution?: Prisma.SortOrder
   accountNo?: Prisma.SortOrder
   currency?: Prisma.SortOrder
@@ -726,7 +704,6 @@ export type FundAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   id?: boolean
   userId?: boolean
   name?: boolean
-  accountType?: boolean
   institution?: boolean
   accountNo?: boolean
   currency?: boolean
@@ -748,7 +725,6 @@ export type FundAccountSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   userId?: boolean
   name?: boolean
-  accountType?: boolean
   institution?: boolean
   accountNo?: boolean
   currency?: boolean
@@ -770,7 +746,6 @@ export type FundAccountSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   userId?: boolean
   name?: boolean
-  accountType?: boolean
   institution?: boolean
   accountNo?: boolean
   currency?: boolean
@@ -792,7 +767,6 @@ export type FundAccountSelectScalar = {
   id?: boolean
   userId?: boolean
   name?: boolean
-  accountType?: boolean
   institution?: boolean
   accountNo?: boolean
   currency?: boolean
@@ -810,7 +784,7 @@ export type FundAccountSelectScalar = {
   updatedAt?: boolean
 }
 
-export type FundAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "accountType" | "institution" | "accountNo" | "currency" | "initialBalance" | "currentBalance" | "totalIncome" | "totalExpense" | "totalLiability" | "totalProfit" | "status" | "sortBy" | "description" | "lastFlowAt" | "createdAt" | "updatedAt", ExtArgs["result"]["fundAccount"]>
+export type FundAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "institution" | "accountNo" | "currency" | "initialBalance" | "currentBalance" | "totalIncome" | "totalExpense" | "totalLiability" | "totalProfit" | "status" | "sortBy" | "description" | "lastFlowAt" | "createdAt" | "updatedAt", ExtArgs["result"]["fundAccount"]>
 
 export type $FundAccountPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "FundAccount"
@@ -828,10 +802,6 @@ export type $FundAccountPayload<ExtArgs extends runtime.Types.Extensions.Interna
      * 账户名称（如 招商银行卡）
      */
     name: string
-    /**
-     * 账户类型（银行卡、信用卡、支付宝、微信、投资账户、现金、其他）
-     */
-    accountType: string
     /**
      * 开户机构/平台（可选）
      */
@@ -1318,7 +1288,6 @@ export interface FundAccountFieldRefs {
   readonly id: Prisma.FieldRef<"FundAccount", 'Int'>
   readonly userId: Prisma.FieldRef<"FundAccount", 'Int'>
   readonly name: Prisma.FieldRef<"FundAccount", 'String'>
-  readonly accountType: Prisma.FieldRef<"FundAccount", 'String'>
   readonly institution: Prisma.FieldRef<"FundAccount", 'String'>
   readonly accountNo: Prisma.FieldRef<"FundAccount", 'String'>
   readonly currency: Prisma.FieldRef<"FundAccount", 'String'>
