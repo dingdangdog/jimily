@@ -145,7 +145,7 @@ const auxiliaryMenuItems: Menu[] = [
   },
   {
     title: "接口文档",
-    path: "api-docs",
+    path: "/api-docs",
     icon: DocumentMagnifyingGlassIcon,
     color: "text-indigo-500",
   },
