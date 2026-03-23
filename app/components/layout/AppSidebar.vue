@@ -18,6 +18,7 @@ import {
   DocumentMagnifyingGlassIcon,
   ChatBubbleLeftRightIcon,
   CreditCardIcon,
+  KeyIcon,
 } from "@heroicons/vue/24/outline";
 
 interface Menu {
@@ -97,6 +98,12 @@ const userMenuItems: Menu[] = [
     path: "/user/types",
     icon: Squares2X2Icon,
     color: "text-pink-500",
+  },
+  {
+    title: "API 访问令牌",
+    path: "/user/api-tokens",
+    icon: KeyIcon,
+    color: "text-indigo-500",
   },
 ];
 

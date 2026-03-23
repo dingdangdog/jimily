@@ -8,7 +8,8 @@
     "dev": "node scripts/run-nuxt.mjs dev",
     "generate": "node scripts/run-nuxt.mjs generate",
     "preview": "node scripts/run-nuxt.mjs preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test-api-token": "node scripts/test-api-token.mjs"
   },
   "dependencies": {
     "@heroicons/vue": "2.2.0",
