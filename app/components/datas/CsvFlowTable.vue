@@ -1,8 +1,39 @@
 <template>
   <div
-    class="bg-surface text-foreground rounded-lg shadow-sm border border-border overflow-hidden"
+    class="relative bg-surface text-foreground rounded-lg shadow-sm border border-border overflow-hidden"
   >
-    <!-- 表格容器 -->
+    <div
+      v-if="renderingTable"
+      class="absolute inset-0 z-20 flex items-center justify-center bg-surface/88 backdrop-blur-sm"
+    >
+      <div
+        class="w-full max-w-sm rounded-2xl border border-border bg-background/95 px-6 py-5 shadow-xl"
+      >
+        <div class="flex items-center gap-4">
+          <div
+            class="h-10 w-10 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600"
+          ></div>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-semibold text-foreground">
+              预览渲染中
+            </div>
+            <div class="mt-1 text-xs text-foreground/60">
+              正在分批构建表格，数据量越大耗时越久。
+            </div>
+          </div>
+          <div class="text-lg font-semibold text-primary-600">
+            {{ renderProgress }}%
+          </div>
+        </div>
+        <div class="mt-4 h-2 overflow-hidden rounded-full bg-surface-muted">
+          <div
+            class="h-full rounded-full bg-gradient-to-r from-primary-500 via-primary-400 to-emerald-400 transition-[width] duration-200 ease-out"
+            :style="{ width: `${renderProgress}%` }"
+          ></div>
+        </div>
+      </div>
+    </div>
+
     <div class="max-h-[60vh] overflow-auto">
       <table ref="excelTable" class="w-full border-collapse">
         <thead
@@ -13,15 +44,12 @@
       </table>
     </div>
 
-    <!-- 分隔线 -->
     <div class="border-t border-border"></div>
 
-    <!-- 底部操作栏 -->
     <div class="px-4 py-3 bg-surface-muted">
       <div
         class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between"
       >
-        <!-- 左侧信息 -->
         <div class="flex items-center gap-4">
           <span class="text-sm text-foreground/70">
             解析到的流水数量:
@@ -31,9 +59,7 @@
           </span>
         </div>
 
-        <!-- 右侧操作 -->
         <div class="flex flex-wrap gap-3 items-center">
-          <!-- 资金账户（三方导入时展示，可自动匹配+手动切换） -->
           <div v-if="isThirdPartyImport" class="flex items-center gap-2">
             <label
               class="text-sm font-medium text-foreground/80 whitespace-nowrap"
@@ -51,7 +77,6 @@
             </select>
           </div>
 
-          <!-- 流水归属输入 -->
           <div class="flex items-center gap-2">
             <label
               class="text-sm font-medium text-foreground/80 whitespace-nowrap"
@@ -66,10 +91,9 @@
             />
           </div>
 
-          <!-- 确定导入按钮 -->
           <button
             @click="submitUpload"
-            :disabled="uploading"
+            :disabled="uploading || renderingTable"
             class="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-secondary-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm font-medium"
           >
             <div
@@ -77,7 +101,7 @@
               class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
             ></div>
             <CloudArrowUpIcon v-else class="h-4 w-4" />
-            {{ uploading ? "导入中..." : "确定导入" }}
+            {{ uploading ? "导入中..." : "确认导入" }}
           </button>
         </div>
       </div>
@@ -86,36 +110,39 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, computed } from "vue";
 import { CloudArrowUpIcon } from "@heroicons/vue/24/outline";
-import { doApi } from "~/utils/api";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 
-const { items, tableHead, tableBody, successCallback, importSource } =
-  defineProps([
-    "items",
-    "tableHead",
-    "tableBody",
-    "successCallback",
-    "importSource",
-  ]);
+import { doApi } from "~/utils/api";
+import { Alert } from "~/utils/alert";
+import { showFlowExcelImportDialog } from "~/utils/flag";
+import type { Flow } from "~/utils/table";
+
+const props = defineProps<{
+  items: Flow[];
+  tableHead: Record<string, number>;
+  tableBody: any[][];
+  successCallback: () => void;
+  importSource?: string;
+}>();
 
 const uploading = ref(false);
-// 待上传的流水数据
+const renderingTable = ref(false);
+const renderProgress = ref(0);
 const flows = ref<Flow[]>([]);
-flows.value.push(...items);
-
-// 流水归属
 const attribution = ref("");
-
-// 资金账户：当前用户全部账户（启用）
 const fundAccounts = ref<{ id: number; name: string }[]>([]);
-// 用户选中的账户 ID（可手动切换，默认由自动匹配填充），空字符串表示不指定
 const selectedAccountId = ref<number | "">("");
+const excelTable = ref<HTMLTableElement | null>(null);
+const excelTableHead = ref<HTMLTableSectionElement | null>(null);
+const excelTableBody = ref<HTMLTableSectionElement | null>(null);
+
+let renderTaskId = 0;
 
 const isThirdPartyImport = computed(
   () =>
-    importSource &&
-    ["alipay", "wxpay", "jdFinance"].includes(String(importSource)),
+    props.importSource &&
+    ["alipay", "wxpay", "jdFinance"].includes(String(props.importSource)),
 );
 
 const originLabel = computed(() => {
@@ -124,27 +151,27 @@ const originLabel = computed(() => {
     wxpay: "微信导入",
     jdFinance: "京东金融导入",
   };
-  return importSource ? (map[String(importSource)] ?? "") : "";
+  return props.importSource ? (map[String(props.importSource)] ?? "") : "";
 });
 
-/** 按导入途径自动匹配账户：关键词模糊 → 现金 → 无 */
 function matchAccountId(
   accounts: { id: number; name: string }[],
   source: string,
 ): number | null {
   const keyword =
-    { alipay: "支付宝", wxpay: "微信", jdFinance: "京东" }[String(source)] ??
-    "";
-  if (!keyword || !accounts?.length) return null;
-  const fuzzy = accounts.find(
-    (a) => a.name && a.name.includes(keyword),
-  );
+    { alipay: "支付宝", wxpay: "微信", jdFinance: "京东" }[
+      String(source)
+    ] ?? "";
+  if (!keyword || !accounts.length) return null;
+
+  const fuzzy = accounts.find((a) => a.name && a.name.includes(keyword));
   if (fuzzy) return fuzzy.id;
+
   const cash = accounts.find((a) => a.name === "现金");
   return cash ? cash.id : null;
 }
 
-const loadAccounts = async () => {
+async function loadAccounts() {
   try {
     const res = await doApi.post<{ id: number; name: string }[]>(
       "api/entry/account/all",
@@ -154,59 +181,68 @@ const loadAccounts = async () => {
   } catch {
     fundAccounts.value = [];
   }
-};
+}
 
-watch(
-  [() => fundAccounts.value.length, () => importSource],
-  () => {
-    if (!isThirdPartyImport.value || !fundAccounts.value.length) return;
-    const matched = matchAccountId(fundAccounts.value, String(importSource));
-    if (matched != null && selectedAccountId.value === "") {
-      selectedAccountId.value = matched;
-    }
-  },
-  { immediate: true },
-);
+function buildHeader(heads: string[]) {
+  if (!excelTableHead.value) return;
 
-const excelTable = ref();
-const excelTableHead = ref();
-const excelTableBody = ref();
+  excelTableHead.value.innerHTML = "";
+  const head = document.createElement("tr");
+  head.className = "border-b border-border";
 
-// 读取json文件并导入
-onMounted(async () => {
-  await loadAccounts();
-  if (isThirdPartyImport.value && fundAccounts.value.length) {
-    const matched = matchAccountId(fundAccounts.value, String(importSource));
-    selectedAccountId.value = matched ?? "";
-  }
-  if (excelTableHead.value) {
-    // 表头行元素
-    const head = document.createElement("tr");
-    head.className = "border-b border-border";
-
-    for (let h in tableHead) {
-      // 创建表头单元格元素
-      const th = document.createElement("th");
-      th.innerText = h;
-      th.className =
-        "px-3 py-2 text-left text-xs font-medium text-foreground/60 uppercase tracking-wider bg-surface-muted";
-      th.style.textAlign = "left";
-      head.appendChild(th);
-    }
-    // 表头数据回显
-    excelTableHead.value.appendChild(head);
+  for (const text of heads) {
+    const th = document.createElement("th");
+    th.innerText = text;
+    th.className =
+      "px-3 py-2 text-left text-xs font-medium text-foreground/60 uppercase tracking-wider bg-surface-muted";
+    th.style.textAlign = "left";
+    head.appendChild(th);
   }
 
-  if (excelTableBody.value) {
-    for (let row of tableBody) {
-      // 创建行元素
+  excelTableHead.value.appendChild(head);
+}
+
+async function renderTable() {
+  flows.value = Array.isArray(props.items) ? [...props.items] : [];
+  await nextTick();
+
+  if (!excelTableHead.value || !excelTableBody.value) {
+    return;
+  }
+
+  const currentTaskId = ++renderTaskId;
+  const heads = Object.keys(props.tableHead ?? {});
+  const rows = Array.isArray(props.tableBody) ? props.tableBody : [];
+
+  renderingTable.value = true;
+  renderProgress.value = 0;
+  excelTableBody.value.innerHTML = "";
+  buildHeader(heads);
+
+  if (rows.length === 0) {
+    renderProgress.value = 100;
+    renderingTable.value = false;
+    return;
+  }
+
+  let index = 0;
+  const chunkSize = 150;
+
+  const renderChunk = () => {
+    if (currentTaskId !== renderTaskId || !excelTableBody.value) {
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const end = Math.min(index + chunkSize, rows.length);
+
+    for (; index < end; index++) {
+      const row = rows[index] || [];
       const tr = document.createElement("tr");
       tr.className = "hover:bg-surface-muted transition-colors";
 
-      // 部分数据字段格式化，并回显
-      for (let c of row) {
-        let cellValue = c;
-        // 创建单元格元素
+      for (const cell of row) {
+        const cellValue = cell == null ? "" : String(cell);
         const td = document.createElement("td");
         td.innerText = cellValue;
         td.className =
@@ -214,15 +250,29 @@ onMounted(async () => {
         td.title = cellValue;
         tr.appendChild(td);
       }
-      excelTableBody.value.appendChild(tr);
-    }
-  }
-});
 
-// 确定提交
-const submitUpload = () => {
+      fragment.appendChild(tr);
+    }
+
+    excelTableBody.value.appendChild(fragment);
+    renderProgress.value = Math.min(
+      100,
+      Math.round((index / rows.length) * 100),
+    );
+
+    if (index < rows.length) {
+      requestAnimationFrame(renderChunk);
+    } else {
+      renderingTable.value = false;
+    }
+  };
+
+  requestAnimationFrame(renderChunk);
+}
+
+function submitUpload() {
   if (flows.value.length === 0) {
-    Alert.error("数据为空！");
+    Alert.error("数据为空");
     return;
   }
 
@@ -232,11 +282,13 @@ const submitUpload = () => {
       flow.attribution = attribution.value.trim();
     });
   }
+
   if (isThirdPartyImport.value) {
     const accountId =
       selectedAccountId.value === "" || selectedAccountId.value == null
         ? undefined
         : Number(selectedAccountId.value);
+
     toSend.forEach((flow) => {
       flow.accountId = accountId;
       flow.origin = originLabel.value || undefined;
@@ -256,27 +308,61 @@ const submitUpload = () => {
             ? `导入成功，共导入 ${res.count} 条流水，已跳过 ${res.skipped} 条重复`
             : `导入成功，共导入 ${res.count} 条流水`;
         Alert.success(msg);
-        successCallback();
+        props.successCallback();
         showFlowExcelImportDialog.value = false;
       } else if (res && res.count === 0 && res.skipped > 0) {
         Alert.warning(`未新增流水，共跳过 ${res.skipped} 条重复`);
-        successCallback();
+        props.successCallback();
         showFlowExcelImportDialog.value = false;
       } else {
-        Alert.error("导入失败，请重试！");
+        Alert.error("导入失败，请重试");
       }
     })
     .catch(() => {
-      Alert.error("导入失败，请重试！");
+      Alert.error("导入失败，请重试");
     })
     .finally(() => {
       uploading.value = false;
     });
-};
+}
+
+watch(
+  [() => fundAccounts.value.length, () => props.importSource],
+  () => {
+    if (!isThirdPartyImport.value || !fundAccounts.value.length) return;
+    const matched = matchAccountId(
+      fundAccounts.value,
+      String(props.importSource),
+    );
+    if (matched != null && selectedAccountId.value === "") {
+      selectedAccountId.value = matched;
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => [props.items, props.tableHead, props.tableBody],
+  async () => {
+    await renderTable();
+  },
+  { deep: true },
+);
+
+onMounted(async () => {
+  await loadAccounts();
+  if (isThirdPartyImport.value && fundAccounts.value.length) {
+    const matched = matchAccountId(
+      fundAccounts.value,
+      String(props.importSource),
+    );
+    selectedAccountId.value = matched ?? "";
+  }
+  await renderTable();
+});
 </script>
 
 <style scoped>
-/* 自定义滚动条样式 */
 .overflow-auto::-webkit-scrollbar {
   width: 6px;
   height: 6px;

@@ -32,7 +32,7 @@ export function useCsvFlowImport(options?: { onImportSuccess?: () => void }) {
     }
     fileType.value = type;
     if (type === "alipay") titleRowIndex.value = 24;
-    else if (type === "wxpay") titleRowIndex.value = 16;
+    else if (type === "wxpay") titleRowIndex.value = 17;
     else if (type === "jdFinance") titleRowIndex.value = 21;
     closeDrawer?.();
     nextTick(() => csvFileInput.value?.click());
