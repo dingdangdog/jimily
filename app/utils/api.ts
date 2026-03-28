@@ -1,4 +1,5 @@
 import { Alert } from "./alert";
+import { buildLoginRedirect } from "./authRedirect";
 import type { Result, UserInfo } from "./model";
 
 const API_PREFIEX = "/";
@@ -88,10 +89,7 @@ const intercepterResponse = <T>(res: Result<T>): T => {
       // 清除登陆状态（@sidebase/nuxt-auth框架）
       // useAuth().signOut();
       const route = useRoute();
-      navigateTo({
-        path: "/login",
-        query: { callbackUrl: route.fullPath },
-      });
+      navigateTo(buildLoginRedirect(route.fullPath));
     }
     Alert.error(res.m);
     throw Error(res.m);

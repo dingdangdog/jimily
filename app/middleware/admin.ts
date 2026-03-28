@@ -1,3 +1,5 @@
+import { buildLoginRedirect } from "~/utils/authRedirect";
+
 export default defineNuxtRouteMiddleware(async (to) => {
   const userStore = useUserStore();
   if (userStore.user && userStore.isAdmin) return;
@@ -13,10 +15,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     if (res.value?.c === 200 && res.value.d) {
       userStore.setUser(res.value.d);
     } else {
-      return navigateTo({
-        path: "/login",
-        query: { callbackUrl: to.fullPath },
-      });
+      return navigateTo(buildLoginRedirect(to.fullPath));
     }
   }
 

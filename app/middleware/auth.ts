@@ -1,5 +1,6 @@
 import type { Result } from "~/utils/model";
 import type { UserInfo } from "~/utils/model";
+import { buildLoginRedirect } from "~/utils/authRedirect";
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const userStore = useUserStore();
@@ -23,15 +24,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
     userStore.clearUser();
     if (res.value?.c === 400) {
-      return navigateTo({
-        path: "/login",
-        query: { callbackUrl: to.fullPath },
-      });
+      return navigateTo(buildLoginRedirect(to.fullPath));
     }
-    return navigateTo({
-      path: "/login",
-      query: { callbackUrl: to.fullPath },
-    });
+    return navigateTo(buildLoginRedirect(to.fullPath));
   }
   return;
 });

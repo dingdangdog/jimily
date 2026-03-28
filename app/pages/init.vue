@@ -4,6 +4,7 @@ definePageMeta({
 });
 
 import { SunIcon, MoonIcon } from "@heroicons/vue/24/outline";
+import { buildLoginRedirect } from "~/utils/authRedirect";
 import { SystemConfig } from "~/utils/store";
 import { clearAuthStorage } from "~/utils/common";
 
@@ -13,6 +14,7 @@ const toggleTheme = () => themeStore.toggleTheme();
 
 const loading = ref(false);
 const activeTab = ref<"system" | "admin">("system");
+const route = useRoute();
 const tabs = [
   { key: "system" as const, label: "系统信息" },
   { key: "admin" as const, label: "超管账号" },
@@ -75,7 +77,7 @@ const submit = async () => {
     });
     Alert.success("初始化成功，请使用超管账号登录");
     await nextTick();
-    navigateTo("/login");
+    navigateTo(buildLoginRedirect(route.query.callbackUrl));
   } catch (_) {
     // 错误已由 doApi 的 intercepter 弹出
   } finally {
@@ -87,13 +89,13 @@ onMounted(async () => {
   try {
     const count = await doApi.get<number>("api/check");
     if (count !== 0) {
-      navigateTo("/login");
+      navigateTo(buildLoginRedirect(route.query.callbackUrl));
       return;
     }
     // 未初始化时清除前端登录态，避免残留 cookie 导致与 init 冲突、来回跳转
     clearAuthStorage();
   } catch {
-    navigateTo("/login");
+    navigateTo(buildLoginRedirect(route.query.callbackUrl));
     return;
   }
   if (SystemConfig.value?.title) {
