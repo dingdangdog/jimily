@@ -1,7 +1,7 @@
 {
   "info": {
-    "title": "Jimily API",
-    "version": "5.1.0",
+    "title": "jimily API",
+    "version": "4.3.11",
     "description": "接口文档需要手动维护，因此不能保证完全正确，请以接口实际效果为准！"
   },
   "servers": [
