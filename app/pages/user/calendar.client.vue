@@ -640,7 +640,7 @@ const exportCsv = () => {
 const downloadCsvTemplate = () => {
   const link = document.createElement("a");
   link.href = "/csvtemplate.csv";
-  link.download = "Cashbook模板.csv";
+  link.download = "记米粒模板.csv";
   link.click();
 };
 

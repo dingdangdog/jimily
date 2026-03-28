@@ -19,9 +19,9 @@ const tabs = [
 ];
 
 const systemForm = ref({
-  title: "Cashbook",
+  title: "记米粒",
   description: "",
-  keywords: "Cashbook,记账本",
+  keywords: "Jimily,记米粒",
   openRegister: false,
 });
 
@@ -62,7 +62,7 @@ const submit = async () => {
   try {
     await doApi.post("api/init", {
       systemConfig: {
-        title: systemForm.value.title || "Cashbook",
+        title: systemForm.value.title || "记米粒",
         description: systemForm.value.description || "",
         keywords: systemForm.value.keywords || "",
         openRegister: systemForm.value.openRegister,
@@ -107,7 +107,7 @@ onMounted(async () => {
 
 <template>
   <Head>
-    <Title>系统初始化 - {{ SystemConfig?.title || "Cashbook" }}</Title>
+    <Title>系统初始化 - {{ SystemConfig?.title || "记米粒" }}</Title>
   </Head>
 
   <div
@@ -168,7 +168,7 @@ onMounted(async () => {
               <UiTextInput
                 v-model="systemForm.title"
                 label="站点标题"
-                placeholder="如：Cashbook"
+                placeholder="如：记米粒"
               />
               <UiTextInput
                 v-model="systemForm.description"

@@ -180,7 +180,7 @@ const toGithub = () => {
   <Head>
     <Title>{{ SystemConfig?.title }}</Title>
     <Meta name="description" :content="SystemConfig?.description" />
-    <Meta name="keywords" :content="`Cashbook,记账本,私人记账,开源账本,dingdangdog,月上老狗,${SystemConfig?.keywords}`" />
+    <Meta name="keywords" :content="`Jimily,记米粒,私人记账,开源账本,dingdangdog,月上老狗,${SystemConfig?.keywords}`" />
   </Head>
 
   <div class="h-screen p-2 transition-colors duration-300 bg-background text-foreground">

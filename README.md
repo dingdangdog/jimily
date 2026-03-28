@@ -1,6 +1,6 @@
 <div align="center" style="display:flex;align-items:center;justify-content:center;">
-<img src="/public/logo.webp" width="80px" alt="cashbook" />
-<h1>Cashbook</h1>
+<img src="/public/logo.webp" width="80px" alt="Jimily" />
+<h1>Jimily / 记米粒</h1>
 </div>
 
 <p align="center">
@@ -29,7 +29,7 @@ docker load -i jimily.5.1.1.tar
 
 ## 简述（Description）
 
-Cashbook记账本。
+记米粒是支持 AI 助手 Jimi 的个人记账本。
 
 - 在数据记录上追求简单、易用、自主可控；
 - 在统计分析上力求清晰、美观、简洁有效。

@@ -1,6 +1,6 @@
 #!/bin/sh
 echo "============================================="
-echo "欢迎使用 Cashbook"
+echo "欢迎使用 记米粒 Jimily"
 echo "============================================="
 # 打印环境信息
 # echo "Checking and creating database if it does not exist..."

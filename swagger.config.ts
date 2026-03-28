@@ -5,7 +5,7 @@ import { openApiComponentSchemas } from "./server/lib/openapi-component-schemas"
 const swaggerDefinition = {
   openapi: "3.0.3",
   info: {
-    title: "Cashbook API",
+    title: "Jimily API",
     version: "5.1.0",
     description: [
       "接口文档由 swagger-jsdoc 从注释合并生成，并已做 schema 规范化；仍可能与实现略有出入，请以实际响应为准。",

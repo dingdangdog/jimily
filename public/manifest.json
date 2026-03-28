@@ -1,7 +1,7 @@
 {
-  "name": "Cashbook",
-  "short_name": "Cashbook",
-  "description": "Cashbook, 快速记账!",
+  "name": "Jimily",
+  "short_name": "Jimily",
+  "description": "记米粒，支持 AI 助手 Jimi 的智能记账工具",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",

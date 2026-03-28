@@ -942,7 +942,7 @@ const exportCsv = () => {
 };
 
 const downloadCsvTemplate = () => {
-  const fileName = "Cashbook模板.csv";
+  const fileName = "记米粒模板.csv";
   const url = "/csvtemplate.csv";
   const link = document.createElement("a");
   link.href = url;

@@ -6,29 +6,29 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   app: {
     head: {
-      title: "Cashbook",
+      title: "Jimily",
       charset: "utf-8",
       viewport: "width=device-width, initial-scale=1",
       meta: [
         {
           name: "description",
-          content: "Cashbook是快速记账的工具，支持AI记账和丰富的分析功能",
+          content: "记米粒是支持 AI 助手 Jimi 的个人记账工具，提供便捷记账与丰富分析功能",
         },
         {
           name: "keywords",
           content:
-            "Cashbook,快速记账,记账,AI记账,财务管理,个人财务,财务规划,财务分析,财务报表,财务报告,财务分析报告,财务分析报告模板,财务分析报告范本,财务分析报告范文,财务分析报告范例,财务分析报告范例模板,财务分析报告范例范文,财务分析报告范例范例",
+            "Jimily,记米粒,快速记账,记账,AI记账,财务管理,个人财务,财务规划,财务分析,财务报表,财务报告,财务分析报告",
         },
         { name: "theme-color", content: "#16a34a" },
         { name: "apple-mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-        { name: "apple-mobile-web-app-title", content: "Cashbook" },
-        { name: "application-name", content: "Cashbook" },
+        { name: "apple-mobile-web-app-title", content: "Jimily" },
+        { name: "application-name", content: "Jimily" },
         { name: "msapplication-TileColor", content: "#16a34a" },
         { name: "msapplication-tap-highlight", content: "no" },
         { name: "mobile-web-app-capable", content: "yes" },
-        { property: "og:title", content: "Cashbook" },
-        { property: "og:description", content: "Cashbook, 快速记账!" },
+        { property: "og:title", content: "Jimily" },
+        { property: "og:description", content: "记米粒，支持 AI 助手 Jimi 的智能记账工具" },
         { property: "og:type", content: "website" },
         { property: "og:image", content: "/logo.webp" },
       ],

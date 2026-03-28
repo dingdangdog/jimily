@@ -14,11 +14,11 @@ async function runStartupInitialization() {
     await prisma.systemConfig.create({
       data: {
         id: 1,
-        title: "Cashbook - 开源免费个人财务管理工具",
+        title: "记米粒 - 开源免费的 AI 记账与个人财务管理工具",
         description:
-          "Cashbook 是一款开源免费的个人财务管理工具，旨在帮助用户更好地管理自己的财务状况。",
+          "记米粒是一款开源免费的 AI 记账与个人财务管理工具，旨在帮助用户更轻松地记录和管理个人财务。",
         keywords:
-          "Cashbook, 个人财务管理, 个人记账, docker部署, 开源免费, 财务管理工具, dingdangdog, 月上老狗, lodenhu",
+          "Jimily,记米粒,个人财务管理,个人记账,AI记账,docker部署,开源免费,财务管理工具,dingdangdog,月上老狗,lodenhu",
         version: String(runtimeConfig.appVersion),
         openRegister: false,
         createAt: new Date(),

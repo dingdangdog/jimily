@@ -45,9 +45,9 @@ const showUserMenu = ref(false);
 
           <!-- Logo and brand -->
           <div class="items-center ml-2 md:ml-0 hidden sm:flex">
-            <img src="/logo.webp" alt="Cashbook" class="h-8 w-8" />
+            <img src="/logo.webp" alt="Jimily" class="h-8 w-8" />
             <span class="ml-2 text-xl font-bold text-primary-600">
-              Cashbook
+              记米粒
             </span>
           </div>
         </div>
