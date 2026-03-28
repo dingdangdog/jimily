@@ -1,18 +1,11 @@
 <template>
-  <div
-    v-if="showFlowJsonImportDialog"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-  >
+  <div v-if="showFlowJsonImportDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
     <div
       class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface text-foreground shadow-xl"
-      @click.stop
-    >
+      @click.stop>
       <div class="flex items-center justify-between border-b border-border p-2 md:p-4">
         <h3 class="text-base font-semibold md:text-lg">JSON 流水导入</h3>
-        <button
-          class="text-foreground/40 transition-colors hover:text-foreground/70"
-          @click="closeDialog"
-        >
+        <button class="text-foreground/40 transition-colors hover:text-foreground/70" @click="closeDialog">
           <XMarkIcon class="h-5 w-5" />
         </button>
       </div>
@@ -24,21 +17,13 @@
           </label>
           <div class="space-y-2">
             <label class="flex items-center">
-              <input
-                v-model="importFlag"
-                type="radio"
-                value="add"
-                class="h-4 w-4 border-border text-primary-600 focus:ring-primary-500"
-              />
+              <input v-model="importFlag" type="radio" value="add"
+                class="h-4 w-4 border-border text-primary-600 focus:ring-primary-500" />
               <span class="ml-2 text-sm text-foreground/80">保留原有流水</span>
             </label>
             <label class="flex items-center">
-              <input
-                v-model="importFlag"
-                type="radio"
-                value="overwrite"
-                class="h-4 w-4 border-border text-red-600 focus:ring-red-500"
-              />
+              <input v-model="importFlag" type="radio" value="overwrite"
+                class="h-4 w-4 border-border text-red-600 focus:ring-red-500" />
               <span class="ml-2 text-sm text-foreground/80">删除原有流水</span>
             </label>
           </div>
@@ -49,17 +34,10 @@
             选择 JSON 文件
           </label>
           <div class="relative">
-            <input
-              ref="fileInput"
-              type="file"
-              accept=".json"
-              class="hidden"
-              @change="onFileChange"
-            />
+            <input ref="fileInput" type="file" accept=".json" class="hidden" @change="onFileChange" />
             <button
               class="flex w-full items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-foreground transition-colors hover:bg-surface"
-              @click="() => fileInput?.click()"
-            >
+              @click="() => fileInput?.click()">
               <DocumentArrowUpIcon class="h-5 w-5 text-foreground/40" />
               <span class="text-sm">
                 {{ jsonFile ? jsonFile.name : "点击选择 JSON 文件" }}
@@ -72,21 +50,15 @@
         </div>
 
         <div class="text-center">
-          <div
-            v-if="jsonFlows.length > 0"
-            class="rounded-md border border-primary-500/20 bg-primary-500/10 p-3"
-          >
+          <div v-if="jsonFlows.length > 0" class="rounded-md border border-primary-500/20 bg-primary-500/10 p-3">
             <div class="flex items-center justify-center gap-2">
               <CheckCircleIcon class="h-5 w-5 text-primary-600" />
               <span class="text-sm text-primary-700">
-                共解析到 {{ jsonFlows.length }} 条流水，导入时会自动按 payType/渠道匹配资金账户
+                共解析到 {{ jsonFlows.length }} 条流水
               </span>
             </div>
           </div>
-          <div
-            v-else
-            class="rounded-md border border-border bg-surface-muted p-3"
-          >
+          <div v-else class="rounded-md border border-border bg-surface-muted p-3">
             <div class="flex items-center justify-center gap-2">
               <ExclamationTriangleIcon class="h-5 w-5 text-foreground/60" />
               <span class="text-sm text-foreground/70">
@@ -100,15 +72,12 @@
       <div class="flex flex-col gap-3 border-t border-border bg-surface-muted p-4 sm:flex-row">
         <button
           class="flex-1 rounded-md border border-border px-4 py-2 text-foreground/80 transition-colors hover:bg-surface"
-          @click="closeDialog"
-        >
+          @click="closeDialog">
           取消
         </button>
         <button
           class="flex-1 rounded-md bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-secondary-400"
-          :disabled="jsonFlows.length === 0 || importing"
-          @click="submitImport"
-        >
+          :disabled="jsonFlows.length === 0 || importing" @click="submitImport">
           {{ importing ? "导入中..." : "确认导入" }}
         </button>
       </div>
