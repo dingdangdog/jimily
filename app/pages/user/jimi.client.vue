@@ -56,6 +56,12 @@ const goJsonImport = () => {
 
 /** 账本统计 */
 type StatsRange = "week" | "month" | "year" | "all";
+const statsRanges: { key: StatsRange; label: string }[] = [
+  { key: 'week', label: '本周' },
+  { key: 'month', label: '本月' },
+  { key: 'year', label: '本年' },
+  { key: 'all', label: '全部' },
+]
 const statsTab = ref<StatsRange>("month");
 const stats = ref<{
   totalIncome: number;
@@ -217,24 +223,21 @@ const goBack = () => {
     </div>
     <!-- 账本统计：Tab 本周 / 本月 / 本年 / 全部 -->
     <div class="flex-shrink-0 border-b border-border bg-surface-muted/50 p-2 md:px-4">
-      <div class="flex items-center gap-2 mb-2">
+      <div class="flex items-center gap-2 mb-2 flex-wrap">
         <ChartBarIcon class="h-4 w-4 text-primary-600" />
         <span class="text-sm font-medium text-foreground/80">账本统计</span>
 
+
         <div class="flex gap-1">
-          <button v-for="r in [
-            { key: 'week', label: '本周' },
-            { key: 'month', label: '本月' },
-            { key: 'year', label: '本年' },
-            { key: 'all', label: '全部' },
-          ]" :key="r.key" type="button" class="px-2.5 py-1 rounded-md text-xs font-medium transition-colors" :class="statsTab === r.key
-            ? 'bg-primary-500 text-white'
-            : 'text-foreground/70 hover:bg-surface hover:text-foreground'
-            " @click="statsTab = r.key as StatsRange">
+          <button v-for="r in statsRanges" :key="r.key" type="button"
+            class="px-2.5 py-1 rounded-md text-xs font-medium transition-colors" :class="statsTab === r.key
+              ? 'bg-primary-500 text-white'
+              : 'text-foreground/70 hover:bg-surface hover:text-foreground'
+              " @click="statsTab = r.key">
             {{ r.label }}
           </button>
         </div>
-        <div class="ml-auto relative hidden md:block">
+        <div class="relative hidden md:block">
           <button type="button"
             class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm text-foreground/80 hover:bg-surface-muted border border-border"
             @click.stop="toolsOpen = !toolsOpen">
@@ -263,11 +266,9 @@ const goBack = () => {
               <DocumentTextIcon class="h-4 w-4 text-primary-600" />
               京东金融
             </button>
-            <button
-              type="button"
+            <button type="button"
               class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-muted"
-              @click="goJsonImport"
-            >
+              @click="goJsonImport">
               <DocumentTextIcon class="h-4 w-4 text-primary-600" />
               JSON 导入
             </button>
@@ -280,8 +281,7 @@ const goBack = () => {
       <div v-else class="grid grid-cols-3 gap-2">
         <div
           class="rounded-lg bg-surface border border-border p-2 flex flex-col items-center cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
-          @click="openFlowDetail('收入')"
-        >
+          @click="openFlowDetail('收入')">
           <ArrowTrendingUpIcon class="h-4 w-4 text-primary-600 mb-0.5" />
           <span class="text-xs text-foreground/60">总收入</span>
           <span class="text-sm font-semibold text-primary-700 dark:text-primary-300">
@@ -290,8 +290,7 @@ const goBack = () => {
         </div>
         <div
           class="rounded-lg bg-surface border border-border p-2 flex flex-col items-center cursor-pointer transition-all hover:shadow-md hover:scale-[1.02]"
-          @click="openFlowDetail('支出')"
-        >
+          @click="openFlowDetail('支出')">
           <ArrowTrendingDownIcon class="h-4 w-4 text-red-600 mb-0.5" />
           <span class="text-xs text-foreground/60">总支出</span>
           <span class="text-sm font-semibold text-red-700 dark:text-red-300">
@@ -319,7 +318,8 @@ const goBack = () => {
     </div>
 
     <!-- CSV 流水导入对话框（与账本日历一致） -->
-    <div v-if="showFlowExcelImportDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+    <div v-if="showFlowExcelImportDialog"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
       <div
         class="bg-surface text-foreground rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col border border-border"
         @click.stop>
@@ -338,50 +338,30 @@ const goBack = () => {
     </div>
 
     <!-- 流水详情弹窗（与日历点击收入/支出效果一致） -->
-    <div
-      v-if="showFlowTable"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center p-2 md:p-4 z-[70]"
-      @click="showFlowTable = false"
-    >
+    <div v-if="showFlowTable" class="fixed inset-0 bg-black/50 flex items-center justify-center p-2 md:p-4 z-[70]"
+      @click="showFlowTable = false">
       <div
         class="bg-surface rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] overflow-hidden flex flex-col border border-border"
-        @click.stop
-      >
-        <div
-          class="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0"
-        >
+        @click.stop>
+        <div class="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
           <h2 class="text-base font-bold text-foreground">
             {{ flowQuery.startDay || "全部" }} ~ {{ flowQuery.endDay || "全部" }}
             <span v-if="flowQuery.flowType" class="text-foreground/70">
-              · {{ flowQuery.flowType }}</span
-            >
+              · {{ flowQuery.flowType }}</span>
           </h2>
-          <button
-            type="button"
-            @click="showFlowTable = false"
-            class="px-3 py-1.5 bg-surface-muted hover:bg-surface text-foreground rounded-lg text-sm transition-colors"
-          >
+          <button type="button" @click="showFlowTable = false"
+            class="px-3 py-1.5 bg-surface-muted hover:bg-surface text-foreground rounded-lg text-sm transition-colors">
             关闭
           </button>
         </div>
         <div class="flex-1 overflow-auto p-4">
-          <DatasFlowTable
-            ref="flowTableRef"
-            :query="flowQuery"
-            v-if="showFlowTable"
-            @edit-item="editItem"
-            :actions="true"
-          />
+          <DatasFlowTable ref="flowTableRef" :query="flowQuery" v-if="showFlowTable" @edit-item="editItem"
+            :actions="true" />
         </div>
       </div>
     </div>
 
-    <FlowEditDialog
-      v-if="showFlowEditDialog"
-      title="修改流水"
-      :flow="selectedFlow"
-      :success-callback="onFlowEditSuccess"
-    />
+    <FlowEditDialog v-if="showFlowEditDialog" title="修改流水" :flow="selectedFlow" :success-callback="onFlowEditSuccess" />
 
     <input ref="csvFileInput" type="file" accept=".csv,.xlsx" style="display: none" @change="readCsvInfo" />
     <FlowJsonImportDialog :success-callback="onFlowEditSuccess" />
