@@ -1,74 +1,92 @@
 <template>
-  <!-- JSON导入对话框 -->
-  <div v-if="showFlowJsonImportDialog" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+  <div
+    v-if="showFlowJsonImportDialog"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+  >
     <div
-      class="bg-surface text-foreground rounded-lg shadow-xl w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto border border-border"
-      @click.stop>
-      <!-- 标题栏 -->
-      <div class="flex items-center justify-between p-2 md:p-4 border-b border-border">
-        <h3 class="text-base md:text-lg font-semibold">JSON 流水导入</h3>
-        <button @click="closeDialog" class="text-foreground/40 hover:text-foreground/70 transition-colors">
-          <XMarkIcon class="w-5 h-5" />
+      class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-surface text-foreground shadow-xl"
+      @click.stop
+    >
+      <div class="flex items-center justify-between border-b border-border p-2 md:p-4">
+        <h3 class="text-base font-semibold md:text-lg">JSON 流水导入</h3>
+        <button
+          class="text-foreground/40 transition-colors hover:text-foreground/70"
+          @click="closeDialog"
+        >
+          <XMarkIcon class="h-5 w-5" />
         </button>
       </div>
 
-      <!-- 表单内容 -->
-      <div class="p-4 space-y-4">
-        <!-- 导入模式选择 -->
+      <div class="space-y-4 p-4">
         <div>
-          <label class="block text-sm font-medium text-foreground/80 mb-2">
+          <label class="mb-2 block text-sm font-medium text-foreground/80">
             导入模式
           </label>
           <div class="space-y-2">
             <label class="flex items-center">
-              <input type="radio" v-model="importFlag" value="add"
-                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-border" />
-              <span class="ml-2 text-sm text-foreground/80">
-                保留原有流水
-              </span>
+              <input
+                v-model="importFlag"
+                type="radio"
+                value="add"
+                class="h-4 w-4 border-border text-primary-600 focus:ring-primary-500"
+              />
+              <span class="ml-2 text-sm text-foreground/80">保留原有流水</span>
             </label>
             <label class="flex items-center">
-              <input type="radio" v-model="importFlag" value="overwrite"
-                class="h-4 w-4 text-red-600 focus:ring-red-500 border-border" />
-              <span class="ml-2 text-sm text-foreground/80">
-                删除原有流水
-              </span>
+              <input
+                v-model="importFlag"
+                type="radio"
+                value="overwrite"
+                class="h-4 w-4 border-border text-red-600 focus:ring-red-500"
+              />
+              <span class="ml-2 text-sm text-foreground/80">删除原有流水</span>
             </label>
           </div>
         </div>
 
-        <!-- 文件选择 -->
         <div>
-          <label class="block text-sm font-medium text-foreground/80 mb-2">
+          <label class="mb-2 block text-sm font-medium text-foreground/80">
             选择 JSON 文件
           </label>
           <div class="relative">
-            <input type="file" ref="fileInput" accept=".json" @change="onFileChange" class="hidden" />
-            <button @click="() => fileInput?.click()"
-              class="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground hover:bg-surface transition-colors text-left flex items-center gap-2">
+            <input
+              ref="fileInput"
+              type="file"
+              accept=".json"
+              class="hidden"
+              @change="onFileChange"
+            />
+            <button
+              class="flex w-full items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-foreground transition-colors hover:bg-surface"
+              @click="() => fileInput?.click()"
+            >
               <DocumentArrowUpIcon class="h-5 w-5 text-foreground/40" />
               <span class="text-sm">
                 {{ jsonFile ? jsonFile.name : "点击选择 JSON 文件" }}
               </span>
             </button>
-            <!-- 文件大小显示 -->
             <div v-if="jsonFile" class="mt-1 text-xs text-foreground/60">
               文件大小: {{ formatFileSize(jsonFile.size) }}
             </div>
           </div>
         </div>
 
-        <!-- 状态提示 -->
         <div class="text-center">
-          <div v-if="jsonFlows.length > 0" class="p-3 bg-primary-500/10 border border-primary-500/20 rounded-md">
+          <div
+            v-if="jsonFlows.length > 0"
+            class="rounded-md border border-primary-500/20 bg-primary-500/10 p-3"
+          >
             <div class="flex items-center justify-center gap-2">
               <CheckCircleIcon class="h-5 w-5 text-primary-600" />
               <span class="text-sm text-primary-700">
-                共解析到 {{ jsonFlows.length }} 条流水数据，可以点击确认导入
+                共解析到 {{ jsonFlows.length }} 条流水，导入时会自动按 payType/渠道匹配资金账户
               </span>
             </div>
           </div>
-          <div v-else class="p-3 bg-surface-muted border border-border rounded-md">
+          <div
+            v-else
+            class="rounded-md border border-border bg-surface-muted p-3"
+          >
             <div class="flex items-center justify-center gap-2">
               <ExclamationTriangleIcon class="h-5 w-5 text-foreground/60" />
               <span class="text-sm text-foreground/70">
@@ -79,15 +97,19 @@
         </div>
       </div>
 
-      <!-- 操作按钮 -->
-      <div class="flex flex-col sm:flex-row gap-3 p-4 border-t border-border bg-surface-muted">
-        <button @click="closeDialog"
-          class="flex-1 px-4 py-2 text-foreground/80 border border-border rounded-md hover:bg-surface transition-colors">
+      <div class="flex flex-col gap-3 border-t border-border bg-surface-muted p-4 sm:flex-row">
+        <button
+          class="flex-1 rounded-md border border-border px-4 py-2 text-foreground/80 transition-colors hover:bg-surface"
+          @click="closeDialog"
+        >
           取消
         </button>
-        <button @click="submitImport" :disabled="!(jsonFlows.length > 0)"
-          class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-secondary-400 disabled:cursor-not-allowed transition-colors">
-          确认导入
+        <button
+          class="flex-1 rounded-md bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-secondary-400"
+          :disabled="jsonFlows.length === 0 || importing"
+          @click="submitImport"
+        >
+          {{ importing ? "导入中..." : "确认导入" }}
         </button>
       </div>
     </div>
@@ -95,17 +117,17 @@
 </template>
 
 <script setup lang="ts">
-import { showFlowJsonImportDialog } from "~/utils/flag";
-import { ref } from "vue";
-import type { Flow } from "~/utils/table";
 import {
-  XMarkIcon,
-  DocumentArrowUpIcon,
   CheckCircleIcon,
+  DocumentArrowUpIcon,
   ExclamationTriangleIcon,
+  XMarkIcon,
 } from "@heroicons/vue/24/outline";
+import { onMounted, ref } from "vue";
 
-// ESC键监听
+import type { Flow } from "~/utils/table";
+import { showFlowJsonImportDialog } from "~/utils/flag";
+
 useEscapeKey(() => {
   if (showFlowJsonImportDialog.value) {
     showFlowJsonImportDialog.value = false;
@@ -114,13 +136,14 @@ useEscapeKey(() => {
 
 const { successCallback } = defineProps(["successCallback"]);
 
-/**
- * 文件上传相关代码
- */
 const importFlag = ref("add");
 const jsonFile = ref<File | null>(null);
 const jsonFlows = ref<Flow[]>([]);
 const fileInput = ref<HTMLInputElement>();
+const importing = ref(false);
+const fundAccounts = ref<
+  Array<{ id: number; name: string; institution?: string | null }>
+>([]);
 
 const isPlainObject = (value: unknown): value is Record<string, any> => {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -133,10 +156,7 @@ const pickArrayFromObject = (obj: Record<string, any>): any[] => {
   const firstArrayKey = Object.keys(obj).find((key) =>
     Array.isArray(obj[key]),
   );
-  if (firstArrayKey) {
-    return obj[firstArrayKey] as any[];
-  }
-  return [];
+  return firstArrayKey ? (obj[firstArrayKey] as any[]) : [];
 };
 
 const mapJsonToFlow = (raw: Record<string, any>): Flow | null => {
@@ -239,16 +259,146 @@ const normalizeJsonFlows = (input: unknown): Flow[] => {
   return result;
 };
 
-// 格式化文件大小
+const normalizeAccountText = (value: unknown): string => {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, "")
+    .toLowerCase();
+};
+
+const buildAccountSearchTerms = (value: unknown): string[] => {
+  const base = Array.from(
+    new Set(
+      String(value ?? "")
+        .split(/[\/、,，\s]+/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  );
+  const extras: string[] = [];
+  for (const item of base) {
+    if (item.includes("微信")) extras.push("微信");
+    if (item.includes("支付宝")) extras.push("支付宝");
+    if (item.includes("京东")) extras.push("京东");
+    if (item.includes("京东金融")) extras.push("京东金融");
+    if (item.includes("现金")) extras.push("现金");
+    if (item.includes("银行卡") || item.includes("储蓄卡")) extras.push("银行卡");
+    if (item.includes("信用卡")) extras.push("信用卡");
+  }
+  return Array.from(new Set([...base, ...extras]));
+};
+
+const findMatchedFundAccount = (
+  hint: string,
+): { id: number; name: string; institution?: string | null } | null => {
+  const normalizedHint = normalizeAccountText(hint);
+  if (!normalizedHint) return null;
+
+  const exact = fundAccounts.value.find((account) => {
+    return (
+      normalizeAccountText(account.name) === normalizedHint ||
+      normalizeAccountText(account.institution) === normalizedHint
+    );
+  });
+  if (exact) return exact;
+
+  const terms = buildAccountSearchTerms(hint).map((item) =>
+    normalizeAccountText(item),
+  );
+  if (!terms.length) return null;
+
+  return (
+    fundAccounts.value.find((account) => {
+      const accountTexts = [
+        normalizeAccountText(account.name),
+        normalizeAccountText(account.institution),
+      ].filter(Boolean);
+      return terms.some((term) =>
+        accountTexts.some(
+          (text) => text.includes(term) || term.includes(text),
+        ),
+      );
+    }) ?? null
+  );
+};
+
+const loadFundAccounts = async () => {
+  try {
+    const res = await doApi.post<
+      Array<{ id: number; name: string; institution?: string | null }>
+    >("api/entry/account/all", { status: 1 });
+    fundAccounts.value = Array.isArray(res) ? res : [];
+  } catch {
+    fundAccounts.value = [];
+  }
+};
+
+const ensureFundAccountByHint = async (
+  hint: string,
+  cache: Map<string, number>,
+): Promise<number | null> => {
+  const normalizedHint = normalizeAccountText(hint);
+  if (!normalizedHint) return null;
+
+  const cached = cache.get(normalizedHint);
+  if (cached != null) return cached;
+
+  const existed = findMatchedFundAccount(hint);
+  if (existed) {
+    cache.set(normalizedHint, existed.id);
+    return existed.id;
+  }
+
+  const created = await doApi.post<{
+    id: number;
+    name: string;
+    institution?: string | null;
+  }>("api/entry/account/add", {
+    name: String(hint).trim().slice(0, 100),
+    status: 1,
+  });
+
+  if (created?.id != null) {
+    fundAccounts.value.unshift(created);
+    cache.set(normalizedHint, created.id);
+    return created.id;
+  }
+
+  return null;
+};
+
+const mergePayTypeToFundAccounts = async (flows: Flow[]): Promise<Flow[]> => {
+  if (!flows.length) return [];
+  if (!fundAccounts.value.length) {
+    await loadFundAccounts();
+  }
+
+  const cache = new Map<string, number>();
+  const merged: Flow[] = [];
+  for (const item of flows) {
+    const flow = { ...item };
+    if (flow.accountId == null) {
+      const hint = String(flow.channelHint ?? "").trim();
+      if (hint) {
+        const accountId = await ensureFundAccountByHint(hint, cache);
+        if (accountId != null) {
+          flow.accountId = accountId;
+        }
+      }
+    }
+    merged.push(flow);
+  }
+  return merged;
+};
+
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 Bytes";
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
-// 文件选择处理
 const onFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
@@ -261,74 +411,84 @@ const onFileChange = (event: Event) => {
   }
 };
 
-// 读取json文件并导入
 const readJsonInfo = () => {
   const file = jsonFile.value;
   if (!file) {
     jsonFlows.value = [];
     return;
   }
-  // 创建FileReader对象
+
   const reader = new FileReader();
 
-  // 设置文件读取完成后的回调函数
   reader.onload = (event) => {
     try {
       const text = String(event.target?.result || "");
       if (!text.trim()) {
         jsonFlows.value = [];
-        Alert.warning("文件内容为空，请确认导出的JSON是否正确");
+        Alert.warning("文件内容为空，请确认导出的 JSON 是否正确");
         return;
       }
+
       const parsed = JSON.parse(text);
       jsonFlows.value = normalizeJsonFlows(parsed);
       if (jsonFlows.value.length > 0) {
         Alert.success(
-          "共解析到" + jsonFlows.value.length + "条流水数据，可以点击确认导入",
+          `共解析到 ${jsonFlows.value.length} 条流水，可以点击确认导入`,
         );
       } else {
         Alert.warning("未发现有效流水数据，请检查文件内容");
       }
-    } catch (error) {
-      Alert.error("文件内容好像不太对哦");
+    } catch {
+      Alert.error("文件内容格式不正确");
     }
   };
 
-  // 读取文件的内容为文本
   reader.readAsText(file);
 };
 
-const submitImport = () => {
-  doApi
-    .post<{ count: number; skipped?: number }>("api/entry/flow/imports", {
-      mode: importFlag.value,
-      flows: jsonFlows.value,
-    })
-    .then((res) => {
-      if (res && typeof res.count === "number") {
-        const msg =
-          (res.skipped ?? 0) > 0
-            ? `导入成功，共导入 ${res.count} 条流水，已跳过 ${res.skipped} 条重复`
-            : `导入成功，共导入 ${res.count} 条流水`;
-        Alert.success(msg);
-        successCallback();
-        showFlowJsonImportDialog.value = false;
-      } else if (res && res.count === 0 && (res.skipped ?? 0) > 0) {
-        Alert.warning(`未新增流水，共跳过 ${res.skipped} 条重复`);
-        successCallback();
-        showFlowJsonImportDialog.value = false;
-      } else {
-        Alert.error("导入失败，请检查数据！");
-      }
-    })
-    .catch(() => {
-      Alert.error("导入失败，服务出错！");
-    });
+const submitImport = async () => {
+  if (jsonFlows.value.length === 0 || importing.value) return;
+
+  importing.value = true;
+  try {
+    const flows = await mergePayTypeToFundAccounts(jsonFlows.value);
+    const res = await doApi.post<{ count: number; skipped?: number }>(
+      "api/entry/flow/imports",
+      {
+        mode: importFlag.value,
+        flows,
+      },
+    );
+
+    if (res && typeof res.count === "number") {
+      const msg =
+        (res.skipped ?? 0) > 0
+          ? `导入成功，共导入 ${res.count} 条流水，已跳过 ${res.skipped} 条重复`
+          : `导入成功，共导入 ${res.count} 条流水`;
+      Alert.success(msg);
+      successCallback();
+      showFlowJsonImportDialog.value = false;
+    } else if (res && res.count === 0 && (res.skipped ?? 0) > 0) {
+      Alert.warning(`未新增流水，共跳过 ${res.skipped} 条重复`);
+      successCallback();
+      showFlowJsonImportDialog.value = false;
+    } else {
+      Alert.error("导入失败，请检查数据");
+    }
+  } catch {
+    Alert.error("导入失败，服务出错");
+  } finally {
+    importing.value = false;
+  }
 };
 
 const closeDialog = () => {
   showFlowJsonImportDialog.value = false;
 };
+
+onMounted(() => {
+  loadFundAccounts();
+});
 </script>
 
 <style scoped></style>
