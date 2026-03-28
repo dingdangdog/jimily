@@ -537,56 +537,19 @@ async function routeUserIntent(opts: {
     if (parsed.action?.name && JSON_SUPPORTED_ACTIONS.has(parsed.action.name)) {
       return parsed;
     }
-  } catch {
-    // 路由失败时走规则兜底
+  } catch (e) {
+    throw new Error(
+      "意图识别暂时不可用，请稍后再试。若反复出现，请检查网络或 AI 服务配置。",
+      { cause: e },
+    );
   }
 
-  const fallback = routeByRules(latestUserText);
-  if (fallback) return fallback;
   return {
     action: { name: "none", args: {} },
     reply:
-      "我有点没跟上呢～如果是记账或查账，跟我说下金额、是收入还是支出，或想查哪段时间就好。",
+      "我没理解您的需求呢，试试换个说法吧~",
     confidence: 0.2,
   };
-}
-
-function routeByRules(text: string): JsonPlan | null {
-  const t = text.trim();
-  if (!t) return null;
-  if (/(消费偏好|消费结构|支出结构|画像|按分类分析|偏好分析)/.test(t)) {
-    return { action: { name: "analyze_consumption_preferences", args: {} }, confidence: 0.7 };
-  }
-  if (/(最高|最大|最贵|峰值|极值)/.test(t)) {
-    return { action: { name: "query_flow_extremes", args: {} }, confidence: 0.65 };
-  }
-  if (/(统计|汇总|花了多少|总支出|总收入|收支)/.test(t)) {
-    return { action: { name: "get_statistics", args: {} }, confidence: 0.65 };
-  }
-  if (/(查|查询|明细|流水|账单)/.test(t)) {
-    return { action: { name: "query_flows", args: {} }, confidence: 0.6 };
-  }
-  if (/(记账|记一笔|新增支出|新增收入|花了|收入了|买了)/.test(t)) {
-    return { action: { name: "add_flow", args: {} }, confidence: 0.6 };
-  }
-  if (
-    /(添加|新增|创建|加).{0,60}(资金账户|钱包|账户)/.test(t) &&
-    /(微信|支付宝|银行卡|现金|信用卡|借记卡|储蓄|花呗|白条)/.test(t)
-  ) {
-    return {
-      action: { name: "batch_add_fund_accounts", args: {} },
-      confidence: 0.72,
-    };
-  }
-  if (
-    /(其实是|改成|换成|纠正|改一下|修改|记错|不对|少记|多记|支付宝|微信支付|支付|付的)/.test(
-      t,
-    ) &&
-    /(刚才|上一笔|那笔|这条|米线|流水|账户|金额|外卖|淘宝|块|元)/.test(t)
-  ) {
-    return { action: { name: "update_flow", args: {} }, confidence: 0.58 };
-  }
-  return null;
 }
 
 function verifyToolOutput(
