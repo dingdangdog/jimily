@@ -18,10 +18,8 @@ ENV NODE_ENV=production
 ENV TZ=Asia/Shanghai
 
 COPY --from=builder /app/.output ./
-# COPY .output ./
-COPY ./package.json ./package.json
-COPY ./prisma ./prisma
-COPY ./prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/prisma/generated ./prisma/generated
+COPY --from=builder /app/prisma/migrations ./prisma/migrations
 
 # ENV DATABASE_MODE=postgre
 
