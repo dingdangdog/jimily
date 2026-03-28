@@ -17,7 +17,7 @@ export default defineNuxtConfig({
         {
           name: "keywords",
           content:
-            "Jimily,记米粒,快速记账,记账,AI记账,财务管理,个人财务,财务规划,财务分析,财务报表,财务报告,财务分析报告",
+            "Jimily,jimili,记米粒,cashbook,个人财务管理,个人记账,AI记账,docker部署,开源免费,财务管理工具,dingdangdog,月上老狗,lodenhu",
         },
         { name: "theme-color", content: "#16a34a" },
         { name: "apple-mobile-web-app-capable", content: "yes" },
