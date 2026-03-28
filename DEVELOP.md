@@ -17,5 +17,8 @@ docker buildx build --platform linux/amd64 -t dingdangdog/jimily:5.1.2-amd64 --l
 
 docker buildx build --platform linux/arm64 -t dingdangdog/jimily:5.1.2-arm64 --output type=docker,dest=./dingdangdog-jimily-5.1.2-arm64.tar .
 
-docker load -i ./dingdangdog-jimily-5.1.2-arm64.tar
+
+docker save -o jimily.5.1.2.tar dingdangdog/jimily:5.1.2
+
+docker load -i jimily.5.1.2.tar
 ```
