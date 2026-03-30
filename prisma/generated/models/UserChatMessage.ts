@@ -42,6 +42,10 @@ export type UserChatMessageMinAggregateOutputType = {
   role: string | null
   content: string | null
   createdAt: Date | null
+  clientRequestId: string | null
+  usedProviderId: string | null
+  usedProviderName: string | null
+  usedApiModel: string | null
 }
 
 export type UserChatMessageMaxAggregateOutputType = {
@@ -50,6 +54,10 @@ export type UserChatMessageMaxAggregateOutputType = {
   role: string | null
   content: string | null
   createdAt: Date | null
+  clientRequestId: string | null
+  usedProviderId: string | null
+  usedProviderName: string | null
+  usedApiModel: string | null
 }
 
 export type UserChatMessageCountAggregateOutputType = {
@@ -59,6 +67,10 @@ export type UserChatMessageCountAggregateOutputType = {
   content: number
   meta: number
   createdAt: number
+  clientRequestId: number
+  usedProviderId: number
+  usedProviderName: number
+  usedApiModel: number
   _all: number
 }
 
@@ -79,6 +91,10 @@ export type UserChatMessageMinAggregateInputType = {
   role?: true
   content?: true
   createdAt?: true
+  clientRequestId?: true
+  usedProviderId?: true
+  usedProviderName?: true
+  usedApiModel?: true
 }
 
 export type UserChatMessageMaxAggregateInputType = {
@@ -87,6 +103,10 @@ export type UserChatMessageMaxAggregateInputType = {
   role?: true
   content?: true
   createdAt?: true
+  clientRequestId?: true
+  usedProviderId?: true
+  usedProviderName?: true
+  usedApiModel?: true
 }
 
 export type UserChatMessageCountAggregateInputType = {
@@ -96,6 +116,10 @@ export type UserChatMessageCountAggregateInputType = {
   content?: true
   meta?: true
   createdAt?: true
+  clientRequestId?: true
+  usedProviderId?: true
+  usedProviderName?: true
+  usedApiModel?: true
   _all?: true
 }
 
@@ -192,6 +216,10 @@ export type UserChatMessageGroupByOutputType = {
   content: string
   meta: runtime.JsonValue | null
   createdAt: Date
+  clientRequestId: string | null
+  usedProviderId: string | null
+  usedProviderName: string | null
+  usedApiModel: string | null
   _count: UserChatMessageCountAggregateOutputType | null
   _avg: UserChatMessageAvgAggregateOutputType | null
   _sum: UserChatMessageSumAggregateOutputType | null
@@ -199,7 +227,7 @@ export type UserChatMessageGroupByOutputType = {
   _max: UserChatMessageMaxAggregateOutputType | null
 }
 
-type GetUserChatMessageGroupByPayload<T extends UserChatMessageGroupByArgs> = Prisma.PrismaPromise<
+export type GetUserChatMessageGroupByPayload<T extends UserChatMessageGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<UserChatMessageGroupByOutputType, T['by']> &
       {
@@ -224,6 +252,10 @@ export type UserChatMessageWhereInput = {
   content?: Prisma.StringFilter<"UserChatMessage"> | string
   meta?: Prisma.JsonNullableFilter<"UserChatMessage">
   createdAt?: Prisma.DateTimeFilter<"UserChatMessage"> | Date | string
+  clientRequestId?: Prisma.StringNullableFilter<"UserChatMessage"> | string | null
+  usedProviderId?: Prisma.StringNullableFilter<"UserChatMessage"> | string | null
+  usedProviderName?: Prisma.StringNullableFilter<"UserChatMessage"> | string | null
+  usedApiModel?: Prisma.StringNullableFilter<"UserChatMessage"> | string | null
 }
 
 export type UserChatMessageOrderByWithRelationInput = {
@@ -233,6 +265,10 @@ export type UserChatMessageOrderByWithRelationInput = {
   content?: Prisma.SortOrder
   meta?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
+  usedProviderId?: Prisma.SortOrderInput | Prisma.SortOrder
+  usedProviderName?: Prisma.SortOrderInput | Prisma.SortOrder
+  usedApiModel?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type UserChatMessageWhereUniqueInput = Prisma.AtLeast<{
@@ -245,6 +281,10 @@ export type UserChatMessageWhereUniqueInput = Prisma.AtLeast<{
   content?: Prisma.StringFilter<"UserChatMessage"> | string
   meta?: Prisma.JsonNullableFilter<"UserChatMessage">
   createdAt?: Prisma.DateTimeFilter<"UserChatMessage"> | Date | string
+  clientRequestId?: Prisma.StringNullableFilter<"UserChatMessage"> | string | null
+  usedProviderId?: Prisma.StringNullableFilter<"UserChatMessage"> | string | null
+  usedProviderName?: Prisma.StringNullableFilter<"UserChatMessage"> | string | null
+  usedApiModel?: Prisma.StringNullableFilter<"UserChatMessage"> | string | null
 }, "id">
 
 export type UserChatMessageOrderByWithAggregationInput = {
@@ -254,6 +294,10 @@ export type UserChatMessageOrderByWithAggregationInput = {
   content?: Prisma.SortOrder
   meta?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
+  usedProviderId?: Prisma.SortOrderInput | Prisma.SortOrder
+  usedProviderName?: Prisma.SortOrderInput | Prisma.SortOrder
+  usedApiModel?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserChatMessageCountOrderByAggregateInput
   _avg?: Prisma.UserChatMessageAvgOrderByAggregateInput
   _max?: Prisma.UserChatMessageMaxOrderByAggregateInput
@@ -271,6 +315,10 @@ export type UserChatMessageScalarWhereWithAggregatesInput = {
   content?: Prisma.StringWithAggregatesFilter<"UserChatMessage"> | string
   meta?: Prisma.JsonNullableWithAggregatesFilter<"UserChatMessage">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"UserChatMessage"> | Date | string
+  clientRequestId?: Prisma.StringNullableWithAggregatesFilter<"UserChatMessage"> | string | null
+  usedProviderId?: Prisma.StringNullableWithAggregatesFilter<"UserChatMessage"> | string | null
+  usedProviderName?: Prisma.StringNullableWithAggregatesFilter<"UserChatMessage"> | string | null
+  usedApiModel?: Prisma.StringNullableWithAggregatesFilter<"UserChatMessage"> | string | null
 }
 
 export type UserChatMessageCreateInput = {
@@ -279,6 +327,10 @@ export type UserChatMessageCreateInput = {
   content: string
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
+  clientRequestId?: string | null
+  usedProviderId?: string | null
+  usedProviderName?: string | null
+  usedApiModel?: string | null
 }
 
 export type UserChatMessageUncheckedCreateInput = {
@@ -288,6 +340,10 @@ export type UserChatMessageUncheckedCreateInput = {
   content: string
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
+  clientRequestId?: string | null
+  usedProviderId?: string | null
+  usedProviderName?: string | null
+  usedApiModel?: string | null
 }
 
 export type UserChatMessageUpdateInput = {
@@ -296,6 +352,10 @@ export type UserChatMessageUpdateInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedProviderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedProviderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedApiModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserChatMessageUncheckedUpdateInput = {
@@ -305,6 +365,10 @@ export type UserChatMessageUncheckedUpdateInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedProviderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedProviderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedApiModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserChatMessageCreateManyInput = {
@@ -314,6 +378,10 @@ export type UserChatMessageCreateManyInput = {
   content: string
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
+  clientRequestId?: string | null
+  usedProviderId?: string | null
+  usedProviderName?: string | null
+  usedApiModel?: string | null
 }
 
 export type UserChatMessageUpdateManyMutationInput = {
@@ -322,6 +390,10 @@ export type UserChatMessageUpdateManyMutationInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedProviderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedProviderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedApiModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserChatMessageUncheckedUpdateManyInput = {
@@ -331,6 +403,10 @@ export type UserChatMessageUncheckedUpdateManyInput = {
   content?: Prisma.StringFieldUpdateOperationsInput | string
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedProviderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedProviderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  usedApiModel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserChatMessageCountOrderByAggregateInput = {
@@ -340,6 +416,10 @@ export type UserChatMessageCountOrderByAggregateInput = {
   content?: Prisma.SortOrder
   meta?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrder
+  usedProviderId?: Prisma.SortOrder
+  usedProviderName?: Prisma.SortOrder
+  usedApiModel?: Prisma.SortOrder
 }
 
 export type UserChatMessageAvgOrderByAggregateInput = {
@@ -353,6 +433,10 @@ export type UserChatMessageMaxOrderByAggregateInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrder
+  usedProviderId?: Prisma.SortOrder
+  usedProviderName?: Prisma.SortOrder
+  usedApiModel?: Prisma.SortOrder
 }
 
 export type UserChatMessageMinOrderByAggregateInput = {
@@ -361,6 +445,10 @@ export type UserChatMessageMinOrderByAggregateInput = {
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrder
+  usedProviderId?: Prisma.SortOrder
+  usedProviderName?: Prisma.SortOrder
+  usedApiModel?: Prisma.SortOrder
 }
 
 export type UserChatMessageSumOrderByAggregateInput = {
@@ -377,6 +465,10 @@ export type UserChatMessageSelect<ExtArgs extends runtime.Types.Extensions.Inter
   content?: boolean
   meta?: boolean
   createdAt?: boolean
+  clientRequestId?: boolean
+  usedProviderId?: boolean
+  usedProviderName?: boolean
+  usedApiModel?: boolean
 }, ExtArgs["result"]["userChatMessage"]>
 
 export type UserChatMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -386,6 +478,10 @@ export type UserChatMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   content?: boolean
   meta?: boolean
   createdAt?: boolean
+  clientRequestId?: boolean
+  usedProviderId?: boolean
+  usedProviderName?: boolean
+  usedApiModel?: boolean
 }, ExtArgs["result"]["userChatMessage"]>
 
 export type UserChatMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -395,6 +491,10 @@ export type UserChatMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   content?: boolean
   meta?: boolean
   createdAt?: boolean
+  clientRequestId?: boolean
+  usedProviderId?: boolean
+  usedProviderName?: boolean
+  usedApiModel?: boolean
 }, ExtArgs["result"]["userChatMessage"]>
 
 export type UserChatMessageSelectScalar = {
@@ -404,9 +504,13 @@ export type UserChatMessageSelectScalar = {
   content?: boolean
   meta?: boolean
   createdAt?: boolean
+  clientRequestId?: boolean
+  usedProviderId?: boolean
+  usedProviderName?: boolean
+  usedApiModel?: boolean
 }
 
-export type UserChatMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sessionId" | "role" | "content" | "meta" | "createdAt", ExtArgs["result"]["userChatMessage"]>
+export type UserChatMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sessionId" | "role" | "content" | "meta" | "createdAt" | "clientRequestId" | "usedProviderId" | "usedProviderName" | "usedApiModel", ExtArgs["result"]["userChatMessage"]>
 
 export type $UserChatMessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "UserChatMessage"
@@ -436,6 +540,22 @@ export type $UserChatMessagePayload<ExtArgs extends runtime.Types.Extensions.Int
      * 创建时间
      */
     createdAt: Date
+    /**
+     * 单次发送幂等键（与 Jimi 前端一致）；同会话同值仅一条用户消息，用于超时后「重试」复用
+     */
+    clientRequestId: string | null
+    /**
+     * 本条用户消息发送时选用的服务商 id（与 SystemAIProvider.id 一致；走环境变量时为空）
+     */
+    usedProviderId: string | null
+    /**
+     * 发送时服务商配置的显示名称快照（如「DeepSeek Chat」）
+     */
+    usedProviderName: string | null
+    /**
+     * 发送时选用的 apiModel 快照（如 deepseek-chat）
+     */
+    usedApiModel: string | null
   }, ExtArgs["result"]["userChatMessage"]>
   composites: {}
 }
@@ -865,6 +985,10 @@ export interface UserChatMessageFieldRefs {
   readonly content: Prisma.FieldRef<"UserChatMessage", 'String'>
   readonly meta: Prisma.FieldRef<"UserChatMessage", 'Json'>
   readonly createdAt: Prisma.FieldRef<"UserChatMessage", 'DateTime'>
+  readonly clientRequestId: Prisma.FieldRef<"UserChatMessage", 'String'>
+  readonly usedProviderId: Prisma.FieldRef<"UserChatMessage", 'String'>
+  readonly usedProviderName: Prisma.FieldRef<"UserChatMessage", 'String'>
+  readonly usedApiModel: Prisma.FieldRef<"UserChatMessage", 'String'>
 }
     
 
@@ -1041,6 +1165,11 @@ export type UserChatMessageFindManyArgs<ExtArgs extends runtime.Types.Extensions
    * Skip the first `n` UserChatMessages.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of UserChatMessages.
+   */
   distinct?: Prisma.UserChatMessageScalarFieldEnum | Prisma.UserChatMessageScalarFieldEnum[]
 }
 

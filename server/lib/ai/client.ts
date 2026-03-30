@@ -74,3 +74,25 @@ export async function getAIProviderConfig(
     maxTokens: 3000,
   };
 }
+
+/** 与 getAIClient/getAIProviderConfig 同源解析，用于落库「本条用户消息所用模型」快照 */
+export async function getChatProviderSnapshot(providerId?: string | null): Promise<{
+  usedProviderId: string | null;
+  usedProviderName: string | null;
+  usedApiModel: string | null;
+}> {
+  const provider = await getProvider(providerId);
+  if (provider) {
+    return {
+      usedProviderId: provider.id,
+      usedProviderName: provider.name,
+      usedApiModel: provider.apiModel?.trim() || "gpt-4o-mini",
+    };
+  }
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  return {
+    usedProviderId: null,
+    usedProviderName: null,
+    usedApiModel: model,
+  };
+}

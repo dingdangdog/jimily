@@ -262,7 +262,7 @@ export type InvestmentDetailGroupByOutputType = {
   _max: InvestmentDetailMaxAggregateOutputType | null
 }
 
-type GetInvestmentDetailGroupByPayload<T extends InvestmentDetailGroupByArgs> = Prisma.PrismaPromise<
+export type GetInvestmentDetailGroupByPayload<T extends InvestmentDetailGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<InvestmentDetailGroupByOutputType, T['by']> &
       {
@@ -1238,6 +1238,11 @@ export type InvestmentDetailFindManyArgs<ExtArgs extends runtime.Types.Extension
    * Skip the first `n` InvestmentDetails.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of InvestmentDetails.
+   */
   distinct?: Prisma.InvestmentDetailScalarFieldEnum | Prisma.InvestmentDetailScalarFieldEnum[]
 }
 

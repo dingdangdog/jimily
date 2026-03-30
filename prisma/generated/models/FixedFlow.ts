@@ -228,7 +228,7 @@ export type FixedFlowGroupByOutputType = {
   _max: FixedFlowMaxAggregateOutputType | null
 }
 
-type GetFixedFlowGroupByPayload<T extends FixedFlowGroupByArgs> = Prisma.PrismaPromise<
+export type GetFixedFlowGroupByPayload<T extends FixedFlowGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<FixedFlowGroupByOutputType, T['by']> &
       {
@@ -1146,6 +1146,11 @@ export type FixedFlowFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Skip the first `n` FixedFlows.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of FixedFlows.
+   */
   distinct?: Prisma.FixedFlowScalarFieldEnum | Prisma.FixedFlowScalarFieldEnum[]
 }
 

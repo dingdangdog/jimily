@@ -1,4 +1,8 @@
-export { getAIClient, getAIProviderConfig } from "./client";
+export {
+  getAIClient,
+  getAIProviderConfig,
+  getChatProviderSnapshot,
+} from "./client";
 export { parseBillDataWithAI } from "./parse-bill";
 export { parseFileToRows } from "./parse-file";
 export type { ParsedFlowRow } from "./parse-bill";

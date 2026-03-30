@@ -189,7 +189,7 @@ export type TypeRelationGroupByOutputType = {
   _max: TypeRelationMaxAggregateOutputType | null
 }
 
-type GetTypeRelationGroupByPayload<T extends TypeRelationGroupByArgs> = Prisma.PrismaPromise<
+export type GetTypeRelationGroupByPayload<T extends TypeRelationGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<TypeRelationGroupByOutputType, T['by']> &
       {
@@ -985,6 +985,11 @@ export type TypeRelationFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Skip the first `n` TypeRelations.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of TypeRelations.
+   */
   distinct?: Prisma.TypeRelationScalarFieldEnum | Prisma.TypeRelationScalarFieldEnum[]
 }
 

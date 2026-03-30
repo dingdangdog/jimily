@@ -372,7 +372,11 @@ export const UserChatMessageScalarFieldEnum = {
   role: 'role',
   content: 'content',
   meta: 'meta',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  clientRequestId: 'clientRequestId',
+  usedProviderId: 'usedProviderId',
+  usedProviderName: 'usedProviderName',
+  usedApiModel: 'usedApiModel'
 } as const
 
 export type UserChatMessageScalarFieldEnum = (typeof UserChatMessageScalarFieldEnum)[keyof typeof UserChatMessageScalarFieldEnum]

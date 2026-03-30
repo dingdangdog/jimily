@@ -270,7 +270,7 @@ export type SystemAIProviderGroupByOutputType = {
   _max: SystemAIProviderMaxAggregateOutputType | null
 }
 
-type GetSystemAIProviderGroupByPayload<T extends SystemAIProviderGroupByArgs> = Prisma.PrismaPromise<
+export type GetSystemAIProviderGroupByPayload<T extends SystemAIProviderGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<SystemAIProviderGroupByOutputType, T['by']> &
       {
@@ -1339,6 +1339,11 @@ export type SystemAIProviderFindManyArgs<ExtArgs extends runtime.Types.Extension
    * Skip the first `n` SystemAIProviders.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of SystemAIProviders.
+   */
   distinct?: Prisma.SystemAIProviderScalarFieldEnum | Prisma.SystemAIProviderScalarFieldEnum[]
 }
 

@@ -1,5 +1,6 @@
 import prisma from "~~/server/lib/prisma";
 import { runChatAgent } from "~~/server/lib/ai";
+import { getChatProviderSnapshot } from "~~/server/lib/ai/client";
 
 export type UserChatSessionMeta = {
   id: number;
@@ -105,7 +106,17 @@ export async function listUserChatMessages(
   const messages = await prisma.userChatMessage.findMany({
     where: { sessionId },
     orderBy: { createdAt: "asc" },
-    select: { id: true, role: true, content: true, meta: true, createdAt: true },
+    select: {
+      id: true,
+      role: true,
+      content: true,
+      meta: true,
+      createdAt: true,
+      clientRequestId: true,
+      usedProviderId: true,
+      usedProviderName: true,
+      usedApiModel: true,
+    },
   });
   return messages;
 }
@@ -126,16 +137,187 @@ export type PersistedChatResult =
       session: UserChatSessionMeta;
     };
 
+/** 同一用户、同一 clientRequestId 的并发/重试合并，避免重复落库与重复记账 */
+const IDEM_TTL_MS = 24 * 60 * 60 * 1000;
+const IDEM_MAX_KEY_LEN = 80;
+const idemInflight = new Map<string, Promise<PersistedChatResult>>();
+const idemCompleted = new Map<string, { expires: number; json: string }>();
+
+function idemCacheKey(userId: number, clientRequestId: string): string {
+  return `${userId}\n${clientRequestId}`;
+}
+
+function pruneIdemCompleted(): void {
+  const now = Date.now();
+  for (const [k, v] of idemCompleted) {
+    if (v.expires < now) idemCompleted.delete(k);
+  }
+}
+
+function isPrismaUniqueViolation(e: unknown): boolean {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    (e as { code?: string }).code === "P2002"
+  );
+}
+
 /**
  * 持久化对话：无有效 sessionId 时新建会话；写入用户消息、调用 AI、写入助手消息。
+ * 可选 `clientRequestId`（建议 UUID）：相同用户下相同 id 的并发请求会共享同一次执行；完成后短时内重复请求直接返回同一结果，减轻重复发送导致的重复记账。
  */
 export async function runPersistedUserChat(params: {
   userId: number;
   sessionId?: number | null;
   content: string;
   providerId?: string;
+  clientRequestId?: string | null;
 }): Promise<PersistedChatResult> {
-  const { userId, content: rawContent, providerId } = params;
+  const rawId = params.clientRequestId?.trim();
+  const clientRequestId =
+    rawId && rawId.length > 0 && rawId.length <= IDEM_MAX_KEY_LEN
+      ? rawId
+      : undefined;
+
+  if (clientRequestId) {
+    pruneIdemCompleted();
+    const key = idemCacheKey(params.userId, clientRequestId);
+    const hit = idemCompleted.get(key);
+    if (hit && hit.expires > Date.now()) {
+      return JSON.parse(hit.json) as PersistedChatResult;
+    }
+    const existing = idemInflight.get(key);
+    if (existing) {
+      return await existing;
+    }
+  }
+
+  const promise = executePersistedUserChat({
+    userId: params.userId,
+    sessionId: params.sessionId,
+    content: params.content,
+    providerId: params.providerId,
+    clientRequestId,
+  }).then((result) => {
+    if (clientRequestId) {
+      const key = idemCacheKey(params.userId, clientRequestId);
+      idemCompleted.set(key, {
+        expires: Date.now() + IDEM_TTL_MS,
+        json: JSON.stringify(result),
+      });
+    }
+    return result;
+  });
+
+  if (clientRequestId) {
+    idemInflight.set(idemCacheKey(params.userId, clientRequestId), promise);
+    promise.finally(() => {
+      idemInflight.delete(idemCacheKey(params.userId, clientRequestId));
+    });
+  }
+
+  return promise;
+}
+
+function assistantRowToPersistedResult(
+  assistantRow: { content: string; meta: unknown },
+  sessionId: number,
+  session: UserChatSessionMeta,
+): PersistedChatResult {
+  const prefix = "对话失败：";
+  if (assistantRow.content.startsWith(prefix)) {
+    return {
+      kind: "error",
+      reason: assistantRow.content.slice(prefix.length),
+      sessionId,
+      failContent: assistantRow.content,
+      session,
+    };
+  }
+  return {
+    kind: "ok",
+    content: assistantRow.content,
+    sessionId,
+    session,
+    assistantMeta:
+      assistantRow.meta != null && typeof assistantRow.meta === "object"
+        ? (assistantRow.meta as Record<string, unknown>)
+        : null,
+  };
+}
+
+async function appendAssistantFromDbHistory(params: {
+  sessionId: number;
+  userId: number;
+  providerId?: string;
+  getSessionMeta: () => Promise<UserChatSessionMeta>;
+}): Promise<PersistedChatResult> {
+  const { sessionId, userId, providerId, getSessionMeta } = params;
+
+  const historyRows = await prisma.userChatMessage.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: "asc" },
+    select: { role: true, content: true },
+  });
+  const messages = historyRows.map((r) => ({
+    role: r.role as "user" | "assistant" | "system",
+    content: r.content,
+  }));
+
+  try {
+    const result = await runChatAgent({
+      userId,
+      messages,
+      maxToolRounds: 3,
+      providerId,
+    });
+
+    await prisma.userChatMessage.create({
+      data: {
+        sessionId,
+        role: "assistant",
+        content: result.content,
+        ...(result.assistantMeta != null
+          ? { meta: result.assistantMeta as object }
+          : {}),
+      },
+    });
+
+    return {
+      kind: "ok",
+      content: result.content,
+      sessionId,
+      session: await getSessionMeta(),
+      assistantMeta: result.assistantMeta ?? null,
+    };
+  } catch (e) {
+    const reason = explainAIError(e);
+    const failContent = `对话失败：${reason}`;
+    await prisma.userChatMessage.create({
+      data: {
+        sessionId,
+        role: "assistant",
+        content: failContent,
+      },
+    });
+    return {
+      kind: "error",
+      reason,
+      sessionId,
+      failContent,
+      session: await getSessionMeta(),
+    };
+  }
+}
+
+async function executePersistedUserChat(params: {
+  userId: number;
+  sessionId?: number | null;
+  content: string;
+  providerId?: string;
+  clientRequestId?: string;
+}): Promise<PersistedChatResult> {
+  const { userId, content: rawContent, providerId, clientRequestId } = params;
   const content = rawContent.trim();
 
   let session = null;
@@ -165,25 +347,7 @@ export async function runPersistedUserChat(params: {
     session = { ...session, title };
   }
 
-  await prisma.userChatMessage.create({
-    data: {
-      sessionId: session.id,
-      role: "user",
-      content,
-    },
-  });
-
-  const historyRows = await prisma.userChatMessage.findMany({
-    where: { sessionId: session.id },
-    orderBy: { createdAt: "asc" },
-    select: { role: true, content: true },
-  });
-  const messages = historyRows.map((r) => ({
-    role: r.role as "user" | "assistant" | "system",
-    content: r.content,
-  }));
-
-  const sessionMeta = async () => {
+  const getSessionMeta = async (): Promise<UserChatSessionMeta> => {
     const row = await prisma.userChatSession.findUnique({
       where: { id: session.id },
       select: { id: true, title: true, createdAt: true, updatedAt: true },
@@ -191,50 +355,73 @@ export async function runPersistedUserChat(params: {
     return row ? toSessionMeta(row) : toSessionMeta(session);
   };
 
-  try {
-    const result = await runChatAgent({
+  const tryReplayExistingTurn = async (): Promise<PersistedChatResult | null> => {
+    if (!clientRequestId) return null;
+    const existingUser = await prisma.userChatMessage.findFirst({
+      where: {
+        sessionId: session.id,
+        role: "user",
+        clientRequestId,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!existingUser) return null;
+
+    const nextAssistant = await prisma.userChatMessage.findFirst({
+      where: {
+        sessionId: session.id,
+        role: "assistant",
+        createdAt: { gt: existingUser.createdAt },
+      },
+      orderBy: { createdAt: "asc" },
+      select: { content: true, meta: true },
+    });
+
+    const meta = await getSessionMeta();
+    if (nextAssistant) {
+      return assistantRowToPersistedResult(nextAssistant, session.id, meta);
+    }
+    return await appendAssistantFromDbHistory({
+      sessionId: session.id,
       userId,
-      messages,
-      maxToolRounds: 3,
       providerId,
+      getSessionMeta,
     });
+  };
 
-    await prisma.userChatMessage.create({
-      data: {
-        sessionId: session.id,
-        role: "assistant",
-        content: result.content,
-        ...(result.assistantMeta != null
-          ? { meta: result.assistantMeta as object }
-          : {}),
-      },
-    });
-
-    return {
-      kind: "ok",
-      content: result.content,
-      sessionId: session.id,
-      session: await sessionMeta(),
-      assistantMeta: result.assistantMeta ?? null,
-    };
-  } catch (e) {
-    const reason = explainAIError(e);
-    const failContent = `对话失败：${reason}`;
-    await prisma.userChatMessage.create({
-      data: {
-        sessionId: session.id,
-        role: "assistant",
-        content: failContent,
-      },
-    });
-    return {
-      kind: "error",
-      reason,
-      sessionId: session.id,
-      failContent,
-      session: await sessionMeta(),
-    };
+  const replayEarly = await tryReplayExistingTurn();
+  if (replayEarly) {
+    return replayEarly;
   }
+
+  const providerSnap = await getChatProviderSnapshot(providerId);
+
+  try {
+    await prisma.userChatMessage.create({
+      data: {
+        sessionId: session.id,
+        role: "user",
+        content,
+        ...(clientRequestId ? { clientRequestId } : {}),
+        usedProviderId: providerSnap.usedProviderId,
+        usedProviderName: providerSnap.usedProviderName,
+        usedApiModel: providerSnap.usedApiModel,
+      },
+    });
+  } catch (e) {
+    if (isPrismaUniqueViolation(e) && clientRequestId) {
+      const again = await tryReplayExistingTurn();
+      if (again) return again;
+    }
+    throw e;
+  }
+
+  return appendAssistantFromDbHistory({
+    sessionId: session.id,
+    userId,
+    providerId,
+    getSessionMeta,
+  });
 }
 
 export function explainAIError(e: unknown): string {

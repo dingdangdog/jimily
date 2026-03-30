@@ -31,11 +31,17 @@ export default defineEventHandler(async (event) => {
         ? body.providerId.trim() || undefined
         : undefined;
 
+    const clientRequestId =
+      body.clientRequestId != null && typeof body.clientRequestId === "string"
+        ? body.clientRequestId.trim() || undefined
+        : undefined;
+
     const persisted = await runPersistedUserChat({
       userId,
       sessionId: body.sessionId,
       content,
       providerId,
+      clientRequestId,
     });
 
     if (persisted.kind === "ok") {

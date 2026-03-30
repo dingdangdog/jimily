@@ -222,7 +222,7 @@ export type LiabilityRepayRecordGroupByOutputType = {
   _max: LiabilityRepayRecordMaxAggregateOutputType | null
 }
 
-type GetLiabilityRepayRecordGroupByPayload<T extends LiabilityRepayRecordGroupByArgs> = Prisma.PrismaPromise<
+export type GetLiabilityRepayRecordGroupByPayload<T extends LiabilityRepayRecordGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<LiabilityRepayRecordGroupByOutputType, T['by']> &
       {
@@ -1096,6 +1096,11 @@ export type LiabilityRepayRecordFindManyArgs<ExtArgs extends runtime.Types.Exten
    * Skip the first `n` LiabilityRepayRecords.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of LiabilityRepayRecords.
+   */
   distinct?: Prisma.LiabilityRepayRecordScalarFieldEnum | Prisma.LiabilityRepayRecordScalarFieldEnum[]
 }
 

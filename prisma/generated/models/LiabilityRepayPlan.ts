@@ -237,7 +237,7 @@ export type LiabilityRepayPlanGroupByOutputType = {
   _max: LiabilityRepayPlanMaxAggregateOutputType | null
 }
 
-type GetLiabilityRepayPlanGroupByPayload<T extends LiabilityRepayPlanGroupByArgs> = Prisma.PrismaPromise<
+export type GetLiabilityRepayPlanGroupByPayload<T extends LiabilityRepayPlanGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<LiabilityRepayPlanGroupByOutputType, T['by']> &
       {
@@ -1145,6 +1145,11 @@ export type LiabilityRepayPlanFindManyArgs<ExtArgs extends runtime.Types.Extensi
    * Skip the first `n` LiabilityRepayPlans.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of LiabilityRepayPlans.
+   */
   distinct?: Prisma.LiabilityRepayPlanScalarFieldEnum | Prisma.LiabilityRepayPlanScalarFieldEnum[]
 }
 

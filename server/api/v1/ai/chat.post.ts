@@ -83,11 +83,17 @@ export default defineEventHandler(async (event) => {
       ? body.providerId.trim() || undefined
       : undefined;
 
+  const clientRequestId =
+    body.clientRequestId != null && typeof body.clientRequestId === "string"
+      ? body.clientRequestId.trim() || undefined
+      : undefined;
+
   const persisted = await runPersistedUserChat({
     userId,
     sessionId: cid,
     content,
     providerId,
+    clientRequestId,
   });
 
   const payload = {

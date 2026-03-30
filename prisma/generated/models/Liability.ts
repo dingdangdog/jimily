@@ -273,7 +273,7 @@ export type LiabilityGroupByOutputType = {
   _max: LiabilityMaxAggregateOutputType | null
 }
 
-type GetLiabilityGroupByPayload<T extends LiabilityGroupByArgs> = Prisma.PrismaPromise<
+export type GetLiabilityGroupByPayload<T extends LiabilityGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<LiabilityGroupByOutputType, T['by']> &
       {
@@ -1275,6 +1275,11 @@ export type LiabilityFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Skip the first `n` Liabilities.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Liabilities.
+   */
   distinct?: Prisma.LiabilityScalarFieldEnum | Prisma.LiabilityScalarFieldEnum[]
 }
 

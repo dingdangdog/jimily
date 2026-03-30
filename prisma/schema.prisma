@@ -313,13 +313,21 @@ model UserChatSession {
 
 /// 用户 AI 对话消息表
 model UserChatMessage {
-  id        Int      @id @default(autoincrement()) /// 主键
-  sessionId Int /// 会话 ID
-  role      String   @db.VarChar(20) /// 角色：user / assistant / system
-  content   String   @db.Text /// 消息内容
+  id               Int      @id @default(autoincrement()) /// 主键
+  sessionId        Int /// 会话 ID
+  role             String   @db.VarChar(20) /// 角色：user / assistant / system
+  content          String   @db.Text /// 消息内容
   /// 助手消息扩展（如本次记账流水摘要，供前端「查看详情」等）
-  meta      Json?
-  createdAt DateTime @default(now()) /// 创建时间
+  meta             Json?
+  createdAt        DateTime @default(now()) /// 创建时间
+  /// 单次发送幂等键（与 Jimi 前端一致）；同会话同值仅一条用户消息，用于超时后「重试」复用
+  clientRequestId  String?  @db.VarChar(80)
+  /// 本条用户消息发送时选用的服务商 id（与 SystemAIProvider.id 一致；走环境变量时为空）
+  usedProviderId   String?  @db.VarChar(36)
+  /// 发送时服务商配置的显示名称快照（如「DeepSeek Chat」）
+  usedProviderName String?  @db.VarChar(100)
+  /// 发送时选用的 apiModel 快照（如 deepseek-chat）
+  usedApiModel     String?  @db.VarChar(100)
 
   @@index([sessionId])
   @@map("user_chat_messages")

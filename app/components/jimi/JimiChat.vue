@@ -48,6 +48,14 @@ export interface ChatMessage {
   content: string;
   createdAt: string;
   meta?: Record<string, unknown> | null;
+  /** 服务端落库的本次发送幂等键；「重试」不会复用，每次重试仍走新的一轮 */
+  clientRequestId?: string | null;
+  /** 本条用户消息发送时选用的服务商 ID（环境变量直连时为 null） */
+  usedProviderId?: string | null;
+  /** 服务商显示名快照 */
+  usedProviderName?: string | null;
+  /** 实际请求的 API 模型名快照 */
+  usedApiModel?: string | null;
 }
 
 export interface AIProviderOption {
@@ -267,31 +275,93 @@ const saveSessionTitle = async (sessionId: number) => {
   cancelEditTitle();
 };
 
+/** 单次发送幂等键：与服务端合并并发、短时重复请求，降低重复记账风险 */
+function newClientRequestId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+async function postChatPayload(text: string, clientRequestId: string) {
+  return doApi.post<{
+    content: string;
+    sessionId: number;
+    assistantMeta?: Record<string, unknown> | null;
+  }>("api/entry/ai/chat", {
+    sessionId: currentSessionId.value ?? undefined,
+    content: text,
+    providerId: selectedProviderId.value ?? undefined,
+    clientRequestId,
+  });
+}
+
+/** 该条用户消息之后是否已有助手回复（含「对话失败」），表示这一轮已明确结束 */
+function userTurnHasAssistantReply(index: number): boolean {
+  return messages.value[index + 1]?.role === "assistant";
+}
+
+/**
+ * 「重试」：仅当该轮已明确结束（下方有助手气泡）且当前没有别的发送在进行时可用；
+ * 若本条仍在等回复（末尾用户 + sending），禁止，避免与进行中的请求叠成重复记账。
+ */
+function canRetryUserMessage(index: number): boolean {
+  const msg = messages.value[index];
+  if (msg?.role !== "user" || !String(msg.content ?? "").trim()) {
+    return false;
+  }
+  if (sending.value) {
+    return false;
+  }
+  if (userTurnHasAssistantReply(index)) {
+    return true;
+  }
+  const isLast = index === messages.value.length - 1;
+  if (isLast) {
+    return true;
+  }
+  return false;
+}
+
+function userMessageRetryTitle(index: number): string {
+  const msg = messages.value[index];
+  if (msg?.role !== "user") {
+    return "";
+  }
+  if (sending.value) {
+    return userTurnHasAssistantReply(index)
+      ? "当前有消息正在发送，请稍候再试"
+      : "本轮回复尚未结束，请稍候";
+  }
+  if (userTurnHasAssistantReply(index)) {
+    return "用相同内容再发一轮新请求（可再次记账）";
+  }
+  const isLast = index === messages.value.length - 1;
+  if (isLast) {
+    return "用相同内容再发一轮新请求（可再次记账）";
+  }
+  return "该条后缺少助手回复，请用输入框发送或刷新后再试";
+}
+
 const sendMessage = async () => {
   const text = inputText.value.trim();
   if (!text || sending.value) return;
 
+  sending.value = true;
+  const clientRequestId = newClientRequestId();
   inputText.value = "";
   const userMsg: ChatMessage = {
     id: 0,
     role: "user",
     content: text,
     createdAt: new Date().toISOString(),
+    clientRequestId,
   };
   messages.value = [...messages.value, userMsg];
-  sending.value = true;
   scrollToBottom();
 
   try {
-    const res = await doApi.post<{
-      content: string;
-      sessionId: number;
-      assistantMeta?: Record<string, unknown> | null;
-    }>("api/entry/ai/chat", {
-      sessionId: currentSessionId.value ?? undefined,
-      content: text,
-      providerId: selectedProviderId.value ?? undefined,
-    });
+    const res = await postChatPayload(text, clientRequestId);
     if (res?.sessionId != null) {
       currentSessionId.value = res.sessionId;
       await loadSessions();
@@ -316,29 +386,28 @@ const sendMessage = async () => {
   }
 };
 
-/** 点击历史用户消息重试：模仿用户再发一次该条消息（先追加用户气泡，再请求并显示回复） */
-const retryWithMessage = async (content: string) => {
-  const text = content?.trim();
+/**
+ * 重试：用该条消息的**相同正文**再发起**新的一轮**对话（新的 clientRequestId），
+ * 便于「昨天记过、今天再记一笔同款」等场景；与输入框发送等价，只是免打字。
+ */
+const retryWithMessage = async (msg: ChatMessage, index: number) => {
+  if (!canRetryUserMessage(index)) return;
+  const text = msg.content?.trim();
   if (!text || sending.value) return;
+
+  sending.value = true;
+  const clientRequestId = newClientRequestId();
   const userMsg: ChatMessage = {
     id: 0,
     role: "user",
     content: text,
     createdAt: new Date().toISOString(),
+    clientRequestId,
   };
   messages.value = [...messages.value, userMsg];
-  sending.value = true;
   scrollToBottom();
   try {
-    const res = await doApi.post<{
-      content: string;
-      sessionId: number;
-      assistantMeta?: Record<string, unknown> | null;
-    }>("api/entry/ai/chat", {
-      sessionId: currentSessionId.value ?? undefined,
-      content: text,
-      providerId: selectedProviderId.value ?? undefined,
-    });
+    const res = await postChatPayload(text, clientRequestId);
     if (res?.sessionId != null) {
       currentSessionId.value = res.sessionId;
       await loadSessions();
@@ -426,6 +495,17 @@ const formatMoney = (n: number | null | undefined) => {
   return `${Math.abs(Number(n)).toFixed(2)} 元`;
 };
 
+/** 用户消息气泡与导出：展示发送时落库的服务商名 + API 模型 */
+const userModelSnapshotLine = (msg: ChatMessage): string => {
+  if (msg.role !== "user") return "";
+  const name = msg.usedProviderName?.trim();
+  const api = msg.usedApiModel?.trim();
+  if (name && api) return `${name} · ${api}`;
+  if (name) return name;
+  if (api) return api;
+  return "";
+};
+
 const buildChatMarkdown = () => {
   const lines: string[] = [];
   const title = currentSessionTitle.value || "Jimi 对话";
@@ -468,6 +548,13 @@ const buildChatMarkdown = () => {
     const content = msg.content?.trim() || "（无内容）";
     lines.push(content);
     lines.push("");
+    if (msg.role === "user") {
+      const snap = userModelSnapshotLine(msg);
+      if (snap) {
+        lines.push(`- 发送时模型：${snap}`);
+        lines.push("");
+      }
+    }
   }
 
   return lines.join("\n");
@@ -531,28 +618,19 @@ watch(
 <template>
   <div class="flex h-full min-h-0 bg-background text-foreground">
     <Teleport to="body">
-      <div
-        v-if="bookkeepingDetail"
-        class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="jimi-bookkeeping-detail-title"
-        @click.self="closeBookkeepingDetail"
-      >
+      <div v-if="bookkeepingDetail" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+        role="dialog" aria-modal="true" aria-labelledby="jimi-bookkeeping-detail-title"
+        @click.self="closeBookkeepingDetail">
         <div
           class="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-surface p-4 text-foreground shadow-xl"
-          @click.stop
-        >
+          @click.stop>
           <div class="mb-3 flex items-center justify-between border-b border-border pb-2">
             <h3 id="jimi-bookkeeping-detail-title" class="text-base font-semibold">
               记账详情
             </h3>
-            <button
-              type="button"
-              class="rounded-full p-1.5 text-foreground/60 hover:bg-surface-muted hover:text-foreground"
-              aria-label="关闭"
-              @click="closeBookkeepingDetail"
-            >
+            <button type="button"
+              class="rounded-full p-1.5 text-foreground/60 hover:bg-surface-muted hover:text-foreground" aria-label="关闭"
+              @click="closeBookkeepingDetail">
               <XMarkIcon class="h-5 w-5" />
             </button>
           </div>
@@ -567,10 +645,7 @@ watch(
               <dt class="shrink-0 text-foreground/55">金额</dt>
               <dd class="text-right font-medium">
                 {{ formatMoney(bookkeepingDetail.flow.money) }}
-                <span
-                  v-if="bookkeepingDetail.flow.flowType"
-                  class="text-foreground/60"
-                >
+                <span v-if="bookkeepingDetail.flow.flowType" class="text-foreground/60">
                   （{{ bookkeepingDetail.flow.flowType }}）</span>
               </dd>
             </div>
@@ -594,10 +669,7 @@ watch(
                 }}
               </dd>
             </div>
-            <div
-              v-if="bookkeepingDetail.flow.description"
-              class="flex justify-between gap-3"
-            >
+            <div v-if="bookkeepingDetail.flow.description" class="flex justify-between gap-3">
               <dt class="shrink-0 text-foreground/55">备注</dt>
               <dd class="text-right">
                 {{ bookkeepingDetail.flow.description }}
@@ -609,10 +681,7 @@ watch(
                 {{ bookkeepingDetail.flow.flowNo || `ID ${bookkeepingDetail.flow.id}` }}
               </dd>
             </div>
-            <div
-              v-if="bookkeepingDetail.flow.origin"
-              class="flex justify-between gap-3"
-            >
+            <div v-if="bookkeepingDetail.flow.origin" class="flex justify-between gap-3">
               <dt class="shrink-0 text-foreground/55">来源</dt>
               <dd class="text-right text-foreground/80">
                 {{ bookkeepingDetail.flow.origin }}
@@ -735,7 +804,9 @@ watch(
         <div v-if="aiProviders.length > 0"
           class="flex flex-shrink-0 items-center gap-2 border-b border-border bg-surface-muted/50 px-3 py-2">
           <span class="text-xs text-foreground/60">当前模型</span>
-          <select :value="selectedProviderId ?? ''" class="flex-1 min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-[15px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/50" aria-label="选择模型" @change="onSelectProvider">
+          <select :value="selectedProviderId ?? ''"
+            class="flex-1 min-w-0 rounded-lg border border-border bg-background px-3 py-2 text-[15px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+            aria-label="选择模型" @change="onSelectProvider">
             <option v-for="p in aiProviders" :key="p.id" :value="p.id">
               {{ p.name }}
             </option>
@@ -761,23 +832,15 @@ watch(
                     : 'rounded-bl-md bg-surface-muted text-foreground'
                     ">
                     <template v-if="msg.role === 'assistant'">
-                      <div
-                        class="jimi-markdown break-words"
-                        v-html="renderAssistantMarkdown(msg.content)"
-                      />
-                      <div
-                        v-if="getFlowBookkeepingFromMeta(msg.meta)"
-                        class="mt-2 flex border-t border-border/50 pt-2"
-                      >
-                        <button
-                          type="button"
+                      <div class="jimi-markdown break-words" v-html="renderAssistantMarkdown(msg.content)" />
+                      <div v-if="getFlowBookkeepingFromMeta(msg.meta)" class="mt-2 flex border-t border-border/50 pt-2">
+                        <button type="button"
                           class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-500/10 active:opacity-90"
                           @click.stop="
                             openBookkeepingDetail(
                               getFlowBookkeepingFromMeta(msg.meta)!,
                             )
-                          "
-                        >
+                            ">
                           <EyeIcon class="h-3.5 w-3.5" />
                           查看详情
                         </button>
@@ -787,10 +850,16 @@ watch(
                       <div class="whitespace-pre-wrap break-words">
                         {{ msg.content }}
                       </div>
+                      <p v-if="userModelSnapshotLine(msg)"
+                        class="mt-1 text-[11px] leading-tight text-white/55">
+                        {{ userModelSnapshotLine(msg) }}
+                      </p>
                       <div class="mt-2 flex justify-end border-t border-white/20 pt-1.5">
                         <button type="button"
-                          class="flex items-center gap-1 rounded-md px-2 py-0.5 text-xs opacity-80 transition hover:bg-white/20 hover:opacity-100 active:opacity-90"
-                          :disabled="sending" @click.stop="retryWithMessage(msg.content)">
+                          class="flex items-center gap-1 rounded-md px-2 py-0.5 text-xs opacity-80 transition hover:bg-white/20 hover:opacity-100 active:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                          :disabled="!canRetryUserMessage(i)"
+                          :title="userMessageRetryTitle(i)"
+                          @click.stop="retryWithMessage(msg, i)">
                           <ArrowPathIcon class="h-3.5 w-3.5" />
                           重试
                         </button>
@@ -800,8 +869,12 @@ watch(
                 </div>
               </template>
               <div v-if="sending && messages[messages.length - 1]?.role === 'user'" class="flex justify-start">
-                <div class="rounded-2xl rounded-bl-md bg-surface-muted px-4 py-2.5 text-[15px] text-foreground/60">
-                  正在回复...
+                <div
+                  class="max-w-[90%] rounded-2xl rounded-bl-md bg-surface-muted px-4 py-2.5 text-[15px] text-foreground/60">
+                  <p class="font-medium text-foreground/70">正在回复…</p>
+                  <p class="mt-1.5 text-xs leading-snug text-foreground/45">
+                    请勿连点发送。
+                  </p>
                 </div>
               </div>
             </div>
@@ -879,8 +952,9 @@ watch(
                 </button>
               </template>
               <div v-if="editingSessionId !== s.id" class="relative flex-shrink-0">
-                <button type="button" class="rounded p-0.5 text-foreground/50 hover:bg-surface-muted hover:text-foreground"
-                  aria-label="更多" :aria-expanded="openRowMenuId === s.id"
+                <button type="button"
+                  class="rounded p-0.5 text-foreground/50 hover:bg-surface-muted hover:text-foreground" aria-label="更多"
+                  :aria-expanded="openRowMenuId === s.id"
                   @click.stop="openRowMenuId = openRowMenuId === s.id ? null : s.id">
                   <EllipsisVerticalIcon class="h-4 w-4" />
                 </button>
@@ -918,7 +992,9 @@ watch(
           class="flex flex-shrink-0 items-center gap-3 border-b border-border bg-surface-muted/50 px-4 py-2">
           <span class="text-sm text-foreground/70">当前模型</span>
           <div class="w-48">
-            <select :value="selectedProviderId ?? ''" class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/50" aria-label="选择模型" @change="onSelectProvider">
+            <select :value="selectedProviderId ?? ''"
+              class="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+              aria-label="选择模型" @change="onSelectProvider">
               <option v-for="p in aiProviders" :key="p.id" :value="p.id">
                 {{ p.name }}
               </option>
@@ -954,23 +1030,15 @@ watch(
                 : 'bg-surface-muted text-foreground'
                 ">
                 <template v-if="msg.role === 'assistant'">
-                  <div
-                    class="jimi-markdown break-words"
-                    v-html="renderAssistantMarkdown(msg.content)"
-                  />
-                  <div
-                    v-if="getFlowBookkeepingFromMeta(msg.meta)"
-                    class="mt-2 flex border-t border-border/50 pt-2"
-                  >
-                    <button
-                      type="button"
+                  <div class="jimi-markdown break-words" v-html="renderAssistantMarkdown(msg.content)" />
+                  <div v-if="getFlowBookkeepingFromMeta(msg.meta)" class="mt-2 flex border-t border-border/50 pt-2">
+                    <button type="button"
                       class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-500/10 active:opacity-90"
                       @click.stop="
                         openBookkeepingDetail(
                           getFlowBookkeepingFromMeta(msg.meta)!,
                         )
-                      "
-                    >
+                        ">
                       <EyeIcon class="h-3.5 w-3.5" />
                       查看详情
                     </button>
@@ -980,10 +1048,16 @@ watch(
                   <div class="whitespace-pre-wrap break-words">
                     {{ msg.content }}
                   </div>
+                  <p v-if="userModelSnapshotLine(msg)"
+                    class="mt-1 text-[11px] leading-tight text-white/55">
+                    {{ userModelSnapshotLine(msg) }}
+                  </p>
                   <div class="mt-1.5 flex justify-end border-t border-white/20 pt-1">
                     <button type="button"
-                      class="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs opacity-70 transition hover:bg-white/20 hover:opacity-100"
-                      :disabled="sending" title="用此内容重新发送" @click.stop="retryWithMessage(msg.content)">
+                      class="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs opacity-70 transition hover:bg-white/20 hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      :disabled="!canRetryUserMessage(i)"
+                      :title="userMessageRetryTitle(i)"
+                      @click.stop="retryWithMessage(msg, i)">
                       <ArrowPathIcon class="h-3 w-3" />
                       重试
                     </button>
@@ -993,8 +1067,11 @@ watch(
             </div>
           </template>
           <div v-if="sending && messages[messages.length - 1]?.role === 'user'" class="flex justify-start">
-            <div class="rounded-lg bg-surface-muted px-3 py-2 text-sm text-foreground/60">
-              思考中...
+            <div class="max-w-[min(100%,28rem)] rounded-lg bg-surface-muted px-3 py-2 text-sm text-foreground/60">
+              <p class="font-medium text-foreground/70">思考中…</p>
+              <p class="mt-1 text-xs leading-relaxed text-foreground/45">
+                请勿连点发送。
+              </p>
             </div>
           </div>
         </div>
