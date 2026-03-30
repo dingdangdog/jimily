@@ -4,101 +4,35 @@ definePageMeta({
   middleware: ["admin"],
 });
 
-import { getConfig, updateConfig, type SystemConfigRow } from "./api";
+import SystemInfoSettingsTab from "./SystemInfoSettingsTab.vue";
+import BackupRestoreTab from "./BackupRestoreTab.vue";
 
-const settings = ref<SystemConfigRow>({});
-const loading = ref(false);
-const saving = ref(false);
+type ConfigTab = "info" | "backup";
+const activeTab = ref<ConfigTab>("info");
 
-const load = () => {
-  loading.value = true;
-  getConfig()
-    .then((res) => (settings.value = res || {}))
-    .finally(() => (loading.value = false));
-};
-
-const save = () => {
-  saving.value = true;
-  updateConfig(settings.value)
-    .then(() => {
-      Alert.success("保存成功");
-      load();
-    })
-    .catch((e) => Alert.error("保存失败: " + (e?.message || e)))
-    .finally(() => (saving.value = false));
-};
-
-onMounted(() => load());
+const tabs: { id: ConfigTab; label: string; hint: string }[] = [
+  { id: "info", label: "系统信息配置", hint: "站点标题、描述、注册开关等" },
+  { id: "backup", label: "数据备份与恢复", hint: "数据库 JSON 与小票 ZIP" },
+];
 </script>
 
 <template>
   <div class="p-2 md:p-4 bg-surface-muted min-h-full">
     <div class="bg-surface rounded-lg shadow-sm border border-border overflow-hidden">
-      <div class="px-4 py-3 border-b border-border bg-surface-muted/50">
-        <h2 class="text-lg font-semibold text-foreground">系统配置</h2>
-        <p class="text-sm text-muted mt-0.5">站点标题、描述、注册开关等</p>
+
+      <div class="flex flex-wrap gap-1 px-2 pt-2 border-b border-border bg-surface-muted/30" role="tablist">
+        <button v-for="t in tabs" :key="t.id" type="button" role="tab" :aria-selected="activeTab === t.id"
+          class="px-3 py-2 text-sm font-medium rounded-t-md transition-colors" :class="activeTab === t.id
+            ? 'bg-surface text-primary-600 border border-b-0 border-border -mb-px z-[1]'
+            : 'text-muted hover:text-foreground'
+            " @click="activeTab = t.id">
+          {{ t.label }}
+        </button>
       </div>
 
-      <div v-if="loading" class="flex justify-center items-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <span class="ml-2 text-muted">加载中...</span>
-      </div>
-
-      <div v-else class="p-4 md:p-6 max-w-2xl space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            站点标题
-          </label>
-          <input v-model="settings.title" type="text"
-            class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-            placeholder="请输入站点标题" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            站点描述
-          </label>
-          <textarea v-model="settings.description" rows="3"
-            class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none transition-colors"
-            placeholder="请输入站点描述"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            SEO 关键词
-          </label>
-          <textarea v-model="settings.keywords" rows="2"
-            class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none transition-colors"
-            placeholder="关键词，逗号分隔">
-          </textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            系统版本号
-          </label>
-          <input v-model="settings.version" type="text"
-            class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-            placeholder="如 1.0.0" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            是否开放注册
-          </label>
-          <select v-model="settings.openRegister"
-            class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
-            <option :value="true">开放</option>
-            <option :value="false">不开放</option>
-          </select>
-        </div>
-        <div v-if="settings.updateAt" class="text-sm text-muted pt-2 border-t border-border">
-          最后更新：{{ formatDate(settings.updateAt) }}
-        </div>
-        <div class="flex justify-end pt-4 border-t border-border">
-          <button @click="save" :disabled="saving"
-            class="px-4 py-2 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-lg transition-colors duration-200 font-medium flex items-center gap-2">
-            <span v-if="saving"
-              class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-            <span>{{ saving ? "保存中..." : "保存设置" }}</span>
-          </button>
-        </div>
+      <div class="min-h-[320px]">
+        <SystemInfoSettingsTab v-show="activeTab === 'info'" />
+        <BackupRestoreTab v-show="activeTab === 'backup'" />
       </div>
     </div>
   </div>

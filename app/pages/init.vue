@@ -134,7 +134,7 @@ onMounted(async () => {
       >
         <img
           src="/logo.webp"
-          class="w-12 h-12 sm:w-16 sm:h-16 object-contain mb-2 sm:mb-0 sm:mr-4"
+          class="w-12 h-12 sm:w-16 sm:h-16 object-contain"
         />
         <h1 class="text-xl sm:text-2xl font-bold">系统初始化</h1>
       </div>
