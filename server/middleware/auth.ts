@@ -1,34 +1,34 @@
 import { noPermissions } from "../utils/common";
 import { getAuthPayload, hasAdminRole } from "../utils/jwt";
 
-/** 无需认证的 admin 路径（登录、登出、工具类） */
-const ADMIN_PUBLIC_PATHS = ["/api/admin/login", "/api/admin/logout"];
+/** 按路径段匹配前缀，避免 `/api/v1` 误匹配 `/api/v10`、`/api/admin` 误匹配 `/api/administrator` 等 */
+function isUnderApiBase(pathname: string, base: string): boolean {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
 
-const isAdminPublicPath = (pathname: string) =>
-  ADMIN_PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(p + "/"),
-  );
+function normalizePathname(pathname: string): string {
+  if (pathname.length <= 1) return pathname;
+  return pathname.replace(/\/+$/, "") || "/";
+}
 
 export default defineEventHandler(async (event) => {
-  const url = getRequestURL(event);
-  const pathname = url.pathname;
+  if (event.method === "OPTIONS") return;
 
-  // 普通业务接口：需有效 JWT
-  if (pathname.startsWith("/api/entry")) {
-    const payload = getAuthPayload(event);
-    if (!payload?.id) {
-      return noPermissions("未授权或 token 无效");
-    }
+  const pathname = normalizePathname(getRequestURL(event).pathname);
+
+  const needsJwt =
+    isUnderApiBase(pathname, "/api/entry") ||
+    isUnderApiBase(pathname, "/api/v1") ||
+    isUnderApiBase(pathname, "/api/admin");
+
+  if (!needsJwt) return;
+
+  const payload = getAuthPayload(event);
+  if (!payload?.id) {
+    return noPermissions("未授权或 token 无效");
   }
-  // 管理后台接口：需有效 JWT 且 roles 含 admin
-  else if (pathname.startsWith("/api/admin")) {
-    if (isAdminPublicPath(pathname)) {
-      return; // 登录、登出、getPassword 放行
-    }
-    const payload = getAuthPayload(event);
-    if (!payload?.id) {
-      return noPermissions("未授权或 token 无效");
-    }
+
+  if (isUnderApiBase(pathname, "/api/admin")) {
     if (!hasAdminRole(payload.roles)) {
       return noPermissions("需要管理员权限");
     }
