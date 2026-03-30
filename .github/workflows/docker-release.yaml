@@ -13,31 +13,43 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 确保能获取到 tags 用于生成版本号
 
       - name: Get version
         id: get_version
+        # 提取语义化版本号，例如从 v5.1.3 提取出 5.1.3
         run: |
           VERSION=$(git describe --tags --always --match 'v*' | sed -n 's|^v\([0-9]*\.[0-9]*\.[0-9]*\)\(-.*\)\{0,1\}|\1|p')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV  # Store version as an environment variable
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 设置 Docker Buildx (支持多平台构建)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64 # 明确指定需要模拟的平台
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
-      # 单次构建多平台镜像并推送
       - name: Build and push multi-platform image
-        run: |
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --tag dingdangdog/jimily:${VERSION} \
-            --tag dingdangdog/jimily:latest \
-            --push .
-
-      - name: Clean up Docker images
-        run: docker system prune -af
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            dingdangdog/jimily:${{ steps.get_version.outputs.VERSION }}
+            dingdangdog/jimily:latest
+          # 关键改进：启用 GitHub Actions 缓存后端
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # 传递构建参数（如果你的 Dockerfile 需要 VERSION 变量可以开启下面这行）
+          # build-args: |
+          #   APP_VERSION=${{ steps.get_version.outputs.VERSION }}
