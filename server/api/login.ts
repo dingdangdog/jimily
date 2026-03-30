@@ -75,6 +75,7 @@ export default defineEventHandler(async (event) => {
   };
 
   const isProduction = env == "production";
+  console.log("env", env);
   console.log("isProduction", isProduction);
   setCookie(event, "Authorization", token, {
     maxAge: expiresInSeconds,
