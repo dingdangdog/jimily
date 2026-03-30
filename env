@@ -1,4 +1,4 @@
-NODE_ENV="development" # development, production
+NUXT_ENV="development" # development, production
 DATABASE_URL="postgresql://postgres:123456@localhost:5432/cashbook?schema=public"
 
 NUXT_APP_VERSION="5.1.2"
