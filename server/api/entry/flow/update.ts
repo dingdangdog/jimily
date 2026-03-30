@@ -1,7 +1,6 @@
 import prisma from "~~/server/lib/prisma";
 import {
   recalcFundAccountFromFlows,
-  resolveFlowAccountDelta,
   normalizeFlowTypeLabel,
 } from "~~/server/utils/db";
 
@@ -57,10 +56,6 @@ export default defineEventHandler(async (event) => {
           ? Number(body.accountId)
           : null
         : undefined,
-    accountDelta:
-      body.accountDelta !== undefined && body.accountDelta !== null
-        ? Number(body.accountDelta)
-        : undefined,
   };
   const userId = await getUserId(event);
   const row = await prisma.$transaction(async (tx) => {
@@ -84,20 +79,18 @@ export default defineEventHandler(async (event) => {
       normalizedType === "收入" || normalizedType === "支出"
         ? Math.abs(Number(rawNextMoney || 0))
         : rawNextMoney;
-    const nextDay = flow.day ?? oldRow.day;
-    const nextDelta = resolveFlowAccountDelta({
-      flowType: nextFlowType,
-      money: Number(nextMoney || 0),
-      accountDelta: flow.accountDelta,
-    });
 
     const updated = await tx.flow.update({
       where: { id: Number(body.id) },
       data: {
-        ...flow,
+        ...("day" in flow && flow.day !== undefined && { day: flow.day }),
+        flowType: flow.flowType,
+        industryType: flow.industryType,
+        money: nextMoney,
+        name: flow.name,
+        description: flow.description,
+        attribution: flow.attribution,
         accountId: nextAccountId,
-        accountDelta: nextAccountId != null ? nextDelta : null,
-        accountBal: null,
       },
     });
 

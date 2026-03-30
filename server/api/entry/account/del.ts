@@ -20,8 +20,6 @@ export default defineEventHandler(async (event) => {
       where: { userId, accountId: id },
       data: {
         accountId: null,
-        accountDelta: null,
-        accountBal: null,
       },
     });
     return tx.fundAccount.delete({

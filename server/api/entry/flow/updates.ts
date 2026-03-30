@@ -1,8 +1,5 @@
 import prisma from "~~/server/lib/prisma";
-import {
-  recalcFundAccountFromFlows,
-  resolveFlowAccountDelta,
-} from "~~/server/utils/db";
+import { recalcFundAccountFromFlows } from "~~/server/utils/db";
 
 /**
  * @swagger
@@ -42,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);
   const body = await readBody(event);
   const ids = body.ids;
-  const { flowType, industryType, attribution, accountId, accountDelta } = body;
+  const { flowType, industryType, attribution, accountId } = body;
 
   if (!ids) {
     return error("Not Find ID");
@@ -61,9 +58,6 @@ export default defineEventHandler(async (event) => {
   const hasAccountIdUpdate = accountId !== undefined;
   const nextAccountId =
     hasAccountIdUpdate ? (accountId ? Number(accountId) : null) : undefined;
-  const hasAccountDeltaUpdate =
-    accountDelta !== undefined && accountDelta !== null;
-  const explicitAccountDelta = hasAccountDeltaUpdate ? Number(accountDelta) : null;
 
   const updated = await prisma.$transaction(async (tx) => {
     const rows = await tx.flow.findMany({
@@ -78,13 +72,6 @@ export default defineEventHandler(async (event) => {
     for (const row of rows) {
       const targetAccountId =
         nextAccountId !== undefined ? nextAccountId : row.accountId;
-      const targetFlowType = updateInfo.flowType ?? row.flowType;
-      const targetDelta = resolveFlowAccountDelta({
-        flowType: targetFlowType,
-        money: Number(row.money || 0),
-        accountDelta: hasAccountDeltaUpdate ? explicitAccountDelta : undefined,
-      });
-
       if (row.accountId) accountIds.add(row.accountId);
       if (targetAccountId) accountIds.add(targetAccountId);
 
@@ -93,8 +80,6 @@ export default defineEventHandler(async (event) => {
         data: {
           ...updateInfo,
           accountId: targetAccountId,
-          accountDelta: targetAccountId != null ? targetDelta : null,
-          accountBal: null,
         },
       });
       count++;

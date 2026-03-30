@@ -1,7 +1,6 @@
 import prisma from "~~/server/lib/prisma";
 import {
   recalcFundAccountFromFlows,
-  resolveFlowAccountDelta,
   normalizeFlowTypeLabel,
 } from "~~/server/utils/db";
 
@@ -55,24 +54,11 @@ export default defineEventHandler(async (event) => {
     attribution: String(body.attribution || ""),
     flowNo: getUUID(10),
     accountId: body.accountId ? Number(body.accountId) : null,
-    accountDelta:
-      body.accountDelta !== undefined && body.accountDelta !== null
-        ? Number(body.accountDelta)
-        : null,
   };
 
   const created = await prisma.$transaction(async (tx) => {
-    const delta = resolveFlowAccountDelta({
-      flowType: flow.flowType,
-      money: flow.money,
-      accountDelta: flow.accountDelta,
-    });
     const row = await tx.flow.create({
-      data: {
-        ...flow,
-        accountDelta: flow.accountId ? delta : null,
-        accountBal: null,
-      },
+      data: flow,
     });
     await recalcFundAccountFromFlows(flow.accountId ?? undefined, tx);
     return row;
