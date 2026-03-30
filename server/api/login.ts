@@ -47,6 +47,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const secretKey = useRuntimeConfig().authSecret;
+  const env = useRuntimeConfig().env;
   const expiresInDays = 30;
   const expiresInSeconds = expiresInDays * 24 * 60 * 60;
 
@@ -73,7 +74,7 @@ export default defineEventHandler(async (event) => {
     token,
   };
 
-  const isProduction = process.env.NODE_ENV === "production";
+  const isProduction = env == "production";
   console.log("isProduction", isProduction);
   setCookie(event, "Authorization", token, {
     maxAge: expiresInSeconds,

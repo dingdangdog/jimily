@@ -420,12 +420,12 @@ export const useThemeStore = defineStore("theme", () => {
     if (!process.client) {
       return;
     }
-
+    const env = useRuntimeConfig().env;
     // 优先从 cookie 读取（SSR 时已设置），然后从 localStorage 读取
     const themeModeCookie = useCookie<ThemeMode>("themeMode", {
       default: () => "light",
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: env == "production",
     });
 
     const savedMode =
@@ -444,7 +444,7 @@ export const useThemeStore = defineStore("theme", () => {
     const themeNamesCookie = useCookie<string>("themeNames", {
       default: () => "",
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: env == "production",
     });
 
     let savedThemeNames: ThemeDefaults | null = null;
@@ -482,6 +482,7 @@ export const useThemeStore = defineStore("theme", () => {
     }
 
     currentMode.value = mode;
+    const env = useRuntimeConfig().env;
 
     if (process.client) {
       localStorage.setItem("themeMode", mode);
@@ -489,7 +490,7 @@ export const useThemeStore = defineStore("theme", () => {
       const themeModeCookie = useCookie<ThemeMode>("themeMode", {
         default: () => "light",
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        secure: env == "production",
       });
       themeModeCookie.value = mode;
       applyThemeToDocument();
@@ -507,6 +508,7 @@ export const useThemeStore = defineStore("theme", () => {
   watch(
     () => ({ ...themeNames.value }),
     (newNames) => {
+      const env = useRuntimeConfig().env;
       // 当主题名称变化时，保存到 localStorage 和 cookie
       if (process.client) {
         saveThemeNamesToStorage(newNames);
@@ -514,7 +516,7 @@ export const useThemeStore = defineStore("theme", () => {
         const themeNamesCookie = useCookie<string>("themeNames", {
           default: () => "",
           sameSite: "lax",
-          secure: process.env.NODE_ENV === "production",
+          secure: env == "production",
         });
         themeNamesCookie.value = JSON.stringify(newNames);
       }

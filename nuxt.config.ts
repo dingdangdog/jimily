@@ -96,6 +96,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {},
+    env: "development",
     appVersion: "",
     dataPath: "",
     authSecret: "",
