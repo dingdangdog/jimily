@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
   const payload = getAuthPayload(event);
   if (!payload?.id) {
-    return noPermissions("未授权或 token 无效");
+    return noPermissions("未登录或登录失效");
   }
 
   if (isUnderApiBase(pathname, "/api/admin")) {

@@ -60,7 +60,7 @@ function parseConversationId(body: Record<string, unknown>): number | null {
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);
   if (!userId) {
-    return error("未授权或 token 无效");
+    return error("未登录或登录失效");
   }
 
   const body = (await readBody(event).catch(() => ({}))) as Record<
