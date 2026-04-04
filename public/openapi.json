@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Jimily API",
-    "version": "5.1.3",
+    "version": "5.1.4",
     "description": "接口文档由 swagger-jsdoc 从注释合并生成，并已做 schema 规范化；仍可能与实现略有出入，请以实际响应为准。\n\n**响应信封**：多数 JSON 接口返回 `{ c, m, d }`（见 Models 中的 **ApiEnvelope**）。`c=200` 表示成功；`400` 未登录或无权限等；`500` 业务失败。\n\n**请求体**：未单独声明的接口在文档中可能显示为 **GenericJsonRequest**（任意 JSON 字段），具体字段可对照源码或下方 DTO（如 Flow、CreateFlowDto）。"
   },
   "servers": [

@@ -1,9 +1,5 @@
 # Jimily / 记米粒
 
-
-
-
-
 - 在线体验：[jimily.oldmoon.top](https://jimily.oldmoon.top/) (体验账号: `jimilydemo`/`jimily2026`)
 - QQ交流群：`564081656`
 
