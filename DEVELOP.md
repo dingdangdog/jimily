@@ -1,4 +1,5 @@
 ```bash
+docker build -t dingdangdog/jimily:5.1.4 .
 # 首次使用时创建并启用 buildx builder
 docker buildx create --name jimily-builder --use
 docker buildx inspect --bootstrap
@@ -22,3 +23,4 @@ docker save -o jimily.5.1.3.tar dingdangdog/jimily:5.1.3
 
 docker load -i jimily.5.1.3.tar
 ```
+
