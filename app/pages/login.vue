@@ -207,7 +207,7 @@ const toGithub = () => {
         <SunIcon v-if="isDark" class="w-5 h-5 text-foreground" />
         <MoonIcon v-else class="w-5 h-5 text-foreground" />
       </button>
-
+      <!--
       <button
         @click="toDocumentation()"
         class="p-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg bg-surface-muted text-foreground/70 hover:bg-surface border border-border"
@@ -227,6 +227,7 @@ const toGithub = () => {
           />
         </svg>
       </button>
+      -->
     </div>
 
     <div class="flex flex-col items-center justify-center h-full p-4 sm:px-4 -mt-12">

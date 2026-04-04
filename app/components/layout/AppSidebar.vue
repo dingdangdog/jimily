@@ -137,24 +137,24 @@ const adminMenuItems: Menu[] = [
 
 /** 辅助菜单（文档、外链等） */
 const auxiliaryMenuItems: Menu[] = [
-  {
-    title: "文档站",
-    path: "documentation",
-    icon: BookOpenIcon,
-    color: "text-indigo-500",
-  },
+  //{
+    //title: "文档站",
+    //path: "documentation",
+    //icon: BookOpenIcon,
+    //color: "text-indigo-500",
+  //},
   {
     title: "接口文档",
     path: "/api-docs",
     icon: DocumentMagnifyingGlassIcon,
     color: "text-indigo-500",
   },
-  {
-    title: "Github",
-    path: "github",
-    icon: CodeBracketIcon,
-    color: "text-gray-600 dark:text-gray-400",
-  },
+  //{
+    //title: "Github",
+    //path: "github",
+    //icon: CodeBracketIcon,
+    //color: "text-gray-600 dark:text-gray-400",
+  //},
 ];
 
 const isAdmin = computed(() => userStore.isAdmin);
