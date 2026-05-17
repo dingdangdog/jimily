@@ -28,7 +28,7 @@ ENV DATABASE_URL="postgresql://postgres:123456@localhost:5432/cashbook5?schema=p
 
 # production, development
 ENV NUXT_ENV="development" 
-ENV NUXT_APP_VERSION="5.1.4"
+ENV NUXT_APP_VERSION="5.1.5"
 ENV NUXT_DATA_PATH="/app/data"
 ENV NUXT_AUTH_SECRET="auth123"
 
