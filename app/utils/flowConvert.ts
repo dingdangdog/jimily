@@ -1,6 +1,33 @@
 import { typeRelationStore } from "./store";
 import type { Flow } from "~/utils/table";
 
+/** 支付宝 CSV 表头行 fallback（肉眼可见第 24 行，0-based 索引 23） */
+export const ALIPAY_TITLE_ROW_FALLBACK = 23;
+/** 微信 CSV 表头行 fallback（肉眼可见第 17 行，0-based 索引 16） */
+export const WXPAY_TITLE_ROW_FALLBACK = 16;
+/** 京东金融 CSV 表头行 fallback（肉眼可见第 22 行，0-based 索引 21） */
+export const JDFINANCE_TITLE_ROW_FALLBACK = 21;
+
+const TITLE_ROW_MARKER = "交易时间";
+
+/**
+ * 在 sheet 中查找第一列为 marker 的行作为表头；找不到则返回 fallbackIndex。
+ */
+export function resolveTitleRowIndex(
+  sheetData: unknown[][],
+  marker: string = TITLE_ROW_MARKER,
+  fallbackIndex: number
+): number {
+  const want = marker.trim();
+  for (let i = 0; i < sheetData.length; i++) {
+    const row = sheetData[i];
+    if (!row?.length) continue;
+    const first = row[0] != null ? String(row[0]).trim() : "";
+    if (first === want) return i;
+  }
+  return fallbackIndex;
+}
+
 /**
  * 模板导入
  */

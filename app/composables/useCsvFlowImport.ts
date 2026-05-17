@@ -3,7 +3,11 @@ import { Alert } from "~/utils/alert";
 import * as XLSX from "xlsx";
 import {
   alipayConvert,
+  ALIPAY_TITLE_ROW_FALLBACK,
+  JDFINANCE_TITLE_ROW_FALLBACK,
   jdFinanceConvert,
+  resolveTitleRowIndex,
+  WXPAY_TITLE_ROW_FALLBACK,
   wxpayConvert,
   templateConvert,
 } from "@/utils/flowConvert";
@@ -31,9 +35,9 @@ export function useCsvFlowImport(options?: { onImportSuccess?: () => void }) {
       csvFileInput.value.value = "";
     }
     fileType.value = type;
-    if (type === "alipay") titleRowIndex.value = 24;
-    else if (type === "wxpay") titleRowIndex.value = 17;
-    else if (type === "jdFinance") titleRowIndex.value = 21;
+    if (type === "alipay") titleRowIndex.value = ALIPAY_TITLE_ROW_FALLBACK;
+    else if (type === "wxpay") titleRowIndex.value = WXPAY_TITLE_ROW_FALLBACK;
+    else if (type === "jdFinance") titleRowIndex.value = JDFINANCE_TITLE_ROW_FALLBACK;
     closeDrawer?.();
     nextTick(() => csvFileInput.value?.click());
   };
@@ -66,6 +70,25 @@ export function useCsvFlowImport(options?: { onImportSuccess?: () => void }) {
           return { sheetName, sheetData };
         });
         const sheetData: any[] = sheets[0]?.sheetData || [];
+        if (fileType.value === "alipay") {
+          titleRowIndex.value = resolveTitleRowIndex(
+            sheetData,
+            "交易时间",
+            ALIPAY_TITLE_ROW_FALLBACK,
+          );
+        } else if (fileType.value === "wxpay") {
+          titleRowIndex.value = resolveTitleRowIndex(
+            sheetData,
+            "交易时间",
+            WXPAY_TITLE_ROW_FALLBACK,
+          );
+        } else if (fileType.value === "jdFinance") {
+          titleRowIndex.value = resolveTitleRowIndex(
+            sheetData,
+            "交易时间",
+            JDFINANCE_TITLE_ROW_FALLBACK,
+          );
+        }
         const firstSheetName = workbook.SheetNames[0];
         const rawSheet =
           firstSheetName != null

@@ -302,7 +302,11 @@ import FlowJsonImportDialog from "@/components/dialog/FlowJsonImportDialog.vue";
 import * as XLSX from "xlsx";
 import {
   alipayConvert,
+  ALIPAY_TITLE_ROW_FALLBACK,
+  JDFINANCE_TITLE_ROW_FALLBACK,
   jdFinanceConvert,
+  resolveTitleRowIndex,
+  WXPAY_TITLE_ROW_FALLBACK,
   wxpayConvert,
   templateConvert,
 } from "@/utils/flowConvert";
@@ -668,14 +672,11 @@ const openCsvImport = (type: string) => {
   }
   fileType.value = type;
   if (fileType.value === "alipay") {
-    // 支付宝表头行是第25行，索引是24
-    titleRowIndex.value = 24;
+    titleRowIndex.value = ALIPAY_TITLE_ROW_FALLBACK;
   } else if (fileType.value === "wxpay") {
-    // 微信表头行是第17行，索引是16
-    titleRowIndex.value = 16;
+    titleRowIndex.value = WXPAY_TITLE_ROW_FALLBACK;
   } else if (fileType.value === "jdFinance") {
-    // 京东金融表头行是第22行，索引是21
-    titleRowIndex.value = 21;
+    titleRowIndex.value = JDFINANCE_TITLE_ROW_FALLBACK;
   }
   importDrawer.value = false;
   csvFileInput.value.click();
@@ -738,6 +739,25 @@ const readCsvInfo = (event: Event) => {
 
       // 数据集合--csv默认只有一个sheet，所以只需要取第一个sheet
       const sheetData: any[] = sheets[0]?.sheetData ?? [];
+      if (fileType.value === "alipay") {
+        titleRowIndex.value = resolveTitleRowIndex(
+          sheetData,
+          "交易时间",
+          ALIPAY_TITLE_ROW_FALLBACK,
+        );
+      } else if (fileType.value === "wxpay") {
+        titleRowIndex.value = resolveTitleRowIndex(
+          sheetData,
+          "交易时间",
+          WXPAY_TITLE_ROW_FALLBACK,
+        );
+      } else if (fileType.value === "jdFinance") {
+        titleRowIndex.value = resolveTitleRowIndex(
+          sheetData,
+          "交易时间",
+          JDFINANCE_TITLE_ROW_FALLBACK,
+        );
+      }
       const firstSheetName = workbook.SheetNames[0];
       const rawSheet =
         firstSheetName != null
