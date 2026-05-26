@@ -126,7 +126,7 @@ export default defineNitroPlugin(async () => {
 1. 按目录名排序读取 `prisma/migrations/<name>/migration.sql`。
 2. 若目标库不存在（PostgreSQL `3D000`），用 bootstrap 连接执行 `CREATE DATABASE`。
 3. 创建/使用 schema，获取 `pg_advisory_lock` 避免多实例并发迁移。
-4. 维护 `_prisma_migrations` 表（字段与 Prisma 一致），checksum 为 SQL 的 SHA-256。
+4. 维护 `_prisma_migrations` 表（字段与 Prisma 一致），checksum 为 SQL 的 SHA-256（新记录按 LF 归一化写入；校验时兼容旧 runner / Prisma CLI 的多种行尾 hash，见 `docs/039-migration-checksum-backward-compat.md`）。
 5. **Baseline**：已有业务表但无迁移历史时，若通过 `validateExistingSchemaIsLatest` 校验则只写入迁移记录、不重复执行 SQL（见下节适配说明）。
 6. 对其余未应用迁移在事务中执行 SQL 并记录。
 

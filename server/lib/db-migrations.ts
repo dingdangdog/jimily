@@ -11,6 +11,7 @@ const LOCK_KEY_2 = 1;
 type MigrationFile = {
   name: string;
   sql: string;
+  rawSql: string;
   checksum: string;
 };
 
@@ -45,8 +46,43 @@ const EXPECTED_TABLES = [
 
 let migrationTask: Promise<void> | null = null;
 
-function getChecksum(sql: string) {
-  return createHash("sha256").update(sql).digest("hex");
+/** 与 Prisma migrate 一致：SHA-256 基于 LF 归一化后的 migration.sql */
+function normalizeMigrationSql(sql: string): string {
+  return sql.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+function sha256Hex(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+/** 新写入 _prisma_migrations 的 canonical checksum（LF 归一化，与 Prisma 一致） */
+function getChecksum(sql: string): string {
+  return sha256Hex(normalizeMigrationSql(sql));
+}
+
+/**
+ * 校验已存 checksum 是否可接受（兼容线上已有库，不强制改历史记录）：
+ * - 旧版 runner：对磁盘原文直接 SHA-256（常含 CRLF）
+ * - Prisma CLI：对比时同时认可 LF / CRLF 两种内容
+ * - 新版 runner：LF 归一化后的 SHA-256
+ */
+function buildMigrationChecksumCandidates(rawSql: string): Set<string> {
+  const candidates = new Set<string>();
+  const normalized = normalizeMigrationSql(rawSql);
+
+  candidates.add(sha256Hex(normalized));
+  candidates.add(sha256Hex(rawSql));
+  candidates.add(sha256Hex(normalized.replace(/\n/g, "\r\n")));
+
+  if (rawSql.includes("\r\n")) {
+    candidates.add(sha256Hex(rawSql.replace(/\r\n/g, "\n")));
+  }
+
+  return candidates;
+}
+
+function checksumMatches(stored: string, rawSql: string): boolean {
+  return buildMigrationChecksumCandidates(rawSql).has(stored);
 }
 
 function quoteIdentifier(value: string) {
@@ -99,15 +135,16 @@ async function readMigrationFiles(): Promise<MigrationFile[]> {
       .filter((entry) => entry.isDirectory())
       .sort((a, b) => a.name.localeCompare(b.name))
       .map(async (entry) => {
-        const sql = await readFile(
+        const raw = await readFile(
           path.join(MIGRATIONS_DIR, entry.name, "migration.sql"),
           "utf8"
         );
 
         return {
           name: entry.name,
-          sql,
-          checksum: getChecksum(sql),
+          sql: normalizeMigrationSql(raw),
+          rawSql: raw,
+          checksum: getChecksum(raw),
         };
       })
   );
@@ -345,7 +382,7 @@ async function applyPendingMigrations() {
       const appliedChecksum = applied.get(migration.name);
 
       if (appliedChecksum) {
-        if (appliedChecksum !== migration.checksum) {
+        if (!checksumMatches(appliedChecksum, migration.rawSql)) {
           throw new Error(
             `Migration checksum mismatch: ${migration.name}. Existing databases cannot safely apply a modified migration file.`
           );

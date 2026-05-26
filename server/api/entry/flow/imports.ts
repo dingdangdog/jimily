@@ -2,8 +2,7 @@ import crypto from "crypto";
 import prisma from "~~/server/lib/prisma";
 import {
   recalcFundAccountFromFlows,
-  resolveFundAccountByChannelText,
-  getOrCreateCashFundAccount,
+  resolveImportFlowAccountId,
 } from "~~/server/utils/db";
 
 /** 根据时间+金额+账户+名称生成唯一流水编号（无第三方订单号时用于去重） */
@@ -77,29 +76,17 @@ export default defineEventHandler(async (event) => {
     return success({ count: 0, skipped: 0 });
   }
 
-  const resolved = await Promise.all(
-    flows.map(async (flow) => {
-      let accountId: number | null =
-        flow.accountId !== undefined && flow.accountId !== null
-          ? Number(flow.accountId)
-          : null;
-      if (accountId != null && !Number.isFinite(accountId)) {
-        accountId = null;
-      }
-      const hint = String(
-        flow.channelHint ?? flow.payType ?? "",
-      ).trim();
-      if (accountId == null && hint) {
-        const acc = await resolveFundAccountByChannelText(userId, hint);
-        if (acc) accountId = acc.id;
-      }
-      if (accountId == null) {
-        const cash = await getOrCreateCashFundAccount(userId);
-        accountId = cash.id;
-      }
-      return { flow, accountId };
-    }),
-  );
+  const accountCache = new Map<string, number>();
+  const resolved: Array<{ flow: (typeof flows)[number]; accountId: number }> =
+    [];
+  for (const flow of flows) {
+    const accountId = await resolveImportFlowAccountId(
+      userId,
+      flow as Record<string, unknown>,
+      accountCache,
+    );
+    resolved.push({ flow, accountId });
+  }
 
   const withFlowNo = resolved.map(({ flow, accountId }, index) => {
     const rawNo =

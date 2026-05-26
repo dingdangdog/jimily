@@ -128,6 +128,33 @@ const pickArrayFromObject = (obj: Record<string, any>): any[] => {
   return firstArrayKey ? (obj[firstArrayKey] as any[]) : [];
 };
 
+const extractAccountHintFromRaw = (raw: Record<string, any>): string => {
+  const directKeys = [
+    "channelHint",
+    "payType",
+    "accountName",
+    "fundAccount",
+    "资金账户",
+  ] as const;
+  for (const key of directKeys) {
+    const value = raw[key];
+    if (value != null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+
+  if (isPlainObject(raw.account)) {
+    const name = raw.account.name;
+    if (name != null && String(name).trim() !== "") {
+      return String(name).trim();
+    }
+  } else if (typeof raw.account === "string" && raw.account.trim() !== "") {
+    return raw.account.trim();
+  }
+
+  return "";
+};
+
 const mapJsonToFlow = (raw: Record<string, any>): Flow | null => {
   const flow: Flow = {};
 
@@ -159,6 +186,11 @@ const mapJsonToFlow = (raw: Record<string, any>): Flow | null => {
     flow.channelHint = String(raw.channelHint).trim();
   } else if (raw.payType != null) {
     flow.channelHint = String(raw.payType).trim();
+  } else {
+    const accountHint = extractAccountHintFromRaw(raw);
+    if (accountHint) {
+      flow.channelHint = accountHint;
+    }
   }
 
   const moneySource = raw.money ?? raw.amount;
@@ -192,6 +224,11 @@ const mapJsonToFlow = (raw: Record<string, any>): Flow | null => {
 
   if (raw.accountId != null && raw.accountId !== "") {
     const id = Number(raw.accountId);
+    if (Number.isFinite(id)) {
+      flow.accountId = id;
+    }
+  } else if (isPlainObject(raw.account) && raw.account.id != null) {
+    const id = Number(raw.account.id);
     if (Number.isFinite(id)) {
       flow.accountId = id;
     }
@@ -342,10 +379,14 @@ const mergePayTypeToFundAccounts = async (flows: Flow[]): Promise<Flow[]> => {
     await loadFundAccounts();
   }
 
+  const knownAccountIds = new Set(fundAccounts.value.map((account) => account.id));
   const cache = new Map<string, number>();
   const merged: Flow[] = [];
   for (const item of flows) {
     const flow = { ...item };
+    if (flow.accountId != null && !knownAccountIds.has(flow.accountId)) {
+      flow.accountId = undefined;
+    }
     if (flow.accountId == null) {
       const hint = String(flow.channelHint ?? "").trim();
       if (hint) {

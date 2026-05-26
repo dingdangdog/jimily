@@ -125,6 +125,76 @@ export async function resolveFundAccountByChannelText(
   return fuzzy;
 }
 
+/** 从导入流水对象中提取资金账户名称/渠道提示（兼容多种 JSON 字段） */
+export function extractImportAccountHint(flow: Record<string, unknown>): string {
+  const directKeys = [
+    "channelHint",
+    "payType",
+    "accountName",
+    "fundAccount",
+    "资金账户",
+  ] as const;
+  for (const key of directKeys) {
+    const value = flow[key];
+    if (value != null && String(value).trim() !== "") {
+      return String(value).trim();
+    }
+  }
+
+  const account = flow.account;
+  if (account != null && typeof account === "object" && !Array.isArray(account)) {
+    const name = (account as Record<string, unknown>).name;
+    if (name != null && String(name).trim() !== "") {
+      return String(name).trim();
+    }
+  }
+  if (typeof account === "string" && account.trim() !== "") {
+    return account.trim();
+  }
+
+  return "";
+}
+
+function normalizeImportAccountHint(value: string): string {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+
+/**
+ * 按名称获取或创建资金账户（同名只保留一个，忽略大小写）。
+ */
+export async function getOrCreateFundAccountByName(
+  userId: number,
+  name: string,
+): Promise<FundAccount> {
+  const trimmed = String(name || "").trim().slice(0, 100);
+  if (!trimmed) {
+    return getOrCreateCashFundAccount(userId);
+  }
+
+  const existed = await getFundAccountByName(userId, trimmed);
+  if (existed && existed.status !== -1) {
+    return existed;
+  }
+
+  return prisma.fundAccount.create({
+    data: {
+      userId,
+      name: trimmed,
+      currency: "CNY",
+      initialBalance: 0,
+      currentBalance: 0,
+      totalIncome: 0,
+      totalExpense: 0,
+      totalLiability: 0,
+      totalProfit: 0,
+      status: 1,
+    },
+  });
+}
+
 /**
  * 获取用户默认现金账户；若不存在则自动创建。
  * 用于无法从渠道文本/账户信息中解析目标账户时的兜底。
@@ -132,15 +202,10 @@ export async function resolveFundAccountByChannelText(
 export async function getOrCreateCashFundAccount(
   userId: number,
 ): Promise<FundAccount> {
-  const existed = await prisma.fundAccount.findFirst({
-    where: {
-      userId,
-      status: { not: -1 },
-      name: { equals: "现金", mode: "insensitive" },
-    },
-    orderBy: [{ sortBy: "asc" }, { id: "desc" }],
-  });
-  if (existed) return existed;
+  const existed = await getFundAccountByName(userId, "现金");
+  if (existed && existed.status !== -1) {
+    return existed;
+  }
 
   return prisma.fundAccount.create({
     data: {
@@ -157,6 +222,47 @@ export async function getOrCreateCashFundAccount(
       description: "系统默认现金账户",
     },
   });
+}
+
+/**
+ * 批量导入时解析流水归属的资金账户 ID（带缓存，避免并发重复建户）。
+ */
+export async function resolveImportFlowAccountId(
+  userId: number,
+  flow: Record<string, unknown>,
+  cache: Map<string, number>,
+): Promise<number> {
+  if (flow.accountId !== undefined && flow.accountId !== null && flow.accountId !== "") {
+    const id = Number(flow.accountId);
+    if (Number.isFinite(id)) {
+      const valid = await prisma.fundAccount.findFirst({
+        where: { id, userId, status: { not: -1 } },
+        select: { id: true },
+      });
+      if (valid) return valid.id;
+    }
+  }
+
+  const hint = extractImportAccountHint(flow);
+  if (hint) {
+    const cacheKey = `hint:${normalizeImportAccountHint(hint)}`;
+    const cached = cache.get(cacheKey);
+    if (cached != null) return cached;
+
+    const matched = await resolveFundAccountByChannelText(userId, hint);
+    const account =
+      matched ?? (await getOrCreateFundAccountByName(userId, hint));
+    cache.set(cacheKey, account.id);
+    return account.id;
+  }
+
+  const cashKey = "cash";
+  const cashCached = cache.get(cashKey);
+  if (cashCached != null) return cashCached;
+
+  const cash = await getOrCreateCashFundAccount(userId);
+  cache.set(cashKey, cash.id);
+  return cash.id;
 }
 
 /** 分页查询 */

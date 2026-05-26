@@ -1,4 +1,5 @@
 import prisma from "~~/server/lib/prisma";
+import { getFundAccountByName } from "~~/server/utils/db";
 
 export default defineEventHandler(async (event) => {
   const userId = await getUserId(event);
@@ -7,6 +8,11 @@ export default defineEventHandler(async (event) => {
   const name = String(body.name || "").trim();
   if (!name) {
     return error("账户名称不能为空");
+  }
+
+  const existed = await getFundAccountByName(userId, name);
+  if (existed && existed.status !== -1) {
+    return success(existed);
   }
 
   const initialBalance = Number(body.initialBalance ?? 0);
