@@ -1,0 +1,28 @@
+import { getUserId } from "~~/server/utils/jwt";
+import { success, error } from "~~/server/utils/common";
+import { deleteUserChatSession } from "~~/server/lib/ai/user-chat-service";
+
+/** DELETE /api/entry/ai/sessions/:id - 删除对话会话（及其消息） */
+export default defineEventHandler(async (event) => {
+  const userId = await getUserId(event);
+  if (!userId) {
+    return error("未登录或登录失效");
+  }
+
+  const id = getRouterParam(event, "id");
+  if (!id) {
+    return error("缺少会话 ID");
+  }
+
+  const sessionId = Number(id);
+  if (Number.isNaN(sessionId)) {
+    return error("无效的会话 ID");
+  }
+
+  const ok = await deleteUserChatSession(userId, sessionId);
+  if (!ok) {
+    return error("会话不存在或无权访问");
+  }
+
+  return success({ ok: true });
+});

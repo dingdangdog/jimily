@@ -1,0 +1,3753 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Jimily API",
+    "version": "5.1.4",
+    "description": "接口文档由 swagger-jsdoc 从注释合并生成，并已做 schema 规范化；仍可能与实现略有出入，请以实际响应为准。\n\n**响应信封**：多数 JSON 接口返回 `{ c, m, d }`（见 Models 中的 **ApiEnvelope**）。`c=200` 表示成功；`400` 未登录或无权限等；`500` 业务失败。\n\n**请求体**：未单独声明的接口在文档中可能显示为 **GenericJsonRequest**（任意 JSON 字段），具体字段可对照源码或下方 DTO（如 Flow、CreateFlowDto）。"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:9090",
+      "description": "请以你的服务器地址为准"
+    }
+  ],
+  "tags": [
+    {
+      "name": "基础",
+      "description": "登录、注册、站点配置、健康检查与 OpenAPI 规范入口"
+    },
+    {
+      "name": "用户",
+      "description": "当前用户信息、密码、API 访问令牌"
+    },
+    {
+      "name": "管理后台",
+      "description": "管理员登录与登出"
+    },
+    {
+      "name": "AI 接口（v1）",
+      "description": "对外稳定的 AI 对话 REST API（与站内会话同源数据）"
+    },
+    {
+      "name": "流水",
+      "description": "收支流水：增删改查、分页、导入与关联转换"
+    },
+    {
+      "name": "流水分类",
+      "description": "流水分类、行业类型等类型字典维护"
+    },
+    {
+      "name": "固定流水",
+      "description": "固定（周期性）流水"
+    },
+    {
+      "name": "预算",
+      "description": "预算"
+    },
+    {
+      "name": "应收",
+      "description": "应收及与流水转换"
+    },
+    {
+      "name": "发票",
+      "description": "流水关联发票上传、查看与清理"
+    },
+    {
+      "name": "统计分析",
+      "description": "统计与图表分析"
+    },
+    {
+      "name": "类型映射",
+      "description": "外部类别与系统类别的映射关系"
+    },
+    {
+      "name": "导入候选",
+      "description": "导入流水候选确认、忽略与批量处理"
+    },
+    {
+      "name": "去重",
+      "description": "流水去重"
+    },
+    {
+      "name": "测试",
+      "description": "开发/联调用测试接口"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "ApiEnvelope": {
+        "type": "object",
+        "required": [
+          "c"
+        ],
+        "description": "统一响应：c 为业务码，m 为提示/错误文案，d 为载荷（结构随接口变化，失败时也可能带部分字段）",
+        "properties": {
+          "c": {
+            "type": "integer",
+            "description": "200 成功；400 未登录、无权限或参数错误；500 业务/系统失败",
+            "enum": [
+              200,
+              400,
+              500
+            ],
+            "example": 200
+          },
+          "m": {
+            "type": "string",
+            "description": "提示或错误信息；成功时多为空字符串",
+            "example": ""
+          },
+          "d": {
+            "description": "业务数据：多为对象；部分接口为数组或 null，请以实际响应为准",
+            "nullable": true,
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LoginParam": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "登录用户名"
+          },
+          "password": {
+            "type": "string",
+            "description": "密码"
+          }
+        }
+      },
+      "Result": {
+        "$ref": "#/components/schemas/ApiEnvelope"
+      },
+      "Page": {
+        "type": "object",
+        "description": "通用分页结构（部分接口的 d）",
+        "properties": {
+          "pageNum": {
+            "type": "integer",
+            "description": "当前页码"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页条数"
+          },
+          "pages": {
+            "type": "integer",
+            "description": "总页数"
+          },
+          "total": {
+            "type": "integer",
+            "description": "总条数"
+          },
+          "totalOut": {
+            "type": "number",
+            "description": "总支出金额（部分接口）"
+          },
+          "totalIn": {
+            "type": "number",
+            "description": "总收入金额（部分接口）"
+          },
+          "notInOut": {
+            "type": "number",
+            "description": "不计收支金额（部分接口）"
+          },
+          "data": {
+            "type": "array",
+            "description": "当前页数据",
+            "items": {}
+          }
+        }
+      },
+      "FlowAccountBrief": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "资金账户 ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "账户名称"
+          }
+        }
+      },
+      "FlowPagePayload": {
+        "type": "object",
+        "description": "流水分页结果（含条件范围内汇总）",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "符合条件的总条数"
+          },
+          "pages": {
+            "type": "integer",
+            "description": "总页数（pageSize=-1 查全部时仍返回）"
+          },
+          "totalIn": {
+            "type": "number",
+            "description": "当前条件下收入类金额合计"
+          },
+          "totalOut": {
+            "type": "number",
+            "description": "当前条件下支出类金额合计"
+          },
+          "notInOut": {
+            "type": "number",
+            "description": "当前条件下不计收支金额合计"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlowWithAccount"
+            },
+            "description": "当前页流水行"
+          }
+        }
+      },
+      "FlowBatchDeletePayload": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "实际删除条数"
+          }
+        }
+      },
+      "PageParam": {
+        "type": "object",
+        "properties": {
+          "pageNum": {
+            "type": "integer",
+            "description": "页码，默认 1"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页条数，默认 20"
+          }
+        }
+      },
+      "UserInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "用户 ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "昵称"
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名"
+          },
+          "createDate": {
+            "type": "string",
+            "description": "创建日期"
+          }
+        }
+      },
+      "MonthAnalysis": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "description": "月份 YYYY-MM"
+          },
+          "outSum": {
+            "type": "string",
+            "description": "总支出"
+          },
+          "inSum": {
+            "type": "string",
+            "description": "总收入"
+          },
+          "zeroSum": {
+            "type": "string",
+            "description": "总不计收支"
+          },
+          "maxInType": {
+            "type": "string",
+            "description": "最大收入类型"
+          },
+          "maxInTypeSum": {
+            "type": "string",
+            "description": "最大收入金额"
+          },
+          "maxOutType": {
+            "type": "string",
+            "description": "最大支出类型"
+          },
+          "maxOutTypeSum": {
+            "type": "string",
+            "description": "最大支出金额"
+          },
+          "maxOut": {
+            "$ref": "#/components/schemas/Flow"
+          },
+          "maxIn": {
+            "$ref": "#/components/schemas/Flow"
+          },
+          "maxZero": {
+            "$ref": "#/components/schemas/Flow"
+          }
+        }
+      },
+      "CreateFlowDto": {
+        "type": "object",
+        "description": "新建流水；day 不传则服务端用当前时间",
+        "properties": {
+          "day": {
+            "type": "string",
+            "description": "发生日期（可解析的日期字符串；不传为当前时间）"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "流水类型：收入、支出、不计收支（与界面/数据库一致）"
+          },
+          "industryType": {
+            "type": "string",
+            "description": "行业/分类（支出类型或收入类型）"
+          },
+          "name": {
+            "type": "string",
+            "description": "条目名称/摘要"
+          },
+          "money": {
+            "type": "number",
+            "description": "金额；类型为收入/支出时服务端取绝对值"
+          },
+          "description": {
+            "type": "string",
+            "description": "备注说明"
+          },
+          "attribution": {
+            "type": "string",
+            "description": "流水归属"
+          },
+          "accountId": {
+            "type": "integer",
+            "description": "关联资金账户 ID；不传或 null 表示不关联",
+            "nullable": true
+          },
+          "accountDelta": {
+            "type": "number",
+            "description": "可选；与资金账户联动时的余额变动增量（参与 resolveFlowAccountDelta）",
+            "nullable": true
+          }
+        }
+      },
+      "UpdateFlowDto": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "description": "更新流水；除 id 外字段均可按需部分提交",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "要更新的流水 ID"
+          },
+          "day": {
+            "type": "string",
+            "description": "发生日期"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "流水类型：收入、支出、不计收支"
+          },
+          "industryType": {
+            "type": "string",
+            "description": "行业/分类"
+          },
+          "name": {
+            "type": "string",
+            "description": "条目名称"
+          },
+          "money": {
+            "type": "number",
+            "description": "金额"
+          },
+          "description": {
+            "type": "string",
+            "description": "备注"
+          },
+          "attribution": {
+            "type": "string",
+            "description": "归属"
+          },
+          "accountId": {
+            "type": "integer",
+            "description": "资金账户 ID；传 null 可解除关联",
+            "nullable": true
+          },
+          "accountDelta": {
+            "type": "number",
+            "description": "可选；账户余额变动增量",
+            "nullable": true
+          }
+        }
+      },
+      "FlowListFilter": {
+        "type": "object",
+        "description": "列表查询条件，均为可选，组合 AND",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "按流水 ID 精确匹配"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "流水类型精确匹配"
+          },
+          "industryType": {
+            "type": "string",
+            "description": "行业/分类精确匹配"
+          },
+          "accountId": {
+            "type": "integer",
+            "description": "资金账户 ID 精确匹配"
+          },
+          "startDay": {
+            "type": "string",
+            "description": "日期下限（含）；常与 endDay 同用"
+          },
+          "endDay": {
+            "type": "string",
+            "description": "日期上限（含）"
+          },
+          "name": {
+            "type": "string",
+            "description": "名称模糊匹配"
+          },
+          "attribution": {
+            "type": "string",
+            "description": "归属模糊匹配"
+          },
+          "description": {
+            "type": "string",
+            "description": "备注模糊匹配"
+          },
+          "minMoney": {
+            "type": "number",
+            "description": "金额下限"
+          },
+          "maxMoney": {
+            "type": "number",
+            "description": "金额上限"
+          }
+        }
+      },
+      "FlowPageFilter": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FlowListFilter"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "accountUnassigned": {
+                "type": "boolean",
+                "description": "为 true 时仅返回未关联资金账户的流水"
+              },
+              "pageNum": {
+                "type": "integer",
+                "description": "页码，默认 1"
+              },
+              "pageSize": {
+                "type": "integer",
+                "description": "每页条数，默认 15；-1 表示不分页取全部"
+              },
+              "moneySort": {
+                "type": "string",
+                "description": "金额排序：asc 或 desc；会作为首要排序键"
+              }
+            }
+          }
+        ]
+      },
+      "FlowIdBody": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "流水 ID"
+          }
+        }
+      },
+      "FlowIdsBody": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "待删除的流水 ID 列表"
+          }
+        }
+      },
+      "FlowQuery": {
+        "type": "object",
+        "properties": {
+          "pageNum": {
+            "type": "integer",
+            "description": "页码"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页大小"
+          },
+          "id": {
+            "type": "string",
+            "description": "流水 ID"
+          },
+          "startDay": {
+            "type": "string",
+            "description": "查询起始日期"
+          },
+          "endDay": {
+            "type": "string",
+            "description": "查询结束日期"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "流水类型"
+          },
+          "industryType": {
+            "type": "string",
+            "description": "行业类型"
+          },
+          "accountId": {
+            "type": "integer",
+            "description": "资金账户 ID"
+          },
+          "accountUnassigned": {
+            "type": "boolean",
+            "description": "仅未关联账户的流水"
+          },
+          "name": {
+            "type": "string",
+            "description": "名称关键词"
+          },
+          "attribution": {
+            "type": "string",
+            "description": "归属关键词"
+          },
+          "description": {
+            "type": "string",
+            "description": "描述关键词"
+          },
+          "moneySort": {
+            "type": "string",
+            "description": "金额排序 asc/desc"
+          },
+          "minMoney": {
+            "type": "number",
+            "description": "金额下限"
+          },
+          "maxMoney": {
+            "type": "number",
+            "description": "金额上限"
+          }
+        }
+      },
+      "Server": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "服务器版本"
+          },
+          "dataPath": {
+            "type": "string",
+            "description": "数据目录"
+          },
+          "openRegister": {
+            "type": "boolean",
+            "description": "是否开放注册"
+          }
+        }
+      },
+      "AdminLogin": {
+        "type": "object",
+        "required": [
+          "account",
+          "password"
+        ],
+        "properties": {
+          "account": {
+            "type": "string",
+            "description": "管理员账号"
+          },
+          "password": {
+            "type": "string",
+            "description": "管理员密码"
+          }
+        }
+      },
+      "CommonChartQuery": {
+        "type": "object",
+        "properties": {
+          "flowType": {
+            "type": "string",
+            "description": "流水类型"
+          },
+          "startDay": {
+            "type": "string",
+            "description": "起始日期"
+          },
+          "endDay": {
+            "type": "string",
+            "description": "结束日期"
+          }
+        }
+      },
+      "CommonChartData": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "维度标记，如日期、分类名"
+          },
+          "inSum": {
+            "type": "number",
+            "description": "收入金额"
+          },
+          "outSum": {
+            "type": "number",
+            "description": "支出金额"
+          },
+          "zeroSum": {
+            "type": "number",
+            "description": "不计收支金额"
+          },
+          "accountId": {
+            "type": "integer",
+            "description": "按账户分组时存在",
+            "nullable": true
+          }
+        }
+      },
+      "Typer": {
+        "type": "object",
+        "properties": {
+          "flowType": {
+            "type": "string",
+            "description": "流水类型"
+          },
+          "type": {
+            "type": "string",
+            "description": "类别名称"
+          },
+          "value": {
+            "type": "string",
+            "description": "新类别值"
+          },
+          "oldValue": {
+            "type": "string",
+            "description": "旧类别值（更新时）"
+          }
+        }
+      },
+      "CommonSelectOption": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "展示文本"
+          },
+          "value": {
+            "type": "string",
+            "description": "选项值"
+          }
+        }
+      },
+      "SystemSetting": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "设置 ID"
+          },
+          "title": {
+            "type": "string",
+            "description": "站点标题"
+          },
+          "description": {
+            "type": "string",
+            "description": "站点描述"
+          },
+          "keywords": {
+            "type": "string",
+            "description": "关键词"
+          },
+          "version": {
+            "type": "string",
+            "description": "系统版本号"
+          },
+          "openRegister": {
+            "type": "boolean",
+            "description": "是否开放注册"
+          },
+          "createDate": {
+            "type": "string",
+            "description": "创建日期"
+          },
+          "updateBy": {
+            "type": "string",
+            "description": "最后更新"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "用户 ID"
+          },
+          "username": {
+            "type": "string",
+            "description": "登录账号"
+          },
+          "password": {
+            "type": "string",
+            "description": "密码（响应中通常不应返回）"
+          },
+          "name": {
+            "type": "string",
+            "description": "昵称"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱"
+          },
+          "createDate": {
+            "type": "string",
+            "description": "创建日期"
+          }
+        }
+      },
+      "Flow": {
+        "type": "object",
+        "description": "流水实体（与 Prisma Flow 及 JSON 序列化一致）",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "流水 ID"
+          },
+          "flowNo": {
+            "type": "string",
+            "description": "流水唯一编号"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "所属用户 ID"
+          },
+          "accountId": {
+            "type": "integer",
+            "description": "关联资金账户 ID",
+            "nullable": true
+          },
+          "day": {
+            "type": "string",
+            "description": "发生时间（ISO 8601 字符串）"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "收入、支出、不计收支"
+          },
+          "industryType": {
+            "type": "string",
+            "description": "行业/分类",
+            "nullable": true
+          },
+          "money": {
+            "type": "number",
+            "description": "金额",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "条目名称",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "备注",
+            "nullable": true
+          },
+          "invoice": {
+            "type": "string",
+            "description": "票据/图片路径等",
+            "nullable": true
+          },
+          "origin": {
+            "type": "string",
+            "description": "来源说明",
+            "nullable": true
+          },
+          "attribution": {
+            "type": "string",
+            "description": "归属",
+            "nullable": true
+          },
+          "eliminate": {
+            "type": "integer",
+            "description": "平账：0 未平账；1 已平账；-1 忽略",
+            "nullable": true
+          }
+        }
+      },
+      "FlowWithAccount": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Flow"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "account": {
+                "description": "关联账户摘要；无关联时为 null",
+                "nullable": true,
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/FlowAccountBrief"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "Budget": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "预算 ID"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户 ID"
+          },
+          "month": {
+            "type": "string",
+            "description": "月份 YYYY-MM"
+          },
+          "budget": {
+            "type": "number",
+            "description": "预算金额"
+          },
+          "used": {
+            "type": "number",
+            "description": "已使用金额"
+          }
+        }
+      },
+      "FixedFlow": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "固定流水 ID"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户 ID"
+          },
+          "startMonth": {
+            "type": "string",
+            "description": "开始月份"
+          },
+          "endMonth": {
+            "type": "string",
+            "description": "结束月份"
+          },
+          "month": {
+            "type": "string",
+            "description": "记录月份"
+          },
+          "money": {
+            "type": "number",
+            "description": "金额"
+          },
+          "name": {
+            "type": "string",
+            "description": "名称"
+          },
+          "description": {
+            "type": "string",
+            "description": "备注"
+          },
+          "flowType": {
+            "type": "string",
+            "description": "in / out / zero"
+          },
+          "industryType": {
+            "type": "string",
+            "description": "行业分类"
+          },
+          "attribution": {
+            "type": "string",
+            "description": "归属"
+          }
+        }
+      },
+      "TypeRelation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "关联 ID"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户 ID"
+          },
+          "source": {
+            "type": "string",
+            "description": "源类别（如导入原始类别）"
+          },
+          "target": {
+            "type": "string",
+            "description": "目标系统类别"
+          }
+        }
+      },
+      "GenericJsonRequest": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "JSON 请求体；字段以各接口业务为准，可参考源码或下方 Models 中的 DTO"
+      },
+      "AiV1ChatRequest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "用户消息"
+          },
+          "conversationId": {
+            "type": "integer",
+            "description": "已有对话 ID；不传或无效则新建",
+            "nullable": true
+          },
+          "sessionId": {
+            "type": "integer",
+            "description": "与 conversationId 同义",
+            "nullable": true
+          },
+          "providerId": {
+            "type": "string",
+            "description": "模型提供商 ID（可选）",
+            "nullable": true
+          }
+        }
+      },
+      "AiV1ChatData": {
+        "type": "object",
+        "description": "位于 ApiEnvelope.d；成功时为助手正文；失败时 content 多为错误说明",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "助手回复或失败说明文案"
+          },
+          "conversationId": {
+            "type": "integer",
+            "description": "对话 ID"
+          },
+          "conversation": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "会话元数据 id/title/createdAt/updatedAt 等"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/check": {
+      "get": {
+        "summary": "获取用户数量",
+        "tags": [
+          "基础"
+        ],
+        "responses": {
+          "200": {
+            "description": "用户数量获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "summary": "获取系统配置信息",
+        "tags": [
+          "基础"
+        ],
+        "responses": {
+          "200": {
+            "description": "系统配置获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/analytics/attribution": {
+      "post": {
+        "summary": "获取归属分析数据",
+        "tags": [
+          "统计分析"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "归属分析数据获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/analytics/common": {
+      "post": {
+        "summary": "获取通用图表分析数据",
+        "tags": [
+          "统计分析"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "通用图表分析数据获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/analytics/daily": {
+      "post": {
+        "summary": "获取日常流水分析数据",
+        "tags": [
+          "统计分析"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "日常分析数据获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/analytics/industryType": {
+      "post": {
+        "summary": "获取行业类型分析数据",
+        "tags": [
+          "统计分析"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "行业类型分析数据获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/analytics/month": {
+      "post": {
+        "summary": "获取月度流水分析数据",
+        "tags": [
+          "统计分析"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "月度分析数据获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/analytics/monthAnalysis": {
+      "post": {
+        "summary": "获取月度详细分析数据",
+        "tags": [
+          "统计分析"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "月度详细分析数据获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/budget/add": {
+      "post": {
+        "summary": "添加预算",
+        "tags": [
+          "预算"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "预算添加成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "添加失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/budget/all": {
+      "post": {
+        "summary": "获取账本所有预算",
+        "tags": [
+          "预算"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "预算列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/budget/del": {
+      "post": {
+        "summary": "删除预算",
+        "tags": [
+          "预算"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "预算删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "删除失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/budget/list": {
+      "post": {
+        "summary": "获取预算列表",
+        "tags": [
+          "预算"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "预算列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/budget/reloadUsedAmount": {
+      "post": {
+        "summary": "重新加载预算已使用金额",
+        "tags": [
+          "预算"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "已使用金额重新加载成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/budget/update": {
+      "post": {
+        "summary": "更新预算",
+        "tags": [
+          "预算"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "预算更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "更新失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/fixedFlow/add": {
+      "post": {
+        "summary": "添加固定流水",
+        "tags": [
+          "固定流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "固定流水添加成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "添加失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/fixedFlow/all": {
+      "post": {
+        "summary": "获取账本所有固定流水",
+        "tags": [
+          "固定流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "固定流水列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/fixedFlow/del": {
+      "post": {
+        "summary": "删除固定流水",
+        "tags": [
+          "固定流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "固定流水删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "删除失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/fixedFlow/list": {
+      "post": {
+        "summary": "获取固定流水列表",
+        "tags": [
+          "固定流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "固定流水列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/fixedFlow/update": {
+      "post": {
+        "summary": "更新固定流水",
+        "tags": [
+          "固定流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "固定流水更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "更新失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/add": {
+      "post": {
+        "summary": "添加流水记录",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFlowDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "流水记录添加成功，d 为新建 Flow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "$ref": "#/components/schemas/Flow"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/all": {
+      "get": {
+        "summary": "获取账本所有流水记录",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "流水记录列表获取成功，d 为 FlowWithAccount 数组",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FlowWithAccount"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/condidate/autos": {
+      "post": {
+        "summary": "自动查找候选平账记录",
+        "tags": [
+          "导入候选"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "候选记录获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/condidate/confirm": {
+      "post": {
+        "summary": "确认候选平账记录",
+        "tags": [
+          "导入候选"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "平账确认成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "确认失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/condidate/ignore": {
+      "post": {
+        "summary": "忽略候选平账记录",
+        "tags": [
+          "导入候选"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "忽略成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "忽略失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/condidate/ignoreAll": {
+      "post": {
+        "summary": "批量忽略候选平账记录",
+        "tags": [
+          "导入候选"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批量忽略成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "忽略失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/condidate/patchcomfirm": {
+      "post": {
+        "summary": "批量确认候选平账记录",
+        "tags": [
+          "导入候选"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": "array 批量平账项，元素字段 outId(number)、inIds(number 数组)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批量平账确认成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "确认失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/condidate/patchignore": {
+      "post": {
+        "summary": "批量忽略候选平账记录",
+        "tags": [
+          "导入候选"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批量忽略成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "批量忽略失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/deduplication/autos": {
+      "post": {
+        "summary": "自动查找重复流水记录",
+        "tags": [
+          "去重"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "重复记录查找成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "查找失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/del": {
+      "post": {
+        "summary": "删除流水记录",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowIdBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "流水记录删除成功，d 为被删除的 Flow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "$ref": "#/components/schemas/Flow"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "删除失败（缺少 id 或无权访问）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/dels": {
+      "post": {
+        "summary": "批量删除流水记录",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowIdsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批量删除成功，d 为 deleteMany 结果 { count }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "$ref": "#/components/schemas/FlowBatchDeletePayload"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "删除失败（如缺少 ids）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/getAttributions": {
+      "post": {
+        "summary": "获取流水归属列表",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "流水归属列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/getNames": {
+      "post": {
+        "summary": "获取流水名称列表",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "流水名称列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/imports": {
+      "post": {
+        "summary": "批量导入流水记录",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "导入成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "导入失败"
+          }
+        }
+      }
+    },
+    "/api/entry/flow/invoice/clean": {
+      "post": {
+        "summary": "清理流水所有发票",
+        "tags": [
+          "发票"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "发票清理成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "清理失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/invoice/del": {
+      "post": {
+        "summary": "删除流水发票",
+        "tags": [
+          "发票"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "发票删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "删除失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/invoice/show": {
+      "get": {
+        "summary": "显示发票图片",
+        "tags": [
+          "发票"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "invoice",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "发票文件名"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "发票图片",
+            "content": {
+              "image/*": {
+                "schema": {
+                  "Blob": "文件流，前端直接显示图片"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/invoice/upload": {
+      "post": {
+        "summary": "上传流水发票",
+        "tags": [
+          "发票"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "id": "number 流水ID",
+                "invoice": "string 发票文件名"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "发票上传成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "上传失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/list": {
+      "post": {
+        "summary": "获取流水记录列表",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowListFilter"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "流水记录列表获取成功，d 为 FlowWithAccount 数组",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FlowWithAccount"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/page": {
+      "post": {
+        "summary": "分页获取流水记录列表",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowPageFilter"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "分页数据获取成功，d 为 FlowPagePayload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "$ref": "#/components/schemas/FlowPagePayload"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "获取失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/toreceivable": {
+      "post": {
+        "summary": "将支出流水转换为待收款（借出记录）",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "转换成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "转换失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/type/getAll": {
+      "post": {
+        "summary": "获取所有流水类型",
+        "tags": [
+          "流水分类"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "类型列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/type/getIndustryType": {
+      "post": {
+        "summary": "获取行业类型列表",
+        "tags": [
+          "流水分类"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "行业类型列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/type/update": {
+      "post": {
+        "summary": "更新流水类型",
+        "tags": [
+          "流水分类"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "类型更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "更新失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/update": {
+      "post": {
+        "summary": "更新流水记录",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFlowDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "流水记录更新成功，d 为更新后的 Flow",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "$ref": "#/components/schemas/Flow"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "更新失败（如缺少 id 或记录不存在）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/flow/updates": {
+      "post": {
+        "summary": "批量更新流水记录",
+        "tags": [
+          "流水"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "批量更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "更新失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/receivable/add": {
+      "post": {
+        "summary": "添加待收款",
+        "tags": [
+          "应收"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "待收款添加成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "添加失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/receivable/all": {
+      "post": {
+        "summary": "获取账本所有待收款",
+        "tags": [
+          "应收"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "待收款列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/receivable/del": {
+      "post": {
+        "summary": "删除待收款",
+        "tags": [
+          "应收"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "待收款删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "删除失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/receivable/list": {
+      "post": {
+        "summary": "获取待收款列表（分页）",
+        "tags": [
+          "应收"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "待收款列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/receivable/toflow": {
+      "post": {
+        "summary": "将待收款转换为收入流水",
+        "tags": [
+          "应收"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "转换成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "转换失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/receivable/update": {
+      "post": {
+        "summary": "更新待收款",
+        "tags": [
+          "应收"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "待收款更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "更新失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/test": {
+      "get": {
+        "summary": "测试接口",
+        "tags": [
+          "测试"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "测试成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/typeRelation/list": {
+      "post": {
+        "summary": "获取类型关系列表",
+        "tags": [
+          "类型映射"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "类型关系列表获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/typeRelation/update": {
+      "post": {
+        "summary": "更新类型关系",
+        "tags": [
+          "类型映射"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "类型关系更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/user/api-token/issue": {
+      "post": {
+        "summary": "为当前登录用户签发 API 访问令牌（仅响应体，不写 Cookie）",
+        "tags": [
+          "用户"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "签发成功"
+          }
+        }
+      }
+    },
+    "/api/entry/user/changePassword": {
+      "post": {
+        "summary": "修改用户密码",
+        "tags": [
+          "用户"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "密码修改成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "密码修改失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entry/user/info": {
+      "get": {
+        "summary": "获取用户信息",
+        "tags": [
+          "用户"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户信息获取成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "summary": "用户登录",
+        "tags": [
+          "基础"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginParam"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功，响应为统一信封 ApiEnvelope，d 中含用户信息及 token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "登录失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "post": {
+        "summary": "用户退出登录",
+        "tags": [
+          "基础"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "退出成功"
+          }
+        }
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "summary": "获取OpenAPI规范文档",
+        "tags": [
+          "基础"
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.x JSON 文档",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "完整 OpenAPI 根对象"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/register": {
+      "post": {
+        "summary": "用户注册",
+        "tags": [
+          "基础"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenericJsonRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "注册失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/chat": {
+      "post": {
+        "summary": "发送用户消息并获取 AI 回复（持久化，与网页 Jimi 同源）",
+        "description": "鉴权：Cookie 登录或 Authorization Bearer（用户 API 令牌）。\n成功时 d 含 content、conversationId、conversation；\nAI 失败时 c=500，d 仍可能含 conversationId、content（失败说明）、conversation。\n",
+        "tags": [
+          "AI 接口（v1）"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiV1ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "$ref": "#/components/schemas/AiV1ChatData"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "AI 或业务失败（d 可能仍含会话信息）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "d": {
+                          "$ref": "#/components/schemas/AiV1ChatData"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/conversations": {
+      "get": {
+        "summary": "列出当前用户的 AI 对话（与网页端会话同源）",
+        "description": "鉴权：Cookie 或 Authorization Bearer（用户 API 令牌）",
+        "tags": [
+          "AI 接口（v1）"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功，d.conversations 为数组",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "主动创建空对话",
+        "description": "鉴权同 GET conversations。请求体可选 title。",
+        "tags": [
+          "AI 接口（v1）"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "string 对话标题（可选，最长约 200 字符）"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功，d.conversation 为新建会话",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/conversations/{id}": {
+      "delete": {
+        "summary": "删除指定对话",
+        "tags": [
+          "AI 接口（v1）"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "对话 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功，d 含 ok、conversationId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "ID 无效或无权访问"
+          }
+        }
+      },
+      "get": {
+        "summary": "获取指定对话元数据",
+        "tags": [
+          "AI 接口（v1）"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "对话 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功，d.conversation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "参数无效"
+          }
+        }
+      },
+      "patch": {
+        "summary": "修改对话标题",
+        "tags": [
+          "AI 接口（v1）"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "对话 ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "string 新标题；传 null 或空字符串可清空"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功，d.conversation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "缺少 title 或 ID 无效"
+          }
+        }
+      }
+    },
+    "/api/v1/ai/conversations/{id}/messages": {
+      "get": {
+        "summary": "拉取对话下的消息列表",
+        "tags": [
+          "AI 接口（v1）"
+        ],
+        "security": [
+          {
+            "Authorization": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "对话 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功，d 含 conversationId、messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "对话不存在或无权访问"
+          }
+        }
+      }
+    }
+  }
+}

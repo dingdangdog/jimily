@@ -1,0 +1,94 @@
+import prisma from "~~/server/lib/prisma";
+import { recalcFundAccountFromFlows } from "~~/server/utils/db";
+
+/**
+ * @swagger
+ * /api/entry/flow/updates:
+ *   post:
+ *     summary: 批量更新流水记录
+ *     tags: ["流水"]
+ *     security:
+ *       - Authorization: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             ids: number[] 流水ID数组
+ *             flowType: string 流水类型（可选）
+ *             industryType: string 行业分类（可选）
+ *             attribution: string 归属（可选）
+ *     responses:
+ *       200:
+ *         description: 批量更新成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               Result:
+ *                 d: number 更新的记录数量
+ *       400:
+ *         description: 更新失败
+ *         content:
+ *           application/json:
+ *             schema:
+ *               Error: {
+ *                 message: "Not Find ID"
+ *               }
+ */
+export default defineEventHandler(async (event) => {
+  const userId = await getUserId(event);
+  const body = await readBody(event);
+  const ids = body.ids;
+  const { flowType, industryType, attribution, accountId } = body;
+
+  if (!ids) {
+    return error("Not Find ID");
+  }
+
+  const updateInfo: any = {};
+  if (flowType) {
+    updateInfo.flowType = String(flowType);
+  }
+  if (industryType) {
+    updateInfo.industryType = String(industryType);
+  }
+  if (attribution) {
+    updateInfo.attribution = String(attribution);
+  }
+  const hasAccountIdUpdate = accountId !== undefined;
+  const nextAccountId =
+    hasAccountIdUpdate ? (accountId ? Number(accountId) : null) : undefined;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const rows = await tx.flow.findMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+    });
+
+    const accountIds = new Set<number>();
+    let count = 0;
+    for (const row of rows) {
+      const targetAccountId =
+        nextAccountId !== undefined ? nextAccountId : row.accountId;
+      if (row.accountId) accountIds.add(row.accountId);
+      if (targetAccountId) accountIds.add(targetAccountId);
+
+      await tx.flow.update({
+        where: { id: row.id },
+        data: {
+          ...updateInfo,
+          accountId: targetAccountId,
+        },
+      });
+      count++;
+    }
+
+    for (const accountId of accountIds) {
+      await recalcFundAccountFromFlows(accountId, tx);
+    }
+    return { count };
+  });
+  return success(updated);
+});

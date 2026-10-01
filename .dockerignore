@@ -1,0 +1,10 @@
+.nuxt/
+.output/
+.github/
+.git/
+
+node_modules/
+data/
+doc/
+
+*.tar

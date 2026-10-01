@@ -1,0 +1,208 @@
+import prisma from "~~/server/lib/prisma";
+
+/**
+ * @swagger
+ * /api/entry/analytics/monthAnalysis:
+ *   post:
+ *     summary: 获取月度详细分析数据
+ *     tags: ["统计分析"]
+ *     security:
+ *       - Authorization: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             month: string 月份（YYYY-MM格式）
+ *             flowType: string 流水类型（可选）
+ *     responses:
+ *       200:
+ *         description: 月度详细分析数据获取成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               Result: {
+ *                 d: {
+ *                   month: 月份,
+ *                   inSum: 总收入,
+ *                   outSum: 总支出,
+ *                   zeroSum: 总不计收支,
+ *                   maxInType: 最大收入类型,
+ *                   maxInTypeSum: 最大收入类型金额,
+ *                   maxOutType: 最大支出类型,
+ *                   maxOutTypeSum: 最大支出类型金额,
+ *                   maxIn: 最大单笔收入记录,
+ *                   maxOut: 最大单笔支出记录,
+ *                   maxZero: 最大单笔不计收支记录
+ *                 }
+ *               }
+ *       400:
+ *         description: 获取失败
+ *         content:
+ *           application/json:
+ *             schema:
+ */
+export default defineEventHandler(async (event) => {
+  const userId = await getUserId(event);
+  const { flowType, month } = await readBody(event);
+  if (!month) {
+    return error("Not Find Month");
+  }
+
+  const monthStart = new Date(month + "-01");
+  const monthEnd = new Date(monthStart);
+  monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+  const where: any = {
+    userId,
+    day: {
+      gte: monthStart,
+      lt: monthEnd,
+    },
+  };
+
+  if (flowType) {
+    where.flowType = {
+      equals: flowType,
+    };
+  }
+
+  const count = await prisma.flow.count({ where });
+  if (count <= 0) {
+    return error("暂无数据");
+  }
+
+  //
+  // Month      string `json:"month"`
+  // OutSum     string `json:"outSum"`     // 总支出
+  // InSum      string `json:"inSum"`      // 总收入
+  // ZeroSum    string `json:"zeroSum"`    // 总不计收支
+  // MaxType    string `json:"maxType"`    // 最大支出类型
+  // MaxTypeSum string `json:"maxTypeSum"` // 最大支出金额
+  // MaxOut     Flow   `json:"maxOut"`     // 最大单笔支出
+  // MaxIn      Flow   `json:"maxIn"`      // 最大单笔收入
+  const res: any = {
+    month,
+    inSum: 0,
+    outSum: 0,
+    zeroSum: 0,
+    maxInType: "",
+    maxInTypeSum: 0,
+    maxOutType: "",
+    maxOutTypeSum: 0,
+    maxIn: {},
+    maxOut: {},
+    maxZero: {},
+  };
+
+  // 1. 按月查询当月总收入、总支出、总不计收支
+  const monthSum = await prisma.flow.groupBy({
+    by: ["flowType"],
+    _sum: {
+      money: true,
+    },
+    where,
+  });
+  monthSum.forEach((item) => {
+    const raw = item._sum.money || 0;
+    if (item.flowType == "收入") {
+      res.inSum = Math.abs(raw).toFixed(2);
+    } else if (item.flowType == "支出") {
+      res.outSum = Math.abs(raw).toFixed(2);
+    } else if (item.flowType == "不计收支") {
+      res.zeroSum = raw.toFixed(2);
+    }
+  });
+
+  // 2. 查询当月最高收入类型
+  const maxInType = await prisma.flow.groupBy({
+    by: ["industryType"],
+    _sum: {
+      money: true,
+    },
+    where: {
+      ...where,
+      flowType: "收入",
+    },
+    orderBy: {
+      _sum: {
+        money: "desc", // 按消费金额降序排列
+      },
+    },
+    take: 1, // 只取第一个结果
+  });
+  if (maxInType[0]) {
+    res.maxInType = maxInType[0].industryType || "";
+    res.maxInTypeSum = Math.abs(maxInType[0]._sum.money || 0).toFixed(2);
+  }
+
+  // 3. 查询当月最高支出类型
+  const maxOutType = await prisma.flow.groupBy({
+    by: ["industryType"],
+    _sum: {
+      money: true,
+    },
+    where: {
+      ...where,
+      flowType: "支出",
+    },
+    orderBy: {
+      _sum: {
+        money: "desc", // 按消费金额降序排列
+      },
+    },
+    take: 1, // 只取第一个结果
+  });
+  if (maxOutType[0]) {
+    res.maxOutType = maxOutType[0].industryType || "";
+    res.maxOutTypeSum = Math.abs(maxOutType[0]._sum.money || 0).toFixed(2);
+  }
+
+  // 4. 查询当月最高单笔收入
+  const maxIn = await prisma.flow.findFirst({
+    where: {
+      ...where,
+      flowType: "收入",
+    },
+    orderBy: {
+      money: "desc",
+    },
+  });
+  // 4b. 为极值流水附加资金账户名称（便于前端展示）
+  const attachAccounts = async (row: (typeof maxIn) | null) => {
+    if (!row) return {};
+    const aid = row.accountId;
+    if (aid == null || !Number.isFinite(Number(aid))) {
+      return { ...row, account: null };
+    }
+    const acc = await prisma.fundAccount.findFirst({
+      where: { userId, id: Number(aid) },
+      select: { id: true, name: true },
+    });
+    return { ...row, account: acc };
+  };
+  res.maxIn = await attachAccounts(maxIn);
+  // 5. 查询当月最高单笔支出
+  const maxOut = await prisma.flow.findFirst({
+    where: {
+      ...where,
+      flowType: "支出",
+    },
+    orderBy: {
+      money: "desc",
+    },
+  });
+  res.maxOut = await attachAccounts(maxOut);
+  // 6. 查询当月最高单笔不计收支
+  const maxZero = await prisma.flow.findFirst({
+    where: {
+      ...where,
+      flowType: "不计收支",
+    },
+    orderBy: {
+      money: "desc",
+    },
+  });
+  res.maxZero = await attachAccounts(maxZero);
+  return success(res);
+});

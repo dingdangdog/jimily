@@ -1,0 +1,51 @@
+import prisma from "~~/server/lib/prisma";
+
+/**
+ * @swagger
+ * /api/entry/flow/condidate/patchignore:
+ *   post:
+ *     summary: 批量忽略候选平账记录
+ *     tags: ["导入候选"]
+ *     security:
+ *       - Authorization: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             ids: number[] 流水记录ID列表（通常为需要忽略的支出侧ID）
+ *     responses:
+ *       200:
+ *         description: 批量忽略成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               Result:
+ *                 d: object 含 count(number) 影响条数
+ *       400:
+ *         description: 批量忽略失败
+ *         content:
+ *           application/json:
+ *             schema:
+ *               message: string 错误信息
+ */
+export default defineEventHandler(async (event) => {
+  const userId = await getUserId(event);
+  const body = await readBody(event);
+  const ids = body.ids as number[] | undefined;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return error("Invalid params: ids are required");
+  }
+
+  const result = await prisma.flow.updateMany({
+    where: {
+      id: { in: ids },
+      userId,
+    },
+    data: {
+      eliminate: -1,
+    },
+  });
+
+  return success({ count: result.count });
+});
