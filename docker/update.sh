@@ -10,7 +10,7 @@ set -eu
 
 # 与 docker-compose.yml / docker-compose.yaml 放在同一目录即可，无需额外配置
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="dingdangdog/jimily-release"
+REPO="dingdangdog/jimily"
 IMAGE_NAME="dingdangdog/jimily"
 LOG_FILE="${DEPLOY_DIR}/update.log"
 

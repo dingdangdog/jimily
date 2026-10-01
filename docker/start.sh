@@ -14,7 +14,7 @@ echo "       记米粒 Jimily 自动更新部署脚本       "
 echo "=========================================="
 echo "本目录应包含: docker-compose.yml（或 .yaml）、update.sh"
 echo "镜像: dingdangdog/jimily"
-echo "Release: https://github.com/dingdangdog/jimily-release/releases"
+echo "Release: https://github.com/dingdangdog/jimily/releases"
 echo "=========================================="
 
 if [ ! -f "$UPDATE_SCRIPT" ]; then
@@ -24,7 +24,7 @@ fi
 
 if [ ! -f "${DEPLOY_DIR}/docker-compose.yml" ] && [ ! -f "${DEPLOY_DIR}/docker-compose.yaml" ]; then
     echo "错误: 未找到 docker-compose.yml / docker-compose.yaml"
-    echo "可参考本仓库 docker/docker-compose-demo.yaml 创建部署文件"
+    echo "可参考本仓库 README 中的 docker-compose 示例创建部署文件"
     exit 1
 fi
 
